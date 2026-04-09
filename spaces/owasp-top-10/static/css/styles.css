@@ -1,0 +1,915 @@
+/* =============================================================================
+   LLM Top 10 Security Lab — Styles
+   Dark theme, tabs + dropdown layout (matches MCP workshop)
+   ============================================================================= */
+
+/* -- Tokens ---------------------------------------------------------------- */
+:root {
+  --bg:             #0a0a0b;
+  --surface:        #141416;
+  --surface-el:     #1c1c1f;
+  --border:         #27272a;
+  --border-active:  #3f3f46;
+
+  --text:           #fafafa;
+  --text-sec:       #a1a1aa;
+  --text-muted:     #71717a;
+
+  --blue:           #3b82f6;
+  --green:          #22c55e;
+  --red:            #ef4444;
+  --amber:          #f59e0b;
+  --purple:         #a855f7;
+
+  --font:           Inter, system-ui, -apple-system, sans-serif;
+  --mono:           'JetBrains Mono', 'Fira Code', monospace;
+
+  --radius:         8px;
+  --radius-sm:      6px;
+  --radius-xs:      4px;
+
+  --max-w:          900px;
+}
+
+/* -- Reset ----------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* -- Layout ---------------------------------------------------------------- */
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* -- Hero Header ----------------------------------------------------------- */
+.hero {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 24px 24px 20px;
+}
+
+.hero__inner {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  position: relative;
+}
+
+.hero__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.hero__sub {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.hero__org {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.hero__desc {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.6;
+}
+
+.hero__canary code {
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.hero__note {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* -- Workshop Selector ----------------------------------------------------- */
+.workshop-selector {
+  display: flex;
+  gap: 0;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 12px;
+  width: fit-content;
+}
+
+.workshop-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.workshop-btn:hover {
+  color: var(--text);
+  background: var(--surface-el);
+}
+
+.workshop-btn--active {
+  background: var(--blue);
+  color: #fff;
+}
+
+.workshop-btn--active:hover {
+  background: #2563eb;
+}
+
+.hero .lang-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/* -- Language Toggle ------------------------------------------------------- */
+.lang-toggle {
+  display: flex;
+  background: var(--bg);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.lang-toggle__btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: var(--font);
+}
+
+.lang-toggle__btn--active {
+  background: var(--surface-el);
+  color: var(--text);
+}
+
+/* -- Tabs ------------------------------------------------------------------ */
+.tabs {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  max-width: calc(var(--max-w) + 48px);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab--active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+
+/* -- Main Panel ------------------------------------------------------------ */
+.main {
+  flex: 1;
+  padding: 24px;
+  max-width: calc(var(--max-w) + 48px);
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* -- Attack Dropdown ------------------------------------------------------- */
+.attack-select {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 10px 14px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2371717a'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  transition: border-color 0.15s;
+}
+
+.attack-select:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.attack-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* -- Attack Header --------------------------------------------------------- */
+.attack-header {
+  margin-bottom: 20px;
+}
+
+.attack-header__owasp {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--purple);
+  background: rgba(168, 85, 247, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.attack-header__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.attack-header__desc {
+  font-size: 14px;
+  color: var(--text-sec);
+}
+
+/* -- Form ------------------------------------------------------------------ */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-sec);
+  margin-bottom: 6px;
+}
+
+.form-group__hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+textarea, input[type="text"] {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 10px 12px;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+textarea:focus, input[type="text"]:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+textarea { min-height: 100px; }
+
+/* -- Buttons --------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--blue);
+  color: #fff;
+  width: 100%;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+/* -- Spinner --------------------------------------------------------------- */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* -- Result Cards ---------------------------------------------------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.card__badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+}
+
+.card__text {
+  font-size: 14px;
+  color: var(--text-sec);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.card__text:last-child { margin-bottom: 0; }
+
+/* -- Code blocks (Cause panel) --------------------------------------------- */
+.code-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sec);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 12px;
+}
+
+/* -- Slide Deck ------------------------------------------------------------ */
+.slide-deck {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.slide-deck__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  color: var(--text-sec);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.slide-deck__toggle:hover {
+  background: var(--surface-el);
+}
+
+.slide-deck--open .slide-deck__toggle {
+  border-bottom: 1px solid var(--border);
+}
+
+.slide-deck__content {
+  animation: fadeIn 0.2s ease-in;
+}
+
+.slide-deck__slide {
+  padding: 16px 24px 12px;
+  min-height: 100px;
+}
+
+.slide-deck__slide-icon {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.slide-deck__slide-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.slide-deck__slide-counter {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.slide-deck__slide-body {
+  font-size: 13px;
+  color: var(--text-sec);
+  line-height: 1.7;
+}
+
+.slide-deck__slide-body strong {
+  color: var(--text);
+}
+
+.slide-deck__slide-body code {
+  background: var(--bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: var(--mono);
+}
+
+.slide-deck__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.slide-deck__btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-sec);
+  font-family: var(--font);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.slide-deck__btn:hover {
+  background: var(--surface-el);
+  color: var(--text);
+}
+
+.slide-deck__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.slide-deck__dots {
+  display: flex;
+  gap: 6px;
+}
+
+.slide-deck__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.slide-deck__dot--active {
+  background: var(--blue);
+}
+
+.code-block__label {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* -- Injection callout (red left border) ----------------------------------- */
+.injection-callout {
+  border-left: 3px solid var(--red);
+  background: rgba(239, 68, 68, 0.06);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 14px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-sec);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 12px;
+}
+
+.injection-callout__label {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--red);
+  margin-bottom: 6px;
+}
+
+/* -- Canary / secret badge ------------------------------------------------- */
+.badge-canary {
+  display: inline;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--red);
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* -- Impact verdict -------------------------------------------------------- */
+.verdict--succeeded {
+  color: var(--red);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.verdict--blocked {
+  color: var(--green);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* -- Full prompt collapsible ----------------------------------------------- */
+.collapsible {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.collapsible__trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: none;
+  color: var(--text-sec);
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.collapsible__trigger:hover {
+  background: var(--surface-el);
+}
+
+.collapsible__arrow {
+  transition: transform 0.2s;
+  font-size: 11px;
+}
+
+.collapsible--open .collapsible__arrow {
+  transform: rotate(90deg);
+}
+
+.collapsible__body {
+  display: none;
+  padding: 16px;
+  background: var(--bg);
+}
+
+.collapsible--open .collapsible__body {
+  display: block;
+}
+
+/* -- Skeleton loading ------------------------------------------------------ */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-el) 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius);
+  min-height: 120px;
+  margin-bottom: 16px;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* -- Progress bar ---------------------------------------------------------- */
+.progress {
+  width: 100%;
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.progress__bar {
+  height: 100%;
+  background: var(--blue);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+/* -- Score summary --------------------------------------------------------- */
+.score-summary {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 16px;
+}
+
+/* -- Defense panels -------------------------------------------------------- */
+.defense-toggles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.defense-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-sec);
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.defense-toggle span {
+  font-weight: 600;
+  font-size: 13px;
+  display: block;
+}
+
+.defense-toggle small {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+  line-height: 1.4;
+  display: block;
+}
+
+.defense-toggle:hover {
+  background: var(--surface);
+  border-color: var(--border-active);
+}
+
+.defense-toggle--active {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(34, 197, 94, 0.08);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+}
+
+.defense-toggle--active small {
+  color: var(--text-sec);
+}
+
+.defense-toggle input {
+  display: none;
+}
+
+.defense-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.defense-presets__btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.defense-presets__btn:hover {
+  background: var(--surface-el);
+  color: var(--text);
+}
+
+/* -- Defense result panels ------------------------------------------------- */
+.defense-found {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sec);
+}
+
+.defense-found__title {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+
+.defense-found--detected {
+  background: rgba(34, 197, 94, 0.06);
+  border-left: 3px solid var(--green);
+}
+
+.defense-found--detected .defense-found__title {
+  color: var(--green);
+}
+
+.defense-found--miss {
+  background: rgba(161, 161, 170, 0.06);
+  border-left: 3px solid var(--text-muted);
+}
+
+.defense-found--miss .defense-found__title {
+  color: var(--text-muted);
+}
+
+.defense-found--applied {
+  background: rgba(59, 130, 246, 0.06);
+  border-left: 3px solid var(--blue);
+}
+
+.defense-found--applied .defense-found__title {
+  color: var(--blue);
+}
+
+/* -- Custom mode ----------------------------------------------------------- */
+.model-output {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sec);
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 80px;
+}
+
+/* -- Footer ---------------------------------------------------------------- */
+.footer {
+  padding: 12px 20px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.footer a {
+  color: var(--text-sec);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--text);
+}
+
+/* -- Fade in animation ----------------------------------------------------- */
+.fade-in {
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -- Mobile ---------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .hero {
+    padding: 16px;
+  }
+
+  .hero__title {
+    font-size: 18px;
+  }
+
+  .hero__sub {
+    display: block;
+    font-size: 12px;
+  }
+
+  .tabs {
+    padding: 0 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .main {
+    padding: 16px;
+  }
+
+  .defense-toggles {
+    flex-direction: column;
+  }
+}
+
+/* -- Scrollbar ------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}
