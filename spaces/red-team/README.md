@@ -1,12 +1,17 @@
+---
+title: Red Team Workshop
+emoji: "\u2694\ufe0f"
+colorFrom: red
+colorTo: orange
+sdk: docker
+pinned: false
+---
+
 # Red Team Workshop
-**Status:** Planned | **Hardware:** CPU | **Issues:** #4, #5, #6, #32
 
-Progressive red teaming challenges against hardened LLMs.
+Progressive red teaming challenges against hardened LLMs. Write attack prompts, discover jailbreak techniques, and practice AI social engineering.
 
-## Labs
-- **Red Teaming Lab** — 5 difficulty levels with leaderboard
-- **Jailbreak Benchmark** — 20+ known techniques with effectiveness heatmap
-- **AI Social Engineering Lab** — Multi-turn conversational manipulation
-
-## HF Space
-`nikobehar/red-team-workshop` (not yet created)
+## Challenges
+- **Red Team Levels** — 5 progressively hardened targets, extract the secret from each
+- **Jailbreak Lab** — 15 pre-loaded techniques, test which ones work
+- **Social Engineering** — Multi-turn conversations against AI personas (coming soon)

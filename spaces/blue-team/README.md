@@ -1,10 +1,18 @@
-# Blue Team Workshop
-**Status:** Planned | **Hardware:** CPU | **Issues:** #11, #21
+---
+title: Blue Team Workshop
+emoji: "\U0001F6E1"
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
 
-Participants build defenses instead of running attacks.
+# Blue Team Workshop
+
+Participants write defense prompts that block OWASP LLM Top 10 attacks. Score by how many attacks you stop without breaking legitimate queries.
 
 ## Labs
-- **Prompt Hardening Workshop** — Write defense prompts, score against attack library
-- **Model Behavioral Testing** — Find safety gaps with automated test suites
-- **WAF Rules for LLMs** — Write input filtering rules, optimize precision vs recall
-- **Defense Pipeline Builder** — Design multi-layer defense architecture
+- **Prompt Hardening Workshop** — 5 levels, progressive difficulty, scoring + leaderboard
+- **WAF Rules for LLMs** — Write detection rules, optimize F1 score (coming soon)
+- **Defense Pipeline Builder** — Assemble multi-layer pipeline (coming soon)
+- **Model Behavioral Testing** — Find 12 hidden vulnerabilities (coming soon)
