@@ -165,3 +165,55 @@ export function renderInfoPage(container, config) {
 
   $("#btn-info-start")?.addEventListener("click", config.onStart);
 }
+
+// =============================================================================
+// PROGRESS VISUALIZATION
+// =============================================================================
+
+/**
+ * Render level progress indicators (stars/checkmarks).
+ * @param {number} totalLevels
+ * @param {object} completedLevels - {1: 95, 2: 80, ...} level -> best score
+ * @param {number} currentLevel
+ * @param {number} maxUnlocked
+ */
+export function renderProgress(totalLevels, completedLevels, currentLevel, maxUnlocked) {
+  const items = [];
+  for (let l = 1; l <= totalLevels; l++) {
+    const score = completedLevels[l] || 0;
+    const isCurrent = l === currentLevel;
+    const isLocked = l > maxUnlocked;
+    let icon, color;
+    if (score >= 80) { icon = "\u2b50"; color = "var(--amber)"; }       // star = great
+    else if (score >= 60) { icon = "\u2705"; color = "var(--green)"; }   // check = passed
+    else if (score > 0) { icon = "\u26a0\ufe0f"; color = "var(--amber)"; } // warning = attempted
+    else if (isLocked) { icon = "\ud83d\udd12"; color = "var(--text-muted)"; }
+    else { icon = "\u25cb"; color = "var(--text-muted)"; }               // empty circle
+
+    const border = isCurrent ? "border-bottom:2px solid var(--blue);" : "";
+    items.push(`<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;font-size:12px;${border}" title="Level ${l}: ${score > 0 ? score + ' pts' : isLocked ? 'Locked' : 'Not attempted'}"><span style="font-size:16px;">${icon}</span><span style="color:${color};">L${l}</span></span>`);
+  }
+  return `<div style="display:flex;gap:4px;margin-bottom:12px;justify-content:center;">${items.join("")}</div>`;
+}
+
+// =============================================================================
+// WHY EXPLANATION COMPONENT
+// =============================================================================
+
+/**
+ * Render a "Why it worked/failed" explanation card.
+ * @param {boolean} success - Whether the attack succeeded
+ * @param {string} attackName
+ * @param {string} whyText - Educational explanation
+ */
+export function renderWhyCard(success, attackName, whyText) {
+  const color = success ? "var(--red)" : "var(--green)";
+  const bgColor = success ? "rgba(239,68,68,0.06)" : "rgba(34,197,94,0.06)";
+  const icon = success ? "\ud83d\udca1" : "\ud83d\udee1\ufe0f";
+  const label = success ? "Why this got through" : "Why this was blocked";
+
+  return `
+    <div style="margin-top:6px;padding:8px 12px;background:${bgColor};border-left:2px solid ${color};border-radius:0 var(--radius-xs) var(--radius-xs) 0;font-size:12px;color:var(--text-sec);line-height:1.5;">
+      ${icon} <strong style="color:${color};">${label}:</strong> ${whyText}
+    </div>`;
+}
