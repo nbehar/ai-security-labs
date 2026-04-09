@@ -217,3 +217,41 @@ export function renderWhyCard(success, attackName, whyText) {
       ${icon} <strong style="color:${color};">${label}:</strong> ${whyText}
     </div>`;
 }
+
+// =============================================================================
+// GUIDED PRACTICE / WALKTHROUGH
+// =============================================================================
+
+/**
+ * Render a guided practice walkthrough with numbered steps.
+ * @param {Array<{step: string, instruction: string, tip: string}>} steps
+ * @param {number} currentStep - 0-based index of current step
+ * @param {string} accentColor
+ * @param {function} onNext - called with next step index
+ * @param {function} onStart - called when "Let's go" is clicked on final step
+ */
+export function renderGuidedPractice(steps, currentStep, accentColor, onNext, onStart) {
+  const step = steps[currentStep];
+  const isLast = currentStep === steps.length - 1;
+  const progress = steps.map((_, i) =>
+    `<span style="display:inline-block;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-size:12px;font-weight:600;${i === currentStep ? `background:${accentColor};color:#fff;` : i < currentStep ? 'background:var(--green);color:#fff;' : 'background:var(--border);color:var(--text-muted);'}">${i + 1}</span>`
+  ).join('<span style="display:inline-block;width:16px;height:1px;background:var(--border);vertical-align:middle;"></span>');
+
+  return `
+    <div class="card" style="margin-bottom:16px;border-left:3px solid ${accentColor};">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:18px;">\ud83c\udf93</span>
+        <span class="card__title">Guided Practice</span>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:auto;">Step ${currentStep + 1} of ${steps.length}</span>
+      </div>
+      <div style="display:flex;gap:4px;justify-content:center;margin-bottom:16px;">${progress}</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:8px;">${step.step}</div>
+      <div style="font-size:13px;color:var(--text-sec);line-height:1.7;margin-bottom:12px;">${step.instruction}</div>
+      ${step.tip ? `<div style="padding:8px 12px;background:${accentColor}10;border-radius:var(--radius-sm);font-size:12px;color:var(--text-sec);margin-bottom:12px;"><strong style="color:${accentColor};">\ud83d\udca1 Tip:</strong> ${step.tip}</div>` : ""}
+      <div style="display:flex;justify-content:flex-end;">
+        ${isLast
+          ? `<button class="btn btn--primary" style="max-width:200px;background:${accentColor};" data-action="guided-start">\u2192 Start Challenge</button>`
+          : `<button class="btn btn--primary" style="max-width:200px;" data-action="guided-next">Next Step \u2192</button>`}
+      </div>
+    </div>`;
+}
