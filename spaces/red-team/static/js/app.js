@@ -4,11 +4,12 @@
  * Uses shared framework from core.js.
  */
 
-import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage } from "./core.js";
+import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard } from "./core.js";
 
 const state = {
   mode: "info",
   level: 1,
+  completedLevels: {},
   running: false,
   lastResult: null,
   participantName: "Anonymous",
@@ -139,6 +140,8 @@ function renderRedTeam(main) {
         <h2 style="font-size:18px;font-weight:600;color:var(--text);margin:0;">Red Team Challenge</h2>
         <span style="font-size:13px;color:var(--text-muted);">Level ${lvl}: ${levelNames[lvl]}</span>
       </div>
+      ${renderProgress(5, state.completedLevels, lvl, 5)}
+
       <div style="display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;">${levelBtns}</div>
 
       ${renderLevelBriefing(briefing, "var(--red)")}
@@ -180,6 +183,11 @@ function renderRedTeam(main) {
         body: JSON.stringify({ level: state.level, attack_prompt: prompt, participant_name: name }),
       });
       state.lastResult = result;
+      if (result.success && result.score > 0) {
+        if (!state.completedLevels[state.level] || result.score > state.completedLevels[state.level]) {
+          state.completedLevels[state.level] = result.score;
+        }
+      }
     } catch (err) { alert(err.message); }
     finally { state.running = false; renderRedTeam(main); }
   });

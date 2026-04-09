@@ -4,12 +4,13 @@
  * Uses shared framework from core.js.
  */
 
-import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage } from "./core.js";
+import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard } from "./core.js";
 
 const state = {
   mode: "info",
   level: 1,
   maxUnlocked: 1,
+  completedLevels: {},  // {1: 95, 2: 80, ...} best score per level
   running: false,
   lastResult: null,
   participantName: "Anonymous",
@@ -147,6 +148,8 @@ function renderChallenge(main) {
         <span style="font-size:13px;color:var(--text-muted);">Level ${level} (${attackCounts[level]} attacks + 5 legit queries)</span>
       </div>
 
+      ${renderProgress(5, state.completedLevels, level, state.maxUnlocked)}
+
       <div style="display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap;">${levelBtns}</div>
 
       ${renderLevelBriefing(briefing, "var(--blue)")}
@@ -210,6 +213,9 @@ CONFIDENTIAL \u2014 INTERNAL USE ONLY:
       });
       state.lastResult = result;
       if (result.level_unlocked > state.maxUnlocked) state.maxUnlocked = result.level_unlocked;
+      if (!state.completedLevels[state.level] || result.score > state.completedLevels[state.level]) {
+        state.completedLevels[state.level] = result.score;
+      }
     } catch (err) { alert(err.message); }
     finally { state.running = false; renderChallenge(main); }
   });
@@ -224,9 +230,11 @@ function renderResults(r) {
     const color = d.blocked ? "var(--green)" : "var(--red)";
     const icon = d.blocked ? "\u2705" : "\ud83d\udea8";
     const label = d.blocked ? "BLOCKED" : "GOT THROUGH";
+    const whyHtml = d.why ? renderWhyCard(!d.blocked, d.name, d.why) : "";
     return `<div style="padding:10px 14px;background:${d.blocked ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)'};border-left:3px solid ${color};border-radius:0 var(--radius-sm) var(--radius-sm) 0;margin-bottom:6px;font-size:13px;">
       <div style="display:flex;justify-content:space-between;align-items:center;"><strong>${escapeHtml(d.name)}</strong><span style="color:${color};font-weight:600;font-size:12px;">${icon} ${label}</span></div>
       <div style="color:var(--text-muted);font-size:12px;margin-top:4px;">${escapeHtml(d.model_output)}</div>
+      ${whyHtml}
     </div>`;
   }).join("");
 

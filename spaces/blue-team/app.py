@@ -143,6 +143,7 @@ async def score_challenge(req: ScoreRequest):
                 "blocked": blocked,
                 "prompt": atk["prompt"][:100] + "..." if len(atk["prompt"]) > 100 else atk["prompt"],
                 "model_output": output[:300] + "..." if len(output) > 300 else output,
+                "why": atk.get("why_blocked" if blocked else "why_failed", ""),
             })
         except Exception as e:
             logger.exception(f"Error running attack {atk_id}")
