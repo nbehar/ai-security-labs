@@ -2,7 +2,7 @@
 title: Red Team Workshop
 emoji: "\u2694\ufe0f"
 colorFrom: red
-colorTo: orange
+colorTo: yellow
 sdk: docker
 pinned: false
 ---
