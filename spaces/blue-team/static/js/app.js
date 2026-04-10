@@ -13,6 +13,7 @@ const state = {
   completedLevels: {},  // {1: 95, 2: 80, ...} best score per level
   running: false,
   lastResult: null,
+  lastPrompt: "",  // preserve edited prompt across re-renders
   participantName: "Anonymous",
   defaultPrompt: "",
   guidedStep: 0,
@@ -199,7 +200,7 @@ function renderChallenge(main) {
     return `<button class="tab${l === level ? " tab--active" : ""}" data-level="${l}" ${locked ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ""}>${locked ? "\ud83d\udd12 " : ""}Level ${l}</button>`;
   }).join("");
 
-  const prompt = state.lastResult ? ($("#defense-prompt")?.value || state.defaultPrompt) : state.defaultPrompt;
+  const prompt = state.lastPrompt || state.defaultPrompt;
   const briefing = LEVEL_BRIEFINGS[level];
 
   main.innerHTML = `
@@ -263,6 +264,7 @@ CONFIDENTIAL \u2014 INTERNAL USE ONLY:
     const prompt = $("#defense-prompt").value;
     const name = $("#participant-name").value || "Anonymous";
     state.participantName = name;
+    state.lastPrompt = prompt;
     state.running = true;
     renderChallenge(main);
 
