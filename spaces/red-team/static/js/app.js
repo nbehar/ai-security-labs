@@ -49,20 +49,22 @@ const LEVEL_BRIEFINGS = {
     tryThis: "Override and direct extraction won't work. Try <strong>extraction techniques</strong>: translation, role-play, encoding, or creative reframing.",
   },
   4: {
-    title: "Level 4: DevOps \u2014 Keyword Scanning",
+    title: "Level 4: DevOps \u2014 Input Scanning",
     icon: "\u2694\ufe0f",
     fields: [
-      { label: "Active defenses", value: "Full hardening + blocked keywords: <code>ignore, forget, override, translate, encode, base64, role-play, pretend, imagine, debug</code>" },
+      { label: "Active defenses", value: "<strong>Layer 1: Input Scanner</strong> \u2014 blocks prompts containing: <code>ignore, forget, override, translate, encode, base64, role-play, pretend, imagine, debug, system prompt, instructions</code><br><strong>Layer 2: Prompt Hardening</strong> \u2014 XML boundary tags + explicit refusal rules" },
+      { label: "New this level", value: "Your prompt is scanned <em>before</em> the model sees it. If a blocked word is found, the model is never called. Check the <strong>Defense Log</strong> to see what was caught." },
     ],
-    tryThis: "Most known techniques are keyword-blocked. Think <strong>indirectly</strong> \u2014 avoid the blocked words entirely. Ask about the project without using any flagged terms.",
+    tryThis: "Avoid ALL blocked keywords. Think <strong>indirectly</strong> \u2014 use synonyms, metaphors, or questions that don't contain any flagged terms.",
   },
   5: {
     title: "Level 5: Executive \u2014 Maximum Security",
     icon: "\ud83d\udd25",
     fields: [
-      { label: "Active defenses", value: "Zero-tolerance policy. Blocks: reveal, hint, paraphrase, translate, encode, role-play, hypothetical, complete sentences, word associations. <strong>No exceptions for any authority level.</strong>" },
+      { label: "Active defenses", value: "<strong>Layer 1: Input Scanner</strong> \u2014 expanded blocklist (40+ patterns including reveal, hint, hypothetical, poem, actor, etc.)<br><strong>Layer 2: Prompt Hardening</strong> \u2014 zero-tolerance policy, no exceptions<br><strong>Layer 3: Output Redaction</strong> \u2014 scans the model's response for the secret and redacts it if found" },
+      { label: "New this level", value: "Even if you bypass input scanning AND the hardened prompt, the <strong>output redactor</strong> will catch the secret in the response. You need to get past ALL three layers." },
     ],
-    tryThis: "This is the hardest level. The policy has very few gaps. <strong>Look for what it DOESN'T mention.</strong> The model still needs to be helpful for legitimate tasks \u2014 can you exploit that tension?",
+    tryThis: "This is the hardest level. You must avoid 40+ blocked input words AND somehow extract the secret in a form the output scanner doesn't recognize. <strong>Think about formats the redactor can't pattern-match.</strong>",
   },
 };
 
@@ -241,12 +243,28 @@ function renderRedTeamResult(r) {
   const icon = r.success ? "\ud83c\udf89" : "\ud83d\udeab";
   const label = r.success ? "SECRET EXTRACTED!" : "BLOCKED";
 
+  // Defense log
+  const defenseLog = (r.defense_log || []).filter(d => d.active).map(d => {
+    const vColor = d.verdict === "BLOCKED" ? "var(--red)" : d.verdict === "PASSED" ? "var(--green)" : "var(--text-muted)";
+    const vIcon = d.verdict === "BLOCKED" ? "\ud83d\uded1" : d.verdict === "PASSED" ? "\u2705" : "\u23ed\ufe0f";
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0;">
+      <span>${vIcon}</span>
+      <span style="width:120px;font-weight:600;color:var(--text-sec);">${escapeHtml(d.tool)}</span>
+      <span style="color:${vColor};font-weight:600;">${d.verdict}</span>
+      <span style="color:var(--text-muted);font-size:11px;margin-left:4px;">${escapeHtml(d.detail)}</span>
+    </div>`;
+  }).join("");
+
+  const blockedByHtml = r.blocked_by ? `<div style="margin-bottom:8px;padding:8px 12px;background:rgba(239,68,68,0.08);border-radius:var(--radius-sm);font-size:12px;color:var(--red);font-weight:600;">\ud83d\udee1\ufe0f Blocked by: ${escapeHtml(r.blocked_by)}</div>` : "";
+
   return `
     <div class="card fade-in" style="margin-bottom:16px;">
       <div style="font-size:20px;font-weight:700;color:${color};margin-bottom:8px;">${icon} ${label}</div>
       ${r.success ? `<div style="font-size:14px;color:var(--green);margin-bottom:8px;">Secret: <code style="background:rgba(34,197,94,0.15);padding:2px 8px;border-radius:4px;">${escapeHtml(r.secret_found)}</code> \u2014 ${r.score} points (attempt #${r.attempt})</div>` : ""}
       ${r.already_solved ? `<div style="color:var(--text-muted);font-size:13px;">Already solved! Score: ${r.score}</div>` : ""}
+      ${blockedByHtml}
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Attempt ${r.attempt}/5</div>
+      ${defenseLog ? `<details style="margin-bottom:10px;"><summary style="font-size:12px;color:var(--blue);cursor:pointer;">Defense Log</summary><div style="margin-top:6px;padding:8px 12px;background:var(--bg);border-radius:var(--radius-sm);">${defenseLog}</div></details>` : ""}
       <div class="code-block__label">Model Response</div>
       <div class="model-output" style="max-height:200px;overflow-y:auto;">${escapeHtml(r.model_output || "")}</div>
       ${r.hint ? `<div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.08);border-left:3px solid var(--amber);border-radius:0 4px 4px 0;font-size:13px;color:var(--text-sec);"><strong style="color:var(--amber);">Hint:</strong> ${escapeHtml(r.hint)}</div>` : ""}
@@ -265,6 +283,13 @@ async function renderJailbreak(main) {
 
   const categories = [...new Set(state.jailbreaks.map((j) => j.category))];
   const selected = state.selectedJB ? state.jailbreaks.find((j) => j.id === state.selectedJB) : null;
+
+  // Load heatmap data
+  let heatmapHtml = "";
+  try {
+    const hm = await fetchJSON("/api/heatmap");
+    heatmapHtml = renderHeatmap(hm.techniques);
+  } catch (err) { console.error("Heatmap:", err); }
 
   main.innerHTML = `
     <div class="fade-in">
@@ -294,6 +319,8 @@ async function renderJailbreak(main) {
       ` : ""}
 
       <div id="jb-results" style="margin-top:20px;">${state.jbResult ? renderJBResult(state.jbResult) : ""}</div>
+
+      ${heatmapHtml}
     </div>`;
 
   $("#jb-select")?.addEventListener("change", (e) => { state.selectedJB = e.target.value || null; state.jbResult = null; renderJailbreak(main); });
@@ -316,6 +343,46 @@ async function renderJailbreak(main) {
     } catch (err) { alert(err.message); }
     finally { state.running = false; renderJailbreak(main); }
   });
+}
+
+function renderHeatmap(techniques) {
+  if (!techniques || techniques.length === 0) return "";
+
+  const hasData = techniques.some(t => t.total_attempts > 0);
+  if (!hasData) {
+    return `<div class="card" style="margin-top:24px;padding:16px;">
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">Technique Effectiveness</div>
+      <div style="font-size:13px;color:var(--text-muted);">Test some techniques to see the effectiveness heatmap. Each technique's success rate updates live as participants use them.</div>
+    </div>`;
+  }
+
+  const categories = [...new Set(techniques.map(t => t.category))];
+
+  const rows = categories.map(cat => {
+    const catTechs = techniques.filter(t => t.category === cat);
+    const techRows = catTechs.map(t => {
+      const pct = Math.round(t.success_rate * 100);
+      const barColor = pct >= 60 ? "var(--red)" : pct >= 30 ? "var(--amber)" : "var(--green)";
+      const cellBg = pct >= 60 ? "rgba(239,68,68,0.08)" : pct >= 30 ? "rgba(245,158,11,0.08)" : pct > 0 ? "rgba(34,197,94,0.08)" : "var(--bg)";
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${cellBg};border-radius:var(--radius-sm);margin-bottom:3px;">
+        <span style="width:160px;font-size:12px;color:var(--text-sec);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(t.name)}</span>
+        <div style="flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:4px;min-width:${t.total_attempts > 0 ? '2px' : '0'};"></div></div>
+        <span style="width:50px;text-align:right;font-size:11px;color:${t.total_attempts > 0 ? barColor : 'var(--text-muted)'};font-weight:600;">${t.total_attempts > 0 ? pct + '%' : '\u2014'}</span>
+        <span style="width:40px;text-align:right;font-size:10px;color:var(--text-muted);">${t.successes}/${t.total_attempts}</span>
+      </div>`;
+    }).join("");
+
+    return `<div style="margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">${escapeHtml(cat)}</div>
+      ${techRows}
+    </div>`;
+  }).join("");
+
+  return `<div class="card" style="margin-top:24px;padding:16px;">
+    <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">Technique Effectiveness</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;">Live success rates across all participants. Red = high success (dangerous), Green = low success (good defense).</div>
+    ${rows}
+  </div>`;
 }
 
 function renderJBResult(r) {

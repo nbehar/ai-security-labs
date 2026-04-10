@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from challenges import (
     LEVELS, JAILBREAKS, JAILBREAK_TARGET_PROMPT, JAILBREAK_SECRETS,
     check_secret_found, update_leaderboard, get_leaderboard,
+    scan_input, redact_output, record_jailbreak_result, get_heatmap,
 )
 
 # =============================================================================
@@ -135,15 +136,54 @@ async def red_team_attempt(req: RedTeamAttempt):
             }
 
     try:
+        secret = level["secret"]
+        defense_log = []
+
+        # === DEFENSE LAYER 1: Input Scanning (Level 4+) ===
+        input_result = scan_input(req.attack_prompt, req.level)
+        defense_log.append(input_result)
+
+        if input_result["verdict"] == "BLOCKED":
+            # Input blocked — don't even call the model
+            hint = None
+            if attempt_num >= 3:
+                hints = level.get("hints", [])
+                if hints:
+                    hint = hints[min(attempt_num - 3, len(hints) - 1)]
+
+            return {
+                "level": req.level,
+                "level_name": level["name"],
+                "department": level["department"],
+                "success": False,
+                "model_output": "[Input blocked by defense scanner — your prompt contained flagged patterns]",
+                "secret_found": None,
+                "attempt": attempt_num,
+                "score": 0,
+                "hint": hint,
+                "max_attempts": 5,
+                "defense_log": defense_log,
+                "blocked_by": "Input Scanner",
+            }
+
+        # === MODEL CALL ===
         messages = [
             {"role": "system", "content": level["system_prompt"]},
             {"role": "user", "content": req.attack_prompt},
         ]
         output = generate_response(messages)
 
-        # Check if secret was extracted
-        secret = level["secret"]
-        found = secret.lower() in output.lower()
+        # === DEFENSE LAYER 2: Output Redaction (Level 5) ===
+        output_result = redact_output(output, secret, req.level)
+        defense_log.append(output_result)
+
+        # Use potentially redacted output
+        final_output = output_result["output"]
+        was_redacted = output_result.get("redacted", False)
+
+        # Check if secret was extracted (use original output for detection, but show redacted)
+        found_in_original = secret.lower() in output.lower()
+        found = found_in_original and not was_redacted
 
         # Score: max 100 on first attempt, decreasing
         score = 0
@@ -166,12 +206,14 @@ async def red_team_attempt(req: RedTeamAttempt):
             "level_name": level["name"],
             "department": level["department"],
             "success": found,
-            "model_output": output,
+            "model_output": final_output,
             "secret_found": secret if found else None,
             "attempt": attempt_num,
             "score": score,
             "hint": hint,
             "max_attempts": 5,
+            "defense_log": defense_log,
+            "blocked_by": "Output Redaction" if was_redacted and found_in_original else None,
         }
     except Exception as e:
         logger.exception(f"Error in red team attempt")
@@ -212,6 +254,9 @@ async def test_jailbreak(req: JailbreakTest):
         found = check_secret_found(output, JAILBREAK_SECRETS)
         success = len(found) > 0
 
+        # Track for heatmap
+        record_jailbreak_result(req.technique_id, success)
+
         if success:
             score = len(found) * 25  # 25 pts per secret found
             update_leaderboard(req.participant_name, "jailbreak", score)
@@ -228,6 +273,12 @@ async def test_jailbreak(req: JailbreakTest):
     except Exception as e:
         logger.exception("Error in jailbreak test")
         raise HTTPException(500, str(e))
+
+
+@app.get("/api/heatmap")
+async def heatmap():
+    """Get jailbreak technique effectiveness heatmap."""
+    return {"techniques": get_heatmap()}
 
 
 @app.get("/api/leaderboard")

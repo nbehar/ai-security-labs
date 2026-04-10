@@ -45,10 +45,12 @@ Interactive AI security training platform by Prof. Nikolas Behar. 3 workshops li
   - L1: HR Portal — no defenses (secret: CRIMSON FALCON) ✅ extractable with simple ask
   - L2: Finance — basic refusal (secret: SHADOW PROTOCOL) ✅ extractable with authority claim
   - L3: Legal — XML hardening (secret: IRON CASCADE) ✅ extractable with translation
-  - L4: DevOps — keyword scanning (secret: GHOST MERIDIAN) — hard, engages but protects
-  - L5: Executive — maximum security (secret: OMEGA THRESHOLD) — very hard
+  - L4: DevOps — **Input Scanner** + prompt hardening (secret: GHOST MERIDIAN) — blocked keywords prevent most attacks before model call
+  - L5: Executive — **Input Scanner** (40+ patterns) + prompt hardening + **Output Redaction** (secret: OMEGA THRESHOLD) — 3 defense layers
+- **Defense Layers (new):** Input scanning (blocks prompts with flagged patterns before model call), Output redaction (scans response for secret, redacts if found), Defense log (shows which layers fired and their verdicts)
 - **Jailbreak Lab:** 15 pre-loaded techniques across 5 categories (Direct Override, Encoding, Role-Play, Social Engineering, Advanced)
-- **Features:** Guided practice (5 steps), level briefing cards, progress stars, scoring (100 pts first try, -20 per attempt), leaderboard, hints after 3 failures
+- **Technique Effectiveness Heatmap:** Live success rates across all participants, grouped by category, color-coded (red=dangerous, green=good defense)
+- **Features:** Guided practice (5 steps), level briefing cards, progress stars, scoring (100 pts first try, -20 per attempt), leaderboard, hints after 3 failures, defense log per attempt
 
 ---------------------------------------------------------------------
 
@@ -194,3 +196,21 @@ Built the monorepo and 2 new workshops:
 - ✅ WAF Rules (regex detection, F1 scoring, PG2 comparison)
 - ✅ Defense Pipeline Builder (visual pipeline, presets, coverage+efficiency)
 - ✅ Model Behavioral Testing (12 hidden vulns, 6 categories, discovery tracking)
+
+6. Added defense layers to Red Team Workshop
+   - **Input Scanner** (Level 4+): Scans user prompt for blocked patterns before model call. Level 4 blocks ~15 keywords (ignore, translate, encode, etc.), Level 5 blocks 40+ patterns (poems, hypotheticals, role-play, etc.)
+   - **Output Redaction** (Level 5): Scans model response for the secret — exact match and split-word detection. Replaces with [REDACTED]
+   - **Defense Log**: Collapsible panel showing which defense layers fired and their verdicts (PASSED/BLOCKED/SKIPPED)
+   - **"Blocked by" badge**: Shows which layer blocked the attack (Input Scanner or Output Redaction)
+   - Updated Level 4+5 briefing cards to explain the new defense layers
+
+7. Added Jailbreak Effectiveness Heatmap to Red Team Workshop
+   - Tracks success/fail per technique across all participants
+   - Grouped by category (Direct Override, Encoding, Role-Play, Social Engineering, Advanced)
+   - Color-coded bars: red = high success (dangerous), green = low success (good defense)
+   - Live-updating as participants test techniques
+
+8. Deployed Red Team to HF Space, verified in Chrome:
+   - Level 4 input scanning blocks "ignore...translate" prompt correctly
+   - Defense Log shows "Input Scanner — BLOCKED — Blocked patterns detected: ignore, translate, system prompt"
+   - Jailbreak heatmap populated after first test (Ignore Previous Instructions: 100%, 1/1)
