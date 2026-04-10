@@ -213,7 +213,11 @@ async def red_team_attempt(req: RedTeamAttempt):
             "hint": hint,
             "max_attempts": 5,
             "defense_log": defense_log,
-            "blocked_by": "Output Redaction" if was_redacted and found_in_original else None,
+            "blocked_by": (
+                "Output Redaction" if was_redacted and found_in_original
+                else "Prompt Hardening" if not found and req.level >= 2
+                else None
+            ),
         }
     except Exception as e:
         logger.exception(f"Error in red team attempt")
