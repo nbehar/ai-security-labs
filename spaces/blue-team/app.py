@@ -23,8 +23,10 @@ from pydantic import BaseModel
 from challenges import (
     ATTACKS, LEVELS, LEGIT_QUERIES, CONFIDENTIAL_BLOCK,
     DEFAULT_VULNERABLE_PROMPT, check_legit_passed, calculate_score,
+    WAF_ATTACK_PROMPTS, WAF_LEGIT_QUERIES, PG2_BASELINE, calculate_waf_score,
     update_leaderboard, get_leaderboard,
 )
+from waf_parser import parse_rules, evaluate_rules
 
 # =============================================================================
 # LOGGING & GROQ
@@ -63,10 +65,11 @@ def generate_response(messages: list[dict], max_tokens: int = 1024) -> str:
 # =============================================================================
 
 class ScoreRequest(BaseModel):
-    challenge_id: str  # "prompt_hardening"
+    challenge_id: str  # "prompt_hardening" or "waf_rules"
     level: int = 1
     participant_name: str = "Anonymous"
-    system_prompt: str
+    system_prompt: Optional[str] = None
+    rules_text: Optional[str] = None
 
 
 # =============================================================================
@@ -94,6 +97,12 @@ async def list_challenges():
                 "levels": len(LEVELS),
                 "max_score": 120,
             },
+            {
+                "id": "waf_rules",
+                "name": "WAF Rules",
+                "description": "Write detection rules that catch attack payloads with minimal false positives",
+                "max_score": 100,
+            },
         ],
         "default_prompt": DEFAULT_VULNERABLE_PROMPT,
     }
@@ -101,6 +110,73 @@ async def list_challenges():
 
 @app.post("/api/score")
 async def score_challenge(req: ScoreRequest):
+    """Run challenge scoring (prompt hardening or WAF rules)."""
+    if req.challenge_id == "waf_rules":
+        return await score_waf(req)
+    return await score_prompt_hardening(req)
+
+
+async def score_waf(req: ScoreRequest):
+    """Score WAF rules against attack + legit queries."""
+    if not req.rules_text:
+        raise HTTPException(400, "rules_text is required for waf_rules challenge")
+
+    rules, errors = parse_rules(req.rules_text)
+    if errors and not rules:
+        raise HTTPException(400, f"No valid rules: {'; '.join(errors)}")
+
+    # Evaluate against attacks
+    tp, fn = 0, 0
+    attack_details = []
+    for i, prompt in enumerate(WAF_ATTACK_PROMPTS):
+        blocked, matched = evaluate_rules(rules, prompt)
+        if blocked:
+            tp += 1
+        else:
+            fn += 1
+        atk_name = list(ATTACKS.values())[i]["name"] if i < len(ATTACKS) else f"Attack {i+1}"
+        attack_details.append({
+            "query": prompt[:80] + "..." if len(prompt) > 80 else prompt,
+            "type": "attack",
+            "blocked": blocked,
+            "correct": blocked,
+            "matched_rule": f'Line {matched["line"]}: {matched["action"]} if {matched["mode"]} "{matched["pattern"][:30]}"' if matched else None,
+        })
+
+    # Evaluate against legit queries
+    tn, fp = 0, 0
+    legit_details = []
+    for prompt in WAF_LEGIT_QUERIES:
+        blocked, matched = evaluate_rules(rules, prompt)
+        if blocked:
+            fp += 1
+        else:
+            tn += 1
+        legit_details.append({
+            "query": prompt,
+            "type": "legitimate",
+            "blocked": blocked,
+            "correct": not blocked,
+            "matched_rule": f'Line {matched["line"]}: {matched["action"]} if {matched["mode"]} "{matched["pattern"][:30]}"' if matched else None,
+        })
+
+    scoring = calculate_waf_score(tp, fp, tn, fn)
+    rank = update_leaderboard(req.participant_name, "waf_rules", scoring["total"])
+
+    return {
+        "challenge_id": "waf_rules",
+        "score": scoring["total"],
+        "breakdown": scoring,
+        "baseline": PG2_BASELINE,
+        "beat_baseline": scoring["f1"] > PG2_BASELINE["f1"],
+        "rules_count": len(rules),
+        "parse_errors": errors,
+        "details": attack_details + legit_details,
+        "leaderboard_rank": rank,
+    }
+
+
+async def score_prompt_hardening(req: ScoreRequest):
     """Run attacks against participant's hardened prompt and score results."""
     if req.challenge_id != "prompt_hardening":
         raise HTTPException(400, "Only prompt_hardening is available")

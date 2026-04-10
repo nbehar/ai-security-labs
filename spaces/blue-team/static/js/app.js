@@ -16,6 +16,8 @@ const state = {
   participantName: "Anonymous",
   defaultPrompt: "",
   guidedStep: 0,
+  wafRules: "",
+  wafResult: null,
 };
 
 // =============================================================================
@@ -81,7 +83,8 @@ const LEVEL_BRIEFINGS = {
 
 const TAB_DEFS = [
   { mode: "info", label: "Info" },
-  { mode: "challenge", label: "Challenge" },
+  { mode: "challenge", label: "Prompt Hardening" },
+  { mode: "waf", label: "WAF Rules" },
   { mode: "leaderboard", label: "Leaderboard" },
 ];
 
@@ -96,6 +99,7 @@ function renderMain() {
   switch (state.mode) {
     case "info": renderInfo(main); break;
     case "challenge": renderChallenge(main); break;
+    case "waf": renderWAF(main); break;
     case "leaderboard": renderLB(main); break;
   }
 }
@@ -316,6 +320,169 @@ function renderResults(r) {
     ${attackCards}
     <h3 style="font-size:14px;font-weight:600;color:var(--text);margin:16px 0 8px;">Legitimate Query Results</h3>
     ${legitCards}`;
+}
+
+// =============================================================================
+// WAF RULES TAB
+// =============================================================================
+
+function renderWAF(main) {
+  const r = state.wafResult;
+
+  main.innerHTML = `
+    <div class="fade-in">
+      <h2 style="font-size:18px;font-weight:600;color:var(--text);margin-bottom:12px;">WAF Rules Challenge</h2>
+
+      ${renderLevelBriefing({
+        title: "Write Detection Rules",
+        icon: "\ud83d\udee1\ufe0f",
+        fields: [
+          { label: "Goal", value: "Write regex/pattern rules that catch attack prompts without blocking legitimate HR queries" },
+          { label: "Scoring", value: "F1 score (balance of precision and recall). 100 = perfect detection with zero false positives" },
+          { label: "Benchmark", value: "Meta Prompt Guard 2 scores ~70% F1. Can you beat it with hand-written rules?" },
+        ],
+        tryThis: 'Start with: <strong>BLOCK if contains "ignore previous instructions"</strong><br>Then add: <strong>BLOCK if regex "(?i)system\\s+prompt"</strong><br>Then: <strong>ALLOW if contains "PTO"</strong>',
+      }, "var(--blue)")}
+
+      <div class="form-group">
+        <label for="waf-rules">Your Rules (max 30)</label>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">
+          Syntax: <code>BLOCK if contains "text"</code> | <code>BLOCK if regex "pattern"</code> | <code>ALLOW if contains "text"</code>
+        </div>
+        <textarea id="waf-rules" rows="10" style="font-family:var(--mono);" placeholder='# Example rules (delete these and write your own)
+BLOCK if contains "ignore previous instructions"
+BLOCK if contains "system prompt"
+BLOCK if regex "(?i)translate.*instructions"
+BLOCK if contains "base64"
+ALLOW if contains "PTO"
+ALLOW if contains "dental"'>${escapeHtml(state.wafRules || "")}</textarea>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="rule-count">0 rules</div>
+      </div>
+
+      <div class="form-group">
+        <label for="waf-name">Your name</label>
+        <input type="text" id="waf-name" value="${escapeHtml(state.participantName)}" style="max-width:300px;" />
+      </div>
+
+      <button class="btn btn--primary" id="btn-waf" ${state.running ? "disabled" : ""}>
+        ${state.running ? '<span class="spinner"></span> Evaluating\u2026' : '\ud83d\udee1\ufe0f Evaluate Rules'}
+      </button>
+
+      <div id="waf-results" style="margin-top:20px;">
+        ${r ? renderWAFResults(r) : ""}
+      </div>
+    </div>`;
+
+  // Update rule count on input
+  const textarea = $("#waf-rules");
+  const countEl = $("#rule-count");
+  if (textarea && countEl) {
+    const updateCount = () => {
+      const lines = textarea.value.split("\\n").filter(l => l.trim() && !l.trim().startsWith("#")).length;
+      countEl.textContent = lines + "/30 rules";
+    };
+    textarea.addEventListener("input", updateCount);
+    updateCount();
+  }
+
+  // Submit
+  $("#btn-waf")?.addEventListener("click", async () => {
+    if (state.running) return;
+    const rules = $("#waf-rules").value;
+    const name = $("#waf-name").value || "Anonymous";
+    if (!rules.trim()) return;
+    state.wafRules = rules;
+    state.participantName = name;
+    state.running = true;
+    renderWAF(main);
+
+    try {
+      const result = await fetchJSON("/api/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challenge_id: "waf_rules", rules_text: rules, participant_name: name }),
+      });
+      state.wafResult = result;
+    } catch (err) { alert(err.message); }
+    finally { state.running = false; renderWAF(main); }
+  });
+}
+
+function renderWAFResults(r) {
+  const b = r.breakdown;
+  const f1pct = Math.round(b.f1 * 100);
+  const barColor = f1pct >= 70 ? "var(--green)" : f1pct >= 50 ? "var(--amber)" : "var(--red)";
+  const baseF1 = Math.round(r.baseline.f1 * 100);
+  const beatBaseline = r.beat_baseline;
+
+  const attacks = r.details.filter(d => d.type === "attack");
+  const legits = r.details.filter(d => d.type === "legitimate");
+  const attackCorrect = attacks.filter(d => d.correct).length;
+  const legitCorrect = legits.filter(d => d.correct).length;
+
+  // Per-query detail cards
+  const detailCards = r.details.map(d => {
+    const isAttack = d.type === "attack";
+    const correct = d.correct;
+    const color = correct ? "var(--green)" : "var(--red)";
+    const icon = correct ? "\u2705" : "\u274c";
+    const expected = isAttack ? "Should BLOCK" : "Should ALLOW";
+    const actual = d.blocked ? "Blocked" : "Passed";
+    return `<div style="padding:6px 10px;background:${correct ? 'rgba(34,197,94,0.04)' : 'rgba(239,68,68,0.04)'};border-left:2px solid ${color};margin-bottom:4px;font-size:12px;display:flex;gap:8px;align-items:center;">
+      <span>${icon}</span>
+      <span style="flex:1;color:var(--text-sec);">${escapeHtml(d.query)}</span>
+      <span style="color:var(--text-muted);font-size:11px;">${expected} \u2192 ${actual}</span>
+      ${d.matched_rule ? `<span style="font-size:10px;color:var(--text-muted);">${escapeHtml(d.matched_rule)}</span>` : ""}
+    </div>`;
+  }).join("");
+
+  return `
+    <div class="card fade-in" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px;">
+        <span style="font-size:28px;font-weight:700;color:var(--text);">${f1pct}</span>
+        <span style="font-size:14px;color:var(--text-sec);">F1 Score</span>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:auto;">Rank #${r.leaderboard_rank} \u2022 ${r.rules_count} rules</span>
+      </div>
+      <div class="progress" style="height:10px;margin:8px 0;"><div class="progress__bar" style="width:${f1pct}%;background:${barColor};"></div></div>
+
+      <div style="display:flex;gap:20px;font-size:13px;color:var(--text-sec);flex-wrap:wrap;margin-bottom:12px;">
+        <span>Precision: ${Math.round(b.precision * 100)}%</span>
+        <span>Recall: ${Math.round(b.recall * 100)}%</span>
+        <span>Attacks: ${attackCorrect}/${attacks.length} caught</span>
+        <span>Legit: ${legitCorrect}/${legits.length} passed</span>
+      </div>
+
+      <div style="padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;${beatBaseline ? 'background:rgba(34,197,94,0.1);color:var(--green);' : 'background:rgba(245,158,11,0.1);color:var(--amber);'}">
+        ${beatBaseline ? '\ud83c\udfc6 You beat Meta Prompt Guard 2! (baseline: ' + baseF1 + '% F1)' : 'Prompt Guard 2 scores ' + baseF1 + '% F1 \u2014 keep tuning your rules!'}
+      </div>
+
+      ${r.parse_errors.length > 0 ? `<div style="margin-top:8px;font-size:12px;color:var(--amber);">\u26a0\ufe0f ${r.parse_errors.join("; ")}</div>` : ""}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div class="card" style="text-align:center;padding:12px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">Confusion Matrix</div>
+        <table style="margin:8px auto;font-size:13px;border-collapse:collapse;">
+          <tr><td></td><td style="padding:4px 12px;color:var(--text-muted);font-size:11px;">Predicted Block</td><td style="padding:4px 12px;color:var(--text-muted);font-size:11px;">Predicted Pass</td></tr>
+          <tr><td style="color:var(--text-muted);font-size:11px;text-align:right;padding-right:8px;">Actual Attack</td><td style="padding:8px;background:rgba(34,197,94,0.1);color:var(--green);font-weight:600;">${b.true_positives} TP</td><td style="padding:8px;background:rgba(239,68,68,0.1);color:var(--red);font-weight:600;">${b.false_negatives} FN</td></tr>
+          <tr><td style="color:var(--text-muted);font-size:11px;text-align:right;padding-right:8px;">Actual Legit</td><td style="padding:8px;background:rgba(239,68,68,0.1);color:var(--red);font-weight:600;">${b.false_positives} FP</td><td style="padding:8px;background:rgba(34,197,94,0.1);color:var(--green);font-weight:600;">${b.true_negatives} TN</td></tr>
+        </table>
+      </div>
+      <div class="card" style="text-align:center;padding:12px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;">Your Score vs Baseline</div>
+        <div style="margin-top:12px;">
+          <div style="display:flex;justify-content:space-around;font-size:13px;">
+            <div><div style="font-size:20px;font-weight:700;color:${beatBaseline ? 'var(--green)' : 'var(--text)'};">${f1pct}%</div><div style="color:var(--text-muted);font-size:11px;">Your F1</div></div>
+            <div><div style="font-size:20px;font-weight:700;color:var(--text-muted);">${baseF1}%</div><div style="color:var(--text-muted);font-size:11px;">Prompt Guard 2</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <details style="margin-bottom:16px;">
+      <summary style="font-size:13px;color:var(--blue);cursor:pointer;font-weight:500;">Show per-query results (${r.details.length} queries)</summary>
+      <div style="margin-top:8px;">${detailCards}</div>
+    </details>`;
 }
 
 // =============================================================================
