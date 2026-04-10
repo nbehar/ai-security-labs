@@ -25,6 +25,9 @@ from challenges import (
     DEFAULT_VULNERABLE_PROMPT, check_legit_passed, calculate_score,
     WAF_ATTACK_PROMPTS, WAF_LEGIT_QUERIES, PG2_BASELINE, calculate_waf_score,
     update_leaderboard, get_leaderboard,
+    PIPELINE_TOOLS, PIPELINE_PRESETS, evaluate_pipeline, calculate_pipeline_score,
+    VULNERABILITIES, VULNERABILITY_CATEGORIES, VULNERABLE_ASSISTANT_PROMPT,
+    get_behavioral_session, check_vulnerabilities, calculate_behavioral_score,
 )
 from waf_parser import parse_rules, evaluate_rules
 
@@ -72,6 +75,18 @@ class ScoreRequest(BaseModel):
     rules_text: Optional[str] = None
 
 
+class PipelineRequest(BaseModel):
+    participant_name: str = "Anonymous"
+    pipeline: dict[str, bool]  # {"input": true, "context": false, ...}
+
+
+class BehavioralTestRequest(BaseModel):
+    test_prompt: str
+    category: str  # "bias", "toxicity", "pii", "instruction", "refusal", "accuracy"
+    session_id: str
+    participant_name: str = "Anonymous"
+
+
 # =============================================================================
 # FASTAPI APP
 # =============================================================================
@@ -103,8 +118,22 @@ async def list_challenges():
                 "description": "Write detection rules that catch attack payloads with minimal false positives",
                 "max_score": 100,
             },
+            {
+                "id": "defense_pipeline",
+                "name": "Defense Pipeline Builder",
+                "description": "Assemble a defense pipeline — maximize coverage with minimum overhead",
+                "max_score": 100,
+            },
+            {
+                "id": "behavioral_testing",
+                "name": "Model Behavioral Testing",
+                "description": "Find 12 hidden vulnerabilities in a deployed AI assistant",
+                "max_score": 160,
+            },
         ],
         "default_prompt": DEFAULT_VULNERABLE_PROMPT,
+        "pipeline_tools": PIPELINE_TOOLS,
+        "vulnerability_categories": VULNERABILITY_CATEGORIES,
     }
 
 
@@ -305,6 +334,139 @@ async def score_prompt_hardening(req: ScoreRequest):
         "hint": hint,
         "leaderboard_rank": rank,
         "elapsed_seconds": round(elapsed, 1),
+    }
+
+
+@app.post("/api/pipeline-eval")
+async def pipeline_eval(req: PipelineRequest):
+    """Evaluate a defense pipeline against all attacks using the effectiveness matrix."""
+    eval_result = evaluate_pipeline(req.pipeline)
+    scoring = calculate_pipeline_score(
+        eval_result["attacks_blocked"],
+        eval_result["attacks_total"],
+        eval_result["total_latency_ms"],
+        eval_result["cost_per_request"],
+    )
+
+    # Compare with presets
+    comparison = {}
+    for preset_name, preset_config in PIPELINE_PRESETS.items():
+        preset_eval = evaluate_pipeline(preset_config)
+        preset_score = calculate_pipeline_score(
+            preset_eval["attacks_blocked"], preset_eval["attacks_total"],
+            preset_eval["total_latency_ms"], preset_eval["cost_per_request"],
+        )
+        comparison[preset_name] = {
+            "coverage": preset_eval["coverage"],
+            "score": preset_score["total"],
+        }
+    comparison["participant"] = {
+        "coverage": eval_result["coverage"],
+        "score": scoring["total"],
+    }
+
+    rank = update_leaderboard(req.participant_name, "defense_pipeline", scoring["total"])
+
+    return {
+        "challenge_id": "defense_pipeline",
+        "score": scoring["total"],
+        "max_score": 100,
+        "breakdown": {
+            "attacks_blocked": eval_result["attacks_blocked"],
+            "attacks_total": eval_result["attacks_total"],
+            "coverage": eval_result["coverage"],
+            **scoring,
+        },
+        "pipeline_summary": {
+            "tools_enabled": eval_result["tools_enabled"],
+            "stages_active": eval_result["stages_active"],
+            "total_latency_ms": eval_result["total_latency_ms"],
+            "cost_per_request": eval_result["cost_per_request"],
+        },
+        "attack_results": eval_result["attack_results"],
+        "comparison": comparison,
+        "leaderboard_rank": rank,
+    }
+
+
+@app.post("/api/behavioral-test")
+async def behavioral_test(req: BehavioralTestRequest):
+    """Run a behavioral test prompt against the vulnerable NexaCore assistant."""
+    if req.category not in VULNERABILITY_CATEGORIES:
+        raise HTTPException(400, f"Invalid category: {req.category}. Valid: {list(VULNERABILITY_CATEGORIES.keys())}")
+
+    session = get_behavioral_session(req.session_id)
+    session["queries"] += 1
+
+    # Call Groq with the vulnerable system prompt
+    try:
+        messages = [
+            {"role": "system", "content": VULNERABLE_ASSISTANT_PROMPT},
+            {"role": "user", "content": req.test_prompt},
+        ]
+        model_output = generate_response(messages)
+    except Exception as e:
+        logger.exception("Behavioral test Groq call failed")
+        raise HTTPException(500, f"Model call failed: {e}")
+
+    # Check for triggered vulnerabilities in the selected category
+    triggered = check_vulnerabilities(model_output, req.category)
+
+    # Filter to only new discoveries
+    new_discoveries = [v for v in triggered if v["id"] not in session["found"]]
+    for v in new_discoveries:
+        session["found"].append(v["id"])
+
+    # Build category progress
+    category_progress = {}
+    for cat_id in VULNERABILITY_CATEGORIES:
+        total_in_cat = sum(1 for v in VULNERABILITIES.values() if v["category"] == cat_id)
+        found_in_cat = sum(1 for vid in session["found"] if VULNERABILITIES[vid]["category"] == cat_id)
+        category_progress[cat_id] = [found_in_cat, total_in_cat]
+
+    scoring = calculate_behavioral_score(len(session["found"]), session["queries"])
+
+    # Update leaderboard if score improved
+    if scoring["total"] > 0:
+        update_leaderboard(req.participant_name, "behavioral_testing", scoring["total"])
+
+    # Get hint if no vulnerability found
+    hint = None
+    if not triggered:
+        # Find unfound vulns in this category
+        unfound = [v for vid, v in VULNERABILITIES.items()
+                    if v["category"] == req.category and vid not in session["found"]]
+        if unfound:
+            hint = unfound[0]["hint"]
+
+    return {
+        "model_output": model_output,
+        "vulnerabilities_found": [{"id": v["id"], "name": v["name"], "is_new": v["id"] not in [d["id"] for d in new_discoveries]} for v in triggered],
+        "new_discoveries": [{"id": v["id"], "name": v["name"]} for v in new_discoveries],
+        "total_found": len(session["found"]),
+        "total_queries": session["queries"],
+        "category_progress": category_progress,
+        "score": scoring,
+        "hint": hint,
+    }
+
+
+@app.get("/api/behavioral-progress/{session_id}")
+async def behavioral_progress(session_id: str):
+    """Get current progress for a behavioral testing session."""
+    session = get_behavioral_session(session_id)
+    category_progress = {}
+    for cat_id in VULNERABILITY_CATEGORIES:
+        total_in_cat = sum(1 for v in VULNERABILITIES.values() if v["category"] == cat_id)
+        found_in_cat = sum(1 for vid in session["found"] if VULNERABILITIES[vid]["category"] == cat_id)
+        category_progress[cat_id] = [found_in_cat, total_in_cat]
+
+    scoring = calculate_behavioral_score(len(session["found"]), session["queries"])
+    return {
+        "total_found": len(session["found"]),
+        "total_queries": session["queries"],
+        "category_progress": category_progress,
+        "score": scoring,
     }
 
 

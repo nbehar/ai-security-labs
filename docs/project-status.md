@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-09 (Session 9)*
+*Last updated: 2026-04-09 (Session 10)*
 
 ---------------------------------------------------------------------
 
@@ -28,14 +28,17 @@ Interactive AI security training platform by Prof. Nikolas Behar. 3 workshops li
 - **Defense matrix verified** for all 5 tools across all 25 attacks
 
 ### Blue Team Workshop (Space 2)
-- **2 of 4 challenges built:**
+- **4 of 4 challenges built:**
   1. **Prompt Hardening** — 5 progressive levels (3→15 attacks), 15 attacks with WHY explanations, scoring + leaderboard
   2. **WAF Rules** — Write regex/pattern rules in a DSL, scored by F1 (precision × recall), compared to Prompt Guard 2 baseline (70% F1)
-  - *Planned:* Defense Pipeline Builder, Model Behavioral Testing
+  3. **Defense Pipeline Builder** — Visual pipeline with 5 toggleable defense stages, presets (None/Fast & Cheap/Kitchen Sink), coverage+efficiency scoring (0-100), per-attack results showing which stage caught each attack. No API calls — uses pre-computed defense effectiveness matrix. Kitchen Sink: 14/15 blocked, score 84
+  4. **Model Behavioral Testing** — 12 hidden vulnerabilities across 6 categories (Bias, Toxicity, PII Leakage, Instruction Following, Refusal Bypass, Factual Accuracy), participants write test prompts against subtly flawed system, discovery + efficiency scoring (max 160). Uses Groq API
 - **20 legitimate queries** for false positive checking
-- **Features:** Guided practice (5 steps), level briefing cards, progress stars, WHY explanations, hints, leaderboard (aggregates both challenges)
+- **Features:** Guided practice (5 steps), level briefing cards, progress stars, WHY explanations, hints, leaderboard (aggregates all 4 challenges), 6 tabs (Info/Prompt Hardening/WAF Rules/Pipeline Builder/Behavioral Testing/Leaderboard)
 - **Prompt Hardening tested:** L1=130, L2=130, L3=105, L4=90, L5=110 — zero false positives
 - **WAF Rules tested:** 9 rules → 50% F1, 100% precision, 33% recall — scoring and PG2 comparison working
+- **Pipeline Builder tested:** Kitchen Sink 84/100 (14/15 blocked, 93% coverage), Fast & Cheap 81/100, None 18/100. Only misinformation probe not caught by any tool
+- **Behavioral Testing tested:** PII Leakage V5 (employee names) triggered on first query with "Who leads the engineering team?"
 
 ### Red Team Workshop (Space 3)
 - **Red Team Levels:** 5 progressively hardened NexaCore systems
@@ -158,3 +161,36 @@ Built the monorepo and 2 new workshops:
 - ✅ WAF Rules (regex detection, F1 scoring, PG2 comparison)
 - 📋 Defense Pipeline Builder (specced)
 - 📋 Model Behavioral Testing (specced)
+
+### Session 10 — 2026-04-09
+
+**What was accomplished:**
+
+1. Built Defense Pipeline Builder (challenge #3 for Blue Team)
+   - Visual pipeline with 5 toggleable defense stages (INPUT→CONTEXT→PROMPT→OUTPUT→GUARDRAIL)
+   - Pre-computed DEFENSE_MATRIX: which of 5 tools catches which of 15 attacks
+   - 3 presets: None (0% coverage), Fast & Cheap (80% coverage), Kitchen Sink (93% coverage)
+   - Coverage (0-80) + Efficiency (0-20) scoring — trade-off is the lesson
+   - Score comparison chart against all presets
+   - Per-attack results showing which stage caught each attack + recommendations for missed attacks
+   - No Groq API calls needed — pure matrix lookup, instant evaluation
+
+2. Built Model Behavioral Testing (challenge #4 for Blue Team)
+   - 12 hidden vulnerabilities across 6 categories (Bias, Toxicity, PII, Instruction Following, Refusal Bypass, Factual Accuracy)
+   - Carefully crafted vulnerable system prompt with subtle flaws (not obviously broken)
+   - Detection lambdas for each vulnerability (pattern matching on model output)
+   - Session tracking (in-memory, keyed by session_id)
+   - Category progress bars with per-category discovery tracking
+   - Hints for unfound vulnerabilities
+   - Discovery (0-100) + Efficiency bonus (up to +60) scoring
+   - Uses Groq API for each test prompt
+
+3. Updated Blue Team frontend: 6 tabs (Info, Prompt Hardening, WAF Rules, Pipeline Builder, Behavioral Testing, Leaderboard)
+4. Updated leaderboard to aggregate scores across all 4 challenges
+5. Deployed to HF Space, verified both challenges working in Chrome
+
+**Blue Team now has 4/4 challenges — all complete:**
+- ✅ Prompt Hardening (5 levels, WHY explanations)
+- ✅ WAF Rules (regex detection, F1 scoring, PG2 comparison)
+- ✅ Defense Pipeline Builder (visual pipeline, presets, coverage+efficiency)
+- ✅ Model Behavioral Testing (12 hidden vulns, 6 categories, discovery tracking)
