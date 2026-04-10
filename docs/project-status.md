@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-09*
+*Last updated: 2026-04-09 (Session 9)*
 
 ---------------------------------------------------------------------
 
@@ -28,12 +28,14 @@ Interactive AI security training platform by Prof. Nikolas Behar. 3 workshops li
 - **Defense matrix verified** for all 5 tools across all 25 attacks
 
 ### Blue Team Workshop (Space 2)
-- **Prompt Hardening Challenge:** 5 progressive levels (3→15 attacks per level)
-- **15 attack definitions** with WHY explanations (why_blocked + why_failed per attack)
-- **5 legitimate queries** for false positive checking (PTO, harassment, dental, conflict, holidays)
-- **Features:** Guided practice (5 steps), level briefing cards with collapsible suggestions, progress stars, scoring (block + legit bonus - FP penalty + time bonus), leaderboard, hints after 3 failures
-- **All 5 levels tested:** L1=130, L2=130, L3=105, L4=90, L5=110 (with suggested prompts)
-- **Zero false positives** across all levels
+- **2 of 4 challenges built:**
+  1. **Prompt Hardening** — 5 progressive levels (3→15 attacks), 15 attacks with WHY explanations, scoring + leaderboard
+  2. **WAF Rules** — Write regex/pattern rules in a DSL, scored by F1 (precision × recall), compared to Prompt Guard 2 baseline (70% F1)
+  - *Planned:* Defense Pipeline Builder, Model Behavioral Testing
+- **20 legitimate queries** for false positive checking
+- **Features:** Guided practice (5 steps), level briefing cards, progress stars, WHY explanations, hints, leaderboard (aggregates both challenges)
+- **Prompt Hardening tested:** L1=130, L2=130, L3=105, L4=90, L5=110 — zero false positives
+- **WAF Rules tested:** 9 rules → 50% F1, 100% precision, 33% recall — scoring and PG2 comparison working
 
 ### Red Team Workshop (Space 3)
 - **Red Team Levels:** 5 progressively hardened NexaCore systems
@@ -134,3 +136,25 @@ Built the monorepo and 2 new workshops:
 - **Red Team prompts:** Level 1 uses "internal reference notes" (not "classified") to avoid LLaMA's built-in safety. Level 4 allows general discussion but protects the specific codename.
 - **ML Top 10 skipped:** Most risks need training pipeline access, demoable ones overlap with LLM Top 10
 - **Private Spaces:** All Spaces set to private for workshop access control
+
+### Session 9 — 2026-04-09
+
+**What was accomplished:**
+
+1. Built WAF Rules Challenge for Blue Team Workshop
+   - waf_parser.py: Rule DSL parser (BLOCK/ALLOW × contains/regex)
+   - 20 legitimate queries (expanded from 5)
+   - F1 scoring with Prompt Guard 2 baseline comparison
+   - Confusion matrix, per-query detail cards, "beat PG2" indicator
+2. Full end-to-end walkthroughs verified:
+   - Red Team: guided practice (5 steps) + all 5 levels tested with suggested techniques
+   - Blue Team: guided practice (5 steps) + all 5 Prompt Hardening levels + WAF Rules tested
+3. Fixed Red Team Level 1 (model refused "classified" framing → changed to "internal reference")
+4. Fixed Red Team Level 4 (blanket refusal → softened to protect codename while allowing conversation)
+5. Updated project-status.md with comprehensive platform state
+
+**Blue Team now has 2/4 challenges:**
+- ✅ Prompt Hardening (5 levels, WHY explanations)
+- ✅ WAF Rules (regex detection, F1 scoring, PG2 comparison)
+- 📋 Defense Pipeline Builder (specced)
+- 📋 Model Behavioral Testing (specced)
