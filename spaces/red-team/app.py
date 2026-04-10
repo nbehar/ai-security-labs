@@ -233,6 +233,7 @@ async def list_jailbreaks():
                 "name": jb["name"],
                 "category": jb["category"],
                 "template": jb["template"],
+                "why": jb.get("why", ""),
             }
             for jb_id, jb in JAILBREAKS.items()
         ],
