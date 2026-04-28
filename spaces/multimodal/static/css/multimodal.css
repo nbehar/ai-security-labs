@@ -1,0 +1,8 @@
+/*
+ * multimodal.css — Space-specific overrides for the Multimodal Lab.
+ *
+ * Phase 1: empty (frontend doesn't ship until Phase 4).
+ * Phase 4 will add: image-gallery thumbnail grid, OCR-extraction layer
+ * styling on the P5 tab, cold-start banner styles. The platform's dark theme
+ * comes from framework/static/css/styles.css (copied at deploy time).
+ */
