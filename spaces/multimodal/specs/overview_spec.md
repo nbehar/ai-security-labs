@@ -44,7 +44,7 @@ These remain as planned future labs and are explicitly NOT covered in v1 specs:
 | P4 | Steganographic Payloads | Educational overlap with P1, defer for clarity |
 | P8 | CAPTCHA Breaking | Legal/ethical concerns for an open workshop; likely permanent skip |
 
-When v2 is scoped, P6 should be the next addition. Adding P6 requires a separate spec and may require additional model loading on ZeroGPU.
+When v2 is scoped, P6 should be the next addition. Adding P6 requires a separate spec and a deepfake-classifier model — verify HF Inference Providers route availability before locking in the model choice (the platform standardizes on HF Inference Providers from a `cpu-basic` Space; no ZeroGPU).
 
 ## Defenses (v1)
 

@@ -258,7 +258,7 @@ Per the `spaces/owasp-top-10/CLAUDE.md` precedent, this space MUST maintain `pos
 - [ ] Pydantic validates every request shape
 - [ ] Image upload enforces PNG/JPEG + 4MB cap + magic-bytes check
 - [ ] Rate limit 10/min/IP applied to `/api/attack`
-- [ ] `/health` reports `model_loaded` accurately
+- [ ] `/health` reports `hf_token_set` accurately (renamed from `model_loaded` during the 2026-04-28 ZeroGPU→Inference-API pivot — there's no local model load to gate on)
 - [ ] No path-traversal possible via `image_filename` (whitelist-only, derived from `/api/attacks`)
 - [ ] Postman collection added with one request per endpoint
 - [ ] Uploaded images never touch disk

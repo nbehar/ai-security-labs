@@ -2,7 +2,9 @@
 Multimodal Security Lab — FastAPI app (Phase 1: backend skeleton).
 
 v1 scope: P1 Image Prompt Injection + P5 OCR Poisoning, NexaCore DocReceive
-scenario, Qwen2.5-VL-7B via HF Inference Providers. See `specs/` for full design.
+scenario, Qwen2.5-VL-72B via HF Inference Providers (OVH cloud). See `specs/`
+for full design. (The 7B was originally specced; swapped to 72B at deploy time
+on 2026-04-28 because the 7B has no live HF Inference Providers route.)
 
 Phase 1 endpoints (this commit):
   GET  /            — placeholder shell
