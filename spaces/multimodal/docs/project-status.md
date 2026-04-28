@@ -29,8 +29,8 @@ Per platform `/CLAUDE.md`, the next phase (Phase 3: Defenses) requires Planner a
 
 | Decision | Value |
 |----------|-------|
-| Hardware | HF Spaces ZeroGPU (Nvidia A100, dynamic per-call) |
-| Model | `Qwen/Qwen2.5-VL-7B-Instruct` (env-overridable via `MULTIMODAL_MODEL`) |
+| Hardware | HF Spaces `cpu-basic` (free; pivoted from ZeroGPU 2026-04-28 — see Session History) |
+| Inference | HF Inference Providers (Together AI), hosted `Qwen/Qwen2.5-VL-7B-Instruct` (env-overridable via `MULTIMODAL_MODEL`) |
 | Labs | P1 Image Prompt Injection (6 attacks) + P5 OCR Poisoning (6 attacks) |
 | Scenario | NexaCore DocReceive (internal document intake portal) |
 | Image input | Pre-canned library (24 images) + opt-in upload |
@@ -47,7 +47,7 @@ Per platform `/CLAUDE.md`, the next phase (Phase 3: Defenses) requires Planner a
 | `requirements.txt` | ✅ Complete | Phase 1 |
 | `Dockerfile` | ✅ Complete (Tesseract deferred to Phase 3) | Phase 1 |
 | `attacks.py` (12 attack defs) | ✅ Complete | Phase 1 |
-| `vision_inference.py` (ZeroGPU wrapper) | ✅ Complete | Phase 1 |
+| `vision_inference.py` (HF Inference Providers wrapper — pivoted 2026-04-28) | ✅ Complete | Phase 1 |
 | `app.py` (3 endpoints: /health, /api/attacks, /api/attack) | ✅ Complete | Phase 1 |
 | `templates/index.html` (Phase 1 placeholder) | ✅ Complete | Phase 1 |
 | `static/css/multimodal.css` (empty stub) | ✅ Complete | Phase 1 |
@@ -67,9 +67,10 @@ Per platform `/CLAUDE.md`, the next phase (Phase 3: Defenses) requires Planner a
 
 ## Open Risks
 
-1. **Qwen2.5-VL safety alignment** — Need to verify Qwen's built-in safety doesn't refuse our injection attacks. Plan: test with `P1.1` (least subtle) first; if refused, fall back to `Qwen2.5-VL-3B` or `LLaVA-1.6` per `deployment_spec.md`.
-2. **ZeroGPU quota cliff** — Mitigation per `deployment_spec.md`: pre-warm before workshops; document HF Inference Providers as fallback.
-3. **Pre-canned attack image authoring** — 24 images need to be created. Plan: PIL/Pillow scripts that programmatically generate the canonical attacks (e.g. white-on-white text, microprint, fake receipts) — keeps images deterministic and easy to regenerate.
+1. **Qwen2.5-VL safety alignment** — Need to verify Qwen's built-in safety doesn't refuse our injection attacks. Plan: test with `P1.1` (least subtle) first; if refused, fall back to `Qwen2.5-VL-3B`, `LLaVA-1.6`, or `Llama-3.2-11B-Vision` via `MULTIMODAL_MODEL` per `deployment_spec.md`.
+2. ~~**ZeroGPU quota cliff**~~ — Resolved by pivot to HF Inference Providers (2026-04-28). No longer relevant.
+3. **HF Inference Providers cost / availability** — Workshop volume is well within HF Pro monthly inference credit; Together AI hosts Qwen2.5-VL-7B as of writing. If Together is unavailable, swap via `HF_INFERENCE_PROVIDER` (fireworks-ai, hyperbolic, replicate).
+4. ~~**Pre-canned attack image authoring**~~ — Resolved 2026-04-28: 24 PNGs generated and committed (`417f9d7`).
 
 ------------------------------------------------------------------------
 
@@ -79,10 +80,16 @@ Per platform `/CLAUDE.md`, the next phase (Phase 3: Defenses) requires Planner a
 
 Two-part next-task:
 
-1. **Generate + deploy (Operator/Reviewer).** Pre-deploy: install Pillow locally and run `python scripts/generate_canned_images.py` to produce all 24 PNGs in `static/images/canned/`. Commit the 24 PNGs (binary; standard git flow, not MCP). Then deploy: create the HF Space at `nikobehar/ai-sec-lab4-multimodal` (private, ZeroGPU enabled), run `./scripts/deploy.sh multimodal`. Verify:
-   - `GET /health` reports `attack_count: 12` and `image_library_size: 12` (only attack PNGs are referenced from the attacks dict; legit PNGs are present but not enumerated)
-   - First `POST /api/attack` with each of the 12 attack IDs triggers a model response. Spot-check P1.1 (BANANA SUNDAE) for Phase 1 verification, plus a sample P5 attack for Phase 2 verification.
-   - If Qwen refuses any attack: log it for Phase 5 verification matrix; consider model fallback per `specs/deployment_spec.md`.
+1. **Deploy (Operator/Reviewer).** PNGs are already committed (`417f9d7`). Steps:
+   - Generate fine-grained HF token at https://huggingface.co/settings/tokens with **Inference Providers** permission only (least privilege)
+   - Create HF Space at `nikobehar/ai-sec-lab4-multimodal` (private, Docker SDK, default `cpu-basic` hardware)
+   - Add `HF_TOKEN` as a Space **secret** (not variable) with the token value
+   - Optionally set `HF_INFERENCE_PROVIDER` (default: `together`) and `MULTIMODAL_MODEL` (default: `Qwen/Qwen2.5-VL-7B-Instruct`) as Space variables
+   - Use `hf upload nikobehar/ai-sec-lab4-multimodal spaces/multimodal/ . --type space --exclude '.venv/**' --exclude '__pycache__/**' --exclude '.git/**'` (or `./scripts/deploy.sh multimodal` after setting up the `hf` git remote)
+   - Verify:
+     - `GET /health` reports `hf_token_set: true`, `inference_provider: together`, `attack_count: 12`, `image_library_size: 12`
+     - First `POST /api/attack` with each of the 12 attack IDs triggers a model response (1–3s warm). Spot-check P1.1 (BANANA SUNDAE) and one P5 attack.
+     - If Qwen refuses: model fallback via `MULTIMODAL_MODEL` per `deployment_spec.md`.
 
 2. **Phase 3: Defenses.** Implement the 4 defense layers per `specs/overview_spec.md` Defenses section: `ocr_prescan` (Tesseract; requires adding `pytesseract` to requirements.txt and `tesseract-ocr` to Dockerfile), `output_redaction`, `boundary_hardening` (system prompt update), `confidence_threshold`. Each defense is a function in a new `defenses.py` module that returns a defense_log entry. Wire into `app.py` `/api/attack` flow with toggleable per-defense application. Use the 12 legit PNGs to verify each defense doesn't false-positive on legitimate documents.
 
@@ -158,3 +165,45 @@ No implementation code in this session — bootstrap phase only.
 - Verify no PNG exceeds 500KB (per spec — image library budget 12MB total)
 
 **Note on the older `scripts/generate_p1_1.py`:** kept in place as a single-image test harness. The new `generate_canned_images.py p1_1` produces a comparable (not byte-identical) P1.1 image. Last-writer wins on the output file.
+
+### 2026-04-28 (cont.) — Pivot to HF Inference Providers (cpu-basic)
+
+**Trigger:** During Space creation, HF UI rejected ZeroGPU + Docker SDK combination — ZeroGPU is Gradio-SDK-only.
+
+**Decision:** Pivot inference path from local Qwen load on ZeroGPU → HF Inference Providers API call from a `cpu-basic` Docker Space. Architecture-preserving (still Docker/FastAPI, still matches platform pattern); cost-free at workshop volume (HF Pro inference credit covers it); eliminates cold-start (HF's hosted model is warm-served).
+
+**What changed in code:**
+
+- `vision_inference.py` — replaced `@spaces.GPU(duration=60)` + lazy `Qwen2_5_VLForConditionalGeneration` load + `qwen_vl_utils` preprocessing with a `huggingface_hub.InferenceClient.chat_completion` call. ~50 lines, simpler than the original. Renamed `is_loaded()` → `is_ready()` (keeps backward-compat alias).
+- `requirements.txt` — dropped `torch`, `transformers`, `accelerate`, `spaces`, `qwen-vl-utils`. Added `huggingface_hub>=0.27.0`. Now 7 deps (was 11).
+- `Dockerfile` — dropped `apt-get install build-essential libgl1 libglib2.0-0`. Pillow's manylinux wheel covers image deps. Now matches blue-team/red-team pattern exactly.
+- `app.py` `/health` — replaced `groq_api_key_set` with `hf_token_set` and added `inference_provider`. `model_loaded` semantic preserved via `is_ready()`.
+
+**What changed in specs/docs:**
+
+- `deployment_spec.md` — Hosting (cpu-basic, no ZeroGPU), Dependencies, Dockerfile, Inference Integration, HF Space Metadata (no `hardware:` field), Environment Variables (HF_TOKEN required as Space secret), Cold-Start Behavior (now trivial), Health Verification, Acceptance Checks
+- `CLAUDE.md` (space) — Stack section, Hosting Constraints section
+- `CLAUDE.md` (platform) — HF Space Names table Hardware column for Lab 4
+- `README.md` (space) — HF frontmatter (drop `hardware: zero-a10g`), status line
+
+**What did NOT change:**
+
+- `attacks.py` — 12 attack defs identical
+- `app.py` body (just /health update)
+- `templates/index.html`
+- `static/css/multimodal.css`
+- `scripts/generate_canned_images.py`
+- 24 canned PNGs (already committed)
+
+**Cost model:**
+
+- Space hosting: free (`cpu-basic`)
+- Inference: per-call via HF Inference Providers, billed against HF Pro monthly credit. Per-call cost for Qwen2.5-VL-7B is fractions of a cent. Workshop volume (~600 calls per session) easily fits.
+- Net: free at workshop volume.
+
+**Pending follow-up:**
+
+- HF Space creation + token provisioning (user)
+- Deploy via `hf upload` or `./scripts/deploy.sh multimodal`
+- Verify `/health` and run a P1.1 attack end-to-end
+- Phase 3: Defenses

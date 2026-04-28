@@ -8,32 +8,41 @@ Define hosting, hardware, model loading, env config, and verification for deploy
 
 - **Platform:** HuggingFace Spaces
 - **SDK:** Docker (consistent with other spaces)
-- **Hardware tier:** **ZeroGPU** (Nvidia A100 dynamically allocated per call)
+- **Hardware tier:** **`cpu-basic`** (free)
 - **Visibility:** Private (consistent with other spaces — workshop access controlled via HF Space link)
 - **HF Space name:** `nikobehar/ai-sec-lab4-multimodal` (per platform `ai-sec-lab#-name` convention; this is the 4th workshop deployed)
+- **Inference path:** HuggingFace Inference Providers (Together AI by default), called via `huggingface_hub.InferenceClient`. Vision inference is *hosted* — no GPU on the Space itself, no local model load, no cold-start.
 
-ZeroGPU rationale (full discussion in 2026-04-27 planning session, summarized):
-- Free at workshop volume with the existing HF Pro account
-- Self-contained — workshop runs entirely on platform hardware, no external API calls beyond the existing Groq integration (which Multimodal does NOT use; Groq is for text-only spaces)
-- Cold-start of ~10–30s on first call after Space wake is acceptable per user input
-- ZeroGPU quotas are sufficient for classroom use; pre-warming the Space before sessions is the documented mitigation
+### Why not ZeroGPU
+
+The 2026-04-27 plan assumed ZeroGPU + a locally loaded Qwen2.5-VL-7B. Discovered at Space creation time that **HF Spaces only allow ZeroGPU on Gradio SDK** — incompatible with the platform's Docker/FastAPI architecture. Pivoted on 2026-04-28 to HF Inference Providers, which:
+
+- Keeps the Docker/FastAPI architecture (matches OWASP / Blue Team / Red Team)
+- Eliminates cold-start (HF's hosted Qwen is warm-served)
+- Uses HF Pro inference credit (free at workshop volume)
+- Simplifies the stack significantly (drops `torch`, `transformers`, `accelerate`, `spaces`, `qwen-vl-utils`, `libgl1`)
+- Adds one Space secret (`HF_TOKEN`) instead of one Space hardware tier
+
+### Cost model
+
+`cpu-basic` is free. Inference runs on HF's hosted infrastructure, billed via the user's HF Pro inference credit. Per-call cost for Qwen2.5-VL-7B is on the order of a fraction of a cent; workshop volume (e.g. 30 students × 20 attacks each = 600 calls) easily fits within the monthly Pro credit.
 
 ## Model
 
-- **Primary:** `Qwen/Qwen2.5-VL-7B-Instruct`
+- **Primary:** `Qwen/Qwen2.5-VL-7B-Instruct` served via the `together` provider (HF Inference Providers default)
 - **License:** Apache 2.0 (open weights, no gating)
-- **VRAM:** ~16GB at fp16, fits ZeroGPU A100 (40GB) cleanly with headroom for image preprocessing
-- **Configurability:** Model ID stored as env var `MULTIMODAL_MODEL` so we can swap without redeploying. Acceptable alternates listed in spec; switching requires re-running the verification steps.
+- **Configurability:** model ID stored as env var `MULTIMODAL_MODEL`; provider as `HF_INFERENCE_PROVIDER`. Switching requires re-running the verification matrix.
 
-### Acceptable alternate models (if Qwen2.5-VL-7B is over-aligned or unavailable)
+### Acceptable alternate models (if Qwen2.5-VL-7B refuses our injections, or the Together provider is unavailable)
 
-| Model | Reason to consider | Tradeoff |
-|-------|--------------------|----------|
-| `Qwen/Qwen2.5-VL-3B-Instruct` | Smaller, faster cold-start | Worse OCR — may hurt P5 fidelity |
-| `llava-hf/llava-v1.6-mistral-7b-hf` | Older, broadly tested, less safety-aligned | Older OCR quality |
-| `mistralai/Pixtral-12B-2409` | Strong OCR, alternative weight class | Larger VRAM, slower cold-start |
+| Model | Provider candidates | Reason to consider | Tradeoff |
+|-------|--------------------|--------------------|----------|
+| `Qwen/Qwen2.5-VL-3B-Instruct` | together, hyperbolic | Smaller, may be less safety-aligned | Worse OCR — may hurt P5 fidelity |
+| `llava-hf/llava-v1.6-mistral-7b-hf` | replicate | Older, broadly tested | Older OCR quality |
+| `meta-llama/Llama-3.2-11B-Vision-Instruct` | together, fireworks-ai | Different model family | Different injection-following behavior; verify |
+| `mistralai/Pixtral-12B-2409` | together | Strong OCR | Larger; slightly more cost per call |
 
-DO NOT swap models without re-running the full attack/defense verification matrix.
+DO NOT swap without re-running the full attack/defense verification matrix.
 
 ## Dependencies (`requirements.txt`)
 
@@ -44,23 +53,17 @@ jinja2>=3.1.0
 python-multipart>=0.0.12
 pydantic>=2.0.0
 pillow>=10.0.0
-torch>=2.4.0
-transformers>=4.45.0
-accelerate>=0.34.0
-spaces>=0.30.0
-pytesseract>=0.3.10
-slowapi>=0.1.9
-qwen-vl-utils>=0.0.8
+huggingface_hub>=0.27.0
 ```
 
 Notes:
-- `spaces` package — required for `@spaces.GPU` decorator on inference functions (ZeroGPU integration)
-- `qwen-vl-utils` — Qwen2.5-VL's image-preprocessing helpers
-- `pytesseract` — for the Image OCR Pre-Scan defense (separate OCR engine, not the model)
-- `slowapi` — rate limiting (10 req/min per IP per `api_spec.md`)
+- `huggingface_hub` — provides `InferenceClient` for hosted inference calls. Replaces the previously-planned `torch` / `transformers` / `accelerate` / `spaces` / `qwen-vl-utils` stack (no local model load).
+- `pillow` — image bytes parsing only (no model preprocessing locally)
 - DO NOT include `groq` — Multimodal lab does not use Groq
 
-System dependency: Tesseract binary needs to be installed in the Docker image.
+Phase 3 will add:
+- `pytesseract>=0.3.10` — for the OCR Pre-Scan defense
+- `slowapi>=0.1.9` — rate limiting (10 req/min per IP per `api_spec.md`)
 
 ## Dockerfile
 
@@ -69,14 +72,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps: build tools + Tesseract OCR engine for the OCR Pre-Scan defense
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    tesseract-ocr \
-    libtesseract-dev \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# Pillow's manylinux wheel bundles libjpeg/libpng; no apt deps needed for v1.
+# Tesseract will be added in Phase 3 when the OCR Pre-Scan defense lands.
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -88,26 +85,33 @@ EXPOSE 7860
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
 ```
 
-Differences from blue-team/red-team Dockerfile:
-- Adds `tesseract-ocr`, `libtesseract-dev`, `libgl1`, `libglib2.0-0` system packages
-- Otherwise identical pattern (Python 3.11-slim, port 7860, uvicorn)
+Identical pattern to blue-team / red-team Dockerfile (Python 3.11-slim, port 7860, uvicorn). No system deps in v1.
 
-## ZeroGPU Integration
+## Inference Integration (HF Inference Providers)
 
-Inference function MUST be decorated:
+Inference function uses `huggingface_hub.InferenceClient`:
 
 ```python
-import spaces
+from huggingface_hub import InferenceClient
 
-@spaces.GPU(duration=60)
-def run_vision_inference(image_bytes: bytes, prompt: str) -> str:
-    # Model + processor loaded lazily inside this function
-    # First call: ~20s for GPU allocation + model load
-    # Subsequent calls (within Space lifetime): sub-second
-    ...
+client = InferenceClient(provider="together", token=os.environ["HF_TOKEN"])
+
+response = client.chat_completion(
+    model="Qwen/Qwen2.5-VL-7B-Instruct",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "image_url", "image_url": {"url": data_url}},
+            {"type": "text", "text": prompt},
+        ],
+    }],
+    max_tokens=512,
+)
 ```
 
-`duration` is the max GPU allocation per call in seconds. 60s is generous for v1; can tune down once we measure actual inference time.
+Latency: 1–3s typical. No cold-start. On Inference Provider errors (rate limit, model unavailable), the exception propagates to the caller (FastAPI returns 503).
+
+If Together AI doesn't have Qwen2.5-VL-7B available, swap providers via `HF_INFERENCE_PROVIDER` env var. Candidates: `together`, `fireworks-ai`, `hyperbolic`, `replicate`.
 
 ## HuggingFace Space Metadata
 
@@ -120,23 +124,23 @@ emoji: 🖼️
 colorFrom: purple
 colorTo: red
 sdk: docker
-hardware: zero-a10g
 pinned: false
 short_description: AI security workshop — image prompt injection + OCR poisoning
 ---
 ```
 
-(Hardware label `zero-a10g` is the HF tier name for ZeroGPU. Verify the exact label at deploy time — HF has used multiple names.)
+No `hardware` field needed — HF Spaces default to `cpu-basic` for Docker SDK without an explicit hardware tier.
 
 ## Environment Variables
 
 | Variable | Required | Set Via | Purpose |
 |----------|----------|---------|---------|
+| `HF_TOKEN` | **Yes** | HF Space **secret** | Auth to HF Inference Providers. Use a fine-grained token with `Make calls to Inference Providers` permission only — read-only inference, no repo access. |
 | `MULTIMODAL_MODEL` | No (default `Qwen/Qwen2.5-VL-7B-Instruct`) | HF Space variable | Override model ID |
-| `MAX_GPU_DURATION_SECONDS` | No (default 60) | HF Space variable | Tune `@spaces.GPU(duration=…)` |
+| `HF_INFERENCE_PROVIDER` | No (default `together`) | HF Space variable | Override Inference Provider (e.g. `fireworks-ai`, `hyperbolic`, `replicate`) |
 | `LOG_LEVEL` | No (default `INFO`) | HF Space variable | Standard Python logging |
 
-This space does NOT use `GROQ_API_KEY`. No external API keys required for v1.
+This space does NOT use `GROQ_API_KEY`. The `HF_TOKEN` secret should be a fine-grained token with **Inference Providers** permission only — narrowest scope sufficient for inference calls.
 
 ## Image Library Storage
 
@@ -175,52 +179,49 @@ If `deploy.sh` needs changes, file an issue rather than silently modifying it (p
 
 ## Cold-Start Behavior
 
-Documented for participant + workshop instructor expectations:
+Substantially simpler than the original ZeroGPU plan. The Space itself is a tiny FastAPI server; the Vision LLM is hosted by HF, always warm.
 
 | Phase | Duration | What's happening |
 |-------|----------|------------------|
-| Space sleep → wake | 30–60s | HF spinning up the Docker container |
-| Container start → first `/api/attack` | <1s | App server up, but no GPU/model yet |
-| First `/api/attack` call | 10–30s | ZeroGPU allocation + model download (cached after first wake) + warm-up inference |
-| Subsequent `/api/attack` calls | 1–3s per image | Steady-state inference |
-| Idle → Space sleeps | After ~24h idle (HF default) | Container hibernates; next request triggers cold start again |
+| Space sleep → wake | 10–30s | HF spinning up the Docker container (small image, fast pull) |
+| Container start → first `/api/attack` | <1s | App server up, ready for requests |
+| Each `/api/attack` call | 1–3s | HF Inference Providers call (warm, no cold-start) |
+| Idle → Space sleeps | After ~48h idle (HF default for free tier) | Container hibernates; next request triggers a Space wake |
 
-**Pre-warm strategy for live workshops:** Make a synthetic `/api/attack` call ~5 minutes before the workshop starts to trigger model load. The HF Space stays warm for the workshop duration as long as activity continues.
+No pre-warm required — even after a sleep, the first request is just the Space-wake (~30s), not a model load.
 
 ## Health Verification (Operator Agent)
 
 Per CLAUDE.md, after `deploy.sh multimodal` completes, Reviewer Agent MUST verify:
 
-- `GET /health` returns 200 with `groq_api_key_set: false` (this space doesn't use Groq), `attack_count: 12`, `image_library_size: 24`
-- After the first `/api/attack` call, `/health` reports `model_loaded: true`
+- `GET /health` returns 200 with `hf_token_set: true`, `inference_provider: together`, `model_id: Qwen/Qwen2.5-VL-7B-Instruct`, `attack_count: 12`, `image_library_size: 12` (the 12 attack PNGs the attacks dict references)
 - No startup errors in HF Space build logs
-- All 12 canned attack images succeed against undefended model
-- All 12 legitimate images do NOT trigger false positives across the recommended defense stack
-- Defense matrix verified — each defense catches what it claims
+- `POST /api/attack` with `attack_id=P1.1, image_source=canned` returns a model response within ~5s
+- All 12 canned attack images succeed against the (undefended) hosted Qwen
+- All 12 legitimate images do NOT trigger false positives across the recommended defense stack (Phase 5 task)
+- Defense matrix verified — each defense catches what it claims (Phase 5 task)
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `/health` returns 200 but `model_loaded: false` after first attack | ZeroGPU allocation timed out | Retry; if persistent, file an issue and consider model swap |
-| `transformers` ImportError on cold start | Pinned versions out of sync | Re-pin `transformers` and `torch` to known-good combination |
-| Tesseract not found | Missing apt package in Docker | Verify `tesseract-ocr` in Dockerfile |
-| "CUDA out of memory" | Model too large for ZeroGPU A100 (unlikely with 7B) | Drop to `Qwen2.5-VL-3B` via `MULTIMODAL_MODEL` env |
-| Cold start exceeds 30s consistently | Model files not cached on Space | First-cold-start is always slow; subsequent cold starts (after sleep + wake) re-pull from HF cache |
+| `/health` reports `hf_token_set: false` | `HF_TOKEN` not set as Space secret | Add `HF_TOKEN` as a Space secret in HF UI; restart the Space |
+| `POST /api/attack` returns 503 with "InferenceClient" error | HF Inference Providers rate limit or provider down | Retry; if persistent, swap provider via `HF_INFERENCE_PROVIDER` env (`fireworks-ai`, `hyperbolic`, `replicate`) |
+| `POST /api/attack` returns 503 with "model not available" | Provider doesn't host the requested model | Swap to a provider that does, or change `MULTIMODAL_MODEL` to a model the current provider hosts |
+| Inference responses don't follow the image-embedded injection | Qwen2.5-VL-7B safety alignment | Try a less-aligned alternate model via `MULTIMODAL_MODEL` (see Acceptable alternate models) |
 
 ## Acceptance Checks
 
-- [ ] HF Space created at `nikobehar/ai-sec-lab4-multimodal` (private)
-- [ ] ZeroGPU enabled in Space settings
-- [ ] Dockerfile includes Tesseract + Python deps
-- [ ] `requirements.txt` pinned and complete
-- [ ] `@spaces.GPU` decorator on inference function
+- [ ] HF Space created at `nikobehar/ai-sec-lab4-multimodal` (private, Docker SDK, default `cpu-basic`)
+- [ ] `HF_TOKEN` configured as a Space secret (fine-grained, Inference Providers permission only)
+- [ ] Dockerfile pulls clean (no apt deps in v1)
+- [ ] `requirements.txt` pinned and complete (FastAPI, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub)
+- [ ] `vision_inference.py` uses `huggingface_hub.InferenceClient` (no local model load)
 - [ ] Pre-canned image library shipped in `spaces/multimodal/static/images/canned/` (24 images)
-- [ ] `/health` reports correct values
-- [ ] First-call cold start <30s; steady-state inference <5s
-- [ ] `MULTIMODAL_MODEL` env var overrides work
-- [ ] No `GROQ_API_KEY` referenced in this space's code
-- [ ] Pre-warm strategy documented in space-level project-status.md
-- [ ] All 12 attacks succeed against undefended model
-- [ ] All 12 legit images pass without false positives
-- [ ] Defense matrix verified end-to-end on the live Space
+- [ ] `/health` reports correct values (`hf_token_set: true`, `inference_provider`, `model_id`, `attack_count: 12`, `image_library_size: 12`)
+- [ ] First call to `/api/attack` returns within ~5s (Space-wake + warm hosted inference)
+- [ ] `MULTIMODAL_MODEL` and `HF_INFERENCE_PROVIDER` env var overrides work
+- [ ] No `GROQ_API_KEY` referenced in this space's code (Multimodal does not use Groq)
+- [ ] All 12 attacks succeed against undefended model (Phase 5)
+- [ ] All 12 legit images pass without false positives (Phase 5)
+- [ ] Defense matrix verified end-to-end on the live Space (Phase 5)
