@@ -79,7 +79,7 @@ Per platform `/CLAUDE.md`, the next phase (Phase 3: Defenses) requires Planner a
 
 Two-part next-task:
 
-1. **Generate + deploy (Operator/Reviewer).** Pre-deploy: install Pillow locally and run `python scripts/generate_canned_images.py` to produce all 24 PNGs in `static/images/canned/`. Commit the 24 PNGs (binary; standard git flow, not MCP). Then deploy: create the HF Space at `nikobehar/multimodal-workshop` (private, ZeroGPU enabled), run `./scripts/deploy.sh multimodal`. Verify:
+1. **Generate + deploy (Operator/Reviewer).** Pre-deploy: install Pillow locally and run `python scripts/generate_canned_images.py` to produce all 24 PNGs in `static/images/canned/`. Commit the 24 PNGs (binary; standard git flow, not MCP). Then deploy: create the HF Space at `nikobehar/ai-sec-lab4-multimodal` (private, ZeroGPU enabled), run `./scripts/deploy.sh multimodal`. Verify:
    - `GET /health` reports `attack_count: 12` and `image_library_size: 12` (only attack PNGs are referenced from the attacks dict; legit PNGs are present but not enumerated)
    - First `POST /api/attack` with each of the 12 attack IDs triggers a model response. Spot-check P1.1 (BANANA SUNDAE) for Phase 1 verification, plus a sample P5 attack for Phase 2 verification.
    - If Qwen refuses any attack: log it for Phase 5 verification matrix; consider model fallback per `specs/deployment_spec.md`.

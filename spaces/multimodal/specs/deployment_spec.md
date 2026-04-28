@@ -10,7 +10,7 @@ Define hosting, hardware, model loading, env config, and verification for deploy
 - **SDK:** Docker (consistent with other spaces)
 - **Hardware tier:** **ZeroGPU** (Nvidia A100 dynamically allocated per call)
 - **Visibility:** Private (consistent with other spaces — workshop access controlled via HF Space link)
-- **HF Space name:** `nikobehar/multimodal-workshop` (TBD — confirmable when space is created)
+- **HF Space name:** `nikobehar/ai-sec-lab4-multimodal` (per platform `ai-sec-lab#-name` convention; this is the 4th workshop deployed)
 
 ZeroGPU rationale (full discussion in 2026-04-27 planning session, summarized):
 - Free at workshop volume with the existing HF Pro account
@@ -169,7 +169,7 @@ Each file ≤500KB. 24 files × 500KB = 12MB total. Committed to git (not Git LF
 
 What it does NOT yet do (must verify or extend during implementation):
 - Confirm the deploy script handles the `static/images/canned/` directory correctly (pre-canned images must ship to HF)
-- Confirm HF remote is configured for `nikobehar/multimodal-workshop`
+- Confirm HF remote is configured for `nikobehar/ai-sec-lab4-multimodal`
 
 If `deploy.sh` needs changes, file an issue rather than silently modifying it (per CLAUDE.md framework-change rules — `framework/` changes affect all spaces).
 
@@ -210,7 +210,7 @@ Per CLAUDE.md, after `deploy.sh multimodal` completes, Reviewer Agent MUST verif
 
 ## Acceptance Checks
 
-- [ ] HF Space created at `nikobehar/multimodal-workshop` (private)
+- [ ] HF Space created at `nikobehar/ai-sec-lab4-multimodal` (private)
 - [ ] ZeroGPU enabled in Space settings
 - [ ] Dockerfile includes Tesseract + Python deps
 - [ ] `requirements.txt` pinned and complete

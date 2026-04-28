@@ -411,7 +411,7 @@ All 4 Python files AST-parse cleanly. Live verification (Qwen actually follows t
 
 **Pending follow-up (next session):**
 
-- Phase 1+2 verification: install Pillow, run `python spaces/multimodal/scripts/generate_canned_images.py`, commit the 24 PNGs, deploy to `nikobehar/multimodal-workshop` HF Space (private, ZeroGPU), confirm Qwen2.5-VL-7B follows the BANANA SUNDAE injection on P1.1 and at least one P5 attack
+- Phase 1+2 verification: install Pillow, run `python spaces/multimodal/scripts/generate_canned_images.py`, commit the 24 PNGs, deploy to `nikobehar/ai-sec-lab4-multimodal` HF Space (private, ZeroGPU), confirm Qwen2.5-VL-7B follows the BANANA SUNDAE injection on P1.1 and at least one P5 attack
 - Reviewer/Operator verification of L5 Guardrail end-to-end on the deployed Red Team HF Space (separate post-deploy task)
 
 ------------------------------------------------------------------------
