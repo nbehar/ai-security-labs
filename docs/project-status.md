@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-28 (Red Team L1-L5 spec fix)*
+*Last updated: 2026-04-28 (Red Team L1-L5 spec fix + Educational Layer specs)*
 
 ---------------------------------------------------------------------
 
@@ -107,7 +107,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | 11 | Both: Progress visualization | Closed ✅ (2026-04-27) | `2994d90` |
 | 12 | Both: WHY explanations | Closed ✅ (2026-04-27) | `2994d90` + `7d157bb` + `cf87474` |
 | 13 | Spec drift: Red Team L1 system prompt framing | Closed ✅ (2026-04-28) | Fixed in red_team_challenge.md — drift was on all 5 levels, not just L1 |
-| **14** | Spec gap: Educational features not in any spec | **Open** (filed 2026-04-27) | Key Concepts, Why-This-Works, security analogies |
+| 14 | Spec gap: Educational features not in any spec | Closed ✅ (2026-04-28) | Educational Layer sections added to blue-team + red-team architecture.md |
 | **15** | MILESTONE: Multimodal Security Lab v1 build | **Open** (filed 2026-04-27) | Bootstrap complete; implementation pending |
 | **16** | Red Team L5 missing Guardrail Evaluation defense layer | **Open** (filed 2026-04-28) | Spec describes 4-layer L5 defense; code only implements 3 — found during #13 audit |
 
@@ -339,6 +339,29 @@ Audit of `spaces/red-team/specs/red_team_challenge.md` against `spaces/red-team/
 
 **Pending follow-up (next session):**
 
-- Address issue **#14** (Educational Layer spec gap across blue-team + red-team architecture specs)
+- Implement Multimodal Lab v1 per issue **#15** (Phase 1: backend skeleton)
+- Optionally address issue **#16** (Implement L5 Guardrail Evaluation — small, ~one Groq call)
+
+------------------------------------------------------------------------
+
+### 2026-04-28 (cont.) — Educational Layer Specs
+
+**Trigger:** Issue #14 (Educational features implemented but absent from specs) — second item from the 2026-04-27 audit's pending follow-up list.
+
+**What was done:**
+
+Added new "Educational Layer" sections to both live spaces' architecture specs documenting all participant-visible educational scaffolding:
+
+- **`spaces/blue-team/specs/architecture.md`** — 7 features documented: Info-tab Key Concepts card, per-level briefing cards (5 levels with traditional-security analogies), guided practice walkthrough (5 steps), progress visualization (stars per level), WHY card after attempts, hints (rotating post-failure), and analogies in challenge briefings (WAF Rules, Pipeline Builder, Behavioral Testing). Each feature documents: trigger location, content source file, when shown, authoring commit history.
+- **`spaces/red-team/specs/architecture.md`** — 8 features documented: Info-tab Key Concepts (with SQL-injection/honeytoken analogies + visual diagram), per-level briefing cards (5 levels), "Why this works" callouts on all 15 jailbreak techniques, guided practice (5 steps), progress visualization, hints, Defense Log per-attempt transparency, "Blocked by" badge.
+
+Each section also documents the framework helpers it reuses (`renderInfoPage`, `renderLevelBriefing`, `renderGuidedPractice`, `renderProgress`, `renderWhyCard` from `framework/static/js/core.js`) and a Constraints (Don't Regress) subsection naming what would constitute a regression.
+
+**Why this matters:**
+
+Per CLAUDE.md spec-first rule, every participant-visible feature must trace to a spec section. Before this fix, the Educational Layer existed in code but not in any spec — a future contributor authoring a new attack/level/challenge had no documented contract for what educational scaffolding to add. The Multimodal Lab's `frontend_spec.md` already follows this pattern; the live spaces now match.
+
+**Pending follow-up (next session):**
+
 - Implement Multimodal Lab v1 per issue **#15** (Phase 1: backend skeleton)
 - Optionally address issue **#16** (Implement L5 Guardrail Evaluation — small, ~one Groq call)

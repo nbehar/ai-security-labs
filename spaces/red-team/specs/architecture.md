@@ -342,3 +342,127 @@ Ties broken by: total time taken (less time = higher rank).
 4. **Real techniques:** Every jailbreak technique in the lab is a documented, real-world attack pattern. No made-up gimmicks.
 
 5. **No persistent data:** Everything resets on restart. No PII collected. No accounts. Workshop-appropriate.
+
+---------------------------------------------------------------------
+
+## Educational Layer
+
+This section documents the workshop's pedagogical scaffolding — the on-page features that translate offensive-security concepts into a hands-on experience for CC-level students who may have never seen an LLM system prompt before. These features are mandatory; removing or breaking any of them is a regression.
+
+**Audience:** community-college-level security students. The educational scaffolding maps AI attacks to traditional security concepts the audience already knows (SQL injection, XSS, social engineering, honeytokens).
+
+### 1. Info-Tab Key Concepts Card
+
+**What:** Dedicated card on the Info tab that defines core terms with traditional-security analogies before the participant touches a challenge.
+
+| Concept | Definition / Analogy |
+|---------|----------------------|
+| System prompt | Background instructions the model receives before user input |
+| Prompt injection | Like SQL injection — user input redirects model behavior, but inside the prompt instead of inside a query |
+| Jailbreaking | Bypassing the model's safety training to make it produce restricted output |
+| Canary | Honeytoken — a sentinel value placed where a leak would be detectable (coal-mine canary analogy) |
+
+The Key Concepts card also includes a **visual diagram** of how prompt injection works (system prompt + user input → model → output flow), CSS-drawn so it's part of the page DOM.
+
+**Trigger location:** Always visible on Info tab.
+**Content source:** `spaces/red-team/static/js/app.js` — search for `title: "Key Concepts"`.
+**When shown:** On Info-tab render.
+**Authoring history:** Added in `cf87474` (Session 12). Canary/honeytoken definition added cross-workshop in `d3ef22d`.
+
+### 2. Per-Level Briefing Cards (Red Team Levels)
+
+**What:** A collapsible briefing card at the top of each Red Team level (5 levels) explaining: which defenses are active, a traditional-security analogy, and a collapsible "Show technique suggestion" with a specific attack approach to try.
+
+| Level | Analogy |
+|-------|---------|
+| 1 | Access Control List (ACL) — minimal access control, easy to defeat |
+| 2 | Web Application Firewall (WAF) — pattern-based filtering |
+| 3 | Input sanitization at the boundary |
+| 4 | Data Loss Prevention (DLP) — pattern-based exfil detection |
+| 5 | Defense in depth — layered controls, no single point of failure |
+
+**Trigger location:** Top of the Red Team Levels tab when a level is selected.
+**Content source:** `spaces/red-team/static/js/app.js` — `LEVEL_BRIEFINGS` constant. Rendered via `renderLevelBriefing` from `framework/static/js/core.js`.
+**When shown:** On level select; remains visible during attempts.
+**Authoring history:** Briefing cards added in `39fe586`; analogies added in `cf87474`.
+
+### 3. "Why This Works" Callouts (Jailbreak Lab)
+
+**What:** Each of the 15 jailbreak techniques in the Jailbreak Lab carries a `why` field explaining the underlying vulnerability — a teal callout that appears alongside the technique payload when selected.
+
+Example (`ignore_previous` technique): *"The model processes system prompt + user message as one text stream. 'Ignore previous instructions' appears LATER in the stream, so the model treats it as the most recent (highest-priority) command — overriding the developer's rules."*
+
+15 distinct WHY explanations cover: text-stream priority (Direct Override category), encoding-bypass (Encoding category), context-shift via personas (Role-Play), authority + urgency (Social Engineering), token-completion / fragment exposure (Advanced).
+
+**Trigger location:** Above the technique payload editor in the Jailbreak Lab tab.
+**Content source:** `spaces/red-team/challenges.py` — `JAILBREAKS` dict, `why` field on each entry. Rendered at `app.js` line ~326 in a blue callout (`rgba(59,130,246,0.06)` background).
+**When shown:** When a technique is selected.
+**Authoring history:** Added in `cf87474`. Per-technique `why` fields are part of the data model — adding a new technique without a `why` field violates the spec-first rule.
+
+### 4. Guided Practice Walkthrough (5 steps)
+
+**What:** A 5-step guided tour for first-time participants:
+1. Read the briefing card on the current level
+2. Note that Level 1 has no defenses (use this to learn extraction basics)
+3. Try a direct ask first, see what works
+4. Move to Level 2 to learn refusal-rule bypasses
+5. "Let's go" advances to the Red Team Levels tab
+
+**Trigger location:** Always visible at the top of the Red Team Levels tab on first render.
+**Content source:** `spaces/red-team/static/js/app.js` — `GUIDED_STEPS_RED` constant. Rendered via `renderGuidedPractice` from `framework/static/js/core.js`. State tracked in `state.guidedStep`.
+**When shown:** Until participant clicks "Let's go" on the final step.
+**Authoring history:** Added in `6d955fd`. Step 2 text fix in `90bc522` (Session 11).
+
+### 5. Progress Visualization (Stars per Level)
+
+**What:** Star icons per Red Team level showing completion state. Empty / partial / full per attempt history.
+
+**Trigger location:** Top of the Red Team Levels tab.
+**Content source:** `framework/static/js/core.js` — `renderProgress(totalLevels, completedLevels, currentLevel, maxUnlocked)`.
+**When shown:** Always visible during the challenge.
+**Authoring history:** Added in `2994d90`.
+
+### 6. Hints (Rotating, Post-Failure)
+
+**What:** After 3+ failed attempts, an amber callout shows a hint pointing toward a technique. Hints are level-specific and rotate through `challenges.py` `LEVELS[level].hints`.
+
+**Trigger location:** Inline in the result panel below the model response.
+**Content source:** `spaces/red-team/challenges.py` — `LEVELS[level]["hints"]` list per level. Backend selects which hint to return based on attempt count. Rendered in `app.js` at line ~288.
+**When shown:** After 3 failures on the same level.
+
+### 7. Defense Log (Per-Attempt Transparency)
+
+**What:** A collapsible Defense Log panel below each attempt result shows which defense layers fired and their verdicts (PASSED / BLOCKED / SKIPPED). Crucial for the educational point of "no defense is a black box."
+
+For Level 5, the log shows three entries (Hardening / Input Scanner / Output Redaction). When issue #16 is resolved, a fourth (Guardrail) will be added.
+
+**Trigger location:** Below each attempt result in the Red Team Levels tab.
+**Content source:** Backend `app.py` returns `defense_log` array in `/api/attempt` response. Each entry has `tool`, `verdict`, `detail`. UI renders as a Defense Log panel.
+**When shown:** Always present, collapsed by default.
+**Authoring history:** Added in `63e6f55` (Session 10).
+
+### 8. "Blocked by" Badge
+
+**What:** When a defense layer blocks an attempt, a red "Blocked by: <Layer Name>" badge appears in the result panel. Closes the loop on transparency: participant sees not just that the attack failed, but specifically which layer caught it.
+
+**Trigger location:** Result panel header on blocked attempts.
+**Content source:** Derived from the first defense layer in `defense_log` with verdict `BLOCKED`.
+**Authoring history:** Added in `63e6f55`. Extended in `90bc522` to include "Blocked by: Prompt Hardening" when the model itself refuses (no scanner caught it).
+
+### Framework Reuse
+
+| Helper | File | Used For |
+|--------|------|----------|
+| `renderInfoPage` | `framework/static/js/core.js` | Info-tab + Key Concepts cards |
+| `renderLevelBriefing` | `framework/static/js/core.js` | Per-level briefing cards |
+| `renderGuidedPractice` | `framework/static/js/core.js` | Guided Practice walkthrough |
+| `renderProgress` | `framework/static/js/core.js` | Star progress visualization |
+
+Any new Red Team educational feature MUST either reuse one of these helpers or add a new helper to `framework/static/js/core.js` (since both Blue Team and Red Team consume the framework).
+
+### Constraints (Don't Regress)
+
+- Removing the Info-tab Key Concepts card without replacing it constitutes a regression.
+- Adding a new jailbreak technique without a `why` field violates the spec-first rule and breaks the Jailbreak Lab's educational contract.
+- Adding a new defense layer without a corresponding entry in the Defense Log breaks per-attempt transparency.
+- WHY callouts and analogies are NOT optional — they exist because CC-level students need terminology + traditional-security mappings before they can engage with AI-specific attacks.

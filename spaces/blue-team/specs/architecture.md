@@ -56,9 +56,9 @@ The app uses a horizontal tab bar at the top (not a sidebar — this distinguish
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  Blue Team Workshop                          [EN] [ES]   │
-├──────────┬────────────┬──────────────┬───────────────────┤
+├──────────┬────────────┬──────────────┬─────────────────────┤
 │   Info   │ Challenges │ Free Defense │   Leaderboard     │
-└──────────┴────────────┴──────────────┴───────────────────┘
+└──────────┴────────────┴──────────────┴─────────────────────┘
 ```
 
 **Tab 1: Info**
@@ -269,6 +269,118 @@ The Blue Team Workshop teaches:
 4. **Defense in depth** — layering imperfect defenses creates strong coverage
 5. **Cost/latency trade-offs** — more defense tools = more latency and API cost
 6. **Prompt engineering is a security skill** — system prompt design directly affects vulnerability
+
+---
+
+## Educational Layer
+
+This section documents the workshop's pedagogical scaffolding — the on-page features that translate the *Educational Value* lessons above into a CC-level student's hands-on experience. These features are mandatory; removing or breaking any of them is a regression.
+
+**Audience:** community-college-level security students. Educational scaffolding bridges the gap between participants who have never seen an LLM system prompt and the actual attack/defense exercises. Most analogies map AI security concepts to traditional infrastructure security concepts the audience already knows.
+
+### 1. Info-Tab Key Concepts Card
+
+**What:** A dedicated card on the Info tab that defines five terms before the participant touches a challenge.
+
+| Concept | Analogy |
+|---------|---------|
+| Prompt hardening | Firewall rules (deny-by-default for system instructions) |
+| False positives | A WAF that blocks all POST requests — secure but unusable |
+| RAG (Retrieval-Augmented Generation) | Like DNS — if poisoned, every downstream lookup is compromised |
+| OWASP LLM Top 10 | The OWASP Top 10 for LLM applications, 2025 edition |
+| System Prompt | Background instructions the model receives before user input |
+| Canary | Honeytoken-style sentinel value embedded in prompts to detect leaks |
+| Recommended tab order | "Start at Info → Prompt Hardening → WAF Rules → Pipeline → Behavioral → Leaderboard" |
+
+**Trigger location:** Always visible on Info tab.
+**Content source:** `spaces/blue-team/static/js/app.js` — search for `title: "Key Concepts"`. Each card body is hand-authored Markdown-in-HTML.
+**When shown:** On Info-tab render; participants are encouraged via the recommended tab order to read this first.
+**Authoring history:** Added in `7d157bb` (Session 12); `d3ef22d` added the Canary + System Prompt definitions across both spaces.
+
+### 2. Per-Level Briefing Cards (Prompt Hardening Challenge)
+
+**What:** A collapsible briefing card at the top of each Prompt Hardening level (5 levels) explaining: the level's defense theme, a traditional-security analogy, what attacks are deployed, and a "what to try" suggestion (collapsed by default).
+
+| Level | Analogy |
+|-------|---------|
+| 1 | Access Control List (ACL) — basic allow/deny |
+| 2 | Deep Packet Inspection (DPI) |
+| 3 | Input validation (sanitization at the boundary) |
+| 4 | Command injection / XSS prevention |
+| 5 | Full security audit (everything together) |
+
+**Trigger location:** Top of the Prompt Hardening tab when a level is selected.
+**Content source:** `spaces/blue-team/static/js/app.js` — `LEVEL_BRIEFINGS` constant. Rendered via `renderLevelBriefing` from `framework/static/js/core.js`.
+**When shown:** On level select. Stays visible during attempts.
+**Authoring history:** Briefing cards added in `39fe586`; analogies added in `7d157bb`.
+
+### 3. Guided Practice Walkthrough (5 steps)
+
+**What:** A 5-step guided tour that walks a first-time participant through the workshop's mechanics: read the briefing → write a defense prompt → run attacks → check false positives → unlock the next level.
+
+**Trigger location:** Always visible at the top of the Challenges tab on first render.
+**Content source:** `spaces/blue-team/static/js/app.js` — `GUIDED_STEPS_BLUE` constant. Rendered via `renderGuidedPractice` from `framework/static/js/core.js`. State tracked in `state.guidedStep`.
+**When shown:** Until participant clicks "Let's go" on the final step. Step state is in-memory only (resets on page reload).
+**Authoring history:** Added in `6d955fd`.
+
+### 4. Progress Visualization (Stars per Level)
+
+**What:** Star icons per Prompt Hardening level showing completion state. Empty star = not attempted; half-star (or partial color) = attempted but failed; full star = passed.
+
+**Trigger location:** Top-right of the Prompt Hardening tab and on each level card.
+**Content source:** `framework/static/js/core.js` — `renderProgress(totalLevels, completedLevels, currentLevel, maxUnlocked)`. Called by `app.js`.
+**When shown:** Always visible during the challenge.
+**Authoring history:** Added in `2994d90`.
+
+### 5. WHY Card (Post-Attempt Explanation)
+
+**What:** After each attack attempt, a teal callout explains *why* the attack succeeded or failed in terms of the defense mechanism. Mandatory educational scaffolding for CC-level students who need a closed feedback loop after each click.
+
+**Trigger location:** Below the result panel after every Run.
+**Content source:** `framework/static/js/core.js` — `renderWhyCard(success, attackName, whyText)`. WHY text is supplied per-attack from the backend response.
+**When shown:** On every result render.
+**Authoring history:** Added in `2994d90`.
+
+### 6. Hints (Rotating, Post-Failure)
+
+**What:** After 3+ failed attempts on a level, a hint appears in the result panel pointing toward a technique without giving the exact answer. Hints rotate through a level-specific list.
+
+**Trigger location:** Inline in the result panel, amber callout.
+**Content source:** Backend `app.py` returns `hint` in the response body when `attempts >= 3`. Hint text per level is defined in `challenges.py` `LEVELS[level].hints`.
+**When shown:** Only after 3 failures on the same level.
+**Authoring history:** Pre-existed; refined by ongoing per-level tuning.
+
+### 7. Educational Analogies in Challenge Briefings
+
+**What:** Beyond per-level briefings, each *challenge* (WAF Rules, Pipeline Builder, Behavioral Testing) opens with an analogy-rich briefing explaining its core concepts in traditional-security terms.
+
+| Challenge | Analogy |
+|-----------|---------|
+| WAF Rules | Firewall tuning (precision/recall/F1 explained as TP/FP rates) |
+| Defense Pipeline Builder | Defense in depth: IDS → WAF → DLP → IPS layered network defense |
+| Behavioral Testing | Pentest — discover hidden vulnerabilities in the model's behavior |
+
+**Trigger location:** Top of each challenge tab.
+**Content source:** `spaces/blue-team/static/js/app.js` — embedded in tab-render functions.
+**Authoring history:** Added in `7d157bb`.
+
+### Framework Reuse
+
+| Helper | File | Used For |
+|--------|------|----------|
+| `renderInfoPage` | `framework/static/js/core.js` | Info-tab + Key Concepts cards |
+| `renderLevelBriefing` | `framework/static/js/core.js` | Per-level briefing cards |
+| `renderGuidedPractice` | `framework/static/js/core.js` | Guided Practice walkthrough |
+| `renderProgress` | `framework/static/js/core.js` | Star progress visualization |
+| `renderWhyCard` | `framework/static/js/core.js` | WHY card after attempts |
+
+Any new Blue Team educational feature MUST either reuse one of these helpers or add a new helper to `framework/static/js/core.js` (since both Blue Team and Red Team consume the framework).
+
+### Constraints (Don't Regress)
+
+- Removing the Info-tab Key Concepts card without replacing it constitutes a regression — CC-level students rely on it for terminology grounding.
+- Adding a new attack/defense without an analogous educational scaffolding entry (briefing, WHY card, hint) is incomplete per CLAUDE.md spec-first rules.
+- Per-level WHY card content MUST come from the backend response, not be hardcoded in JS — this lets attack-specific explanations evolve with the attack list.
 
 ---
 
