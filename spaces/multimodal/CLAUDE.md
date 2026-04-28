@@ -33,14 +33,14 @@ When working in this space, Claude MUST read in this order:
 
 ```
 spaces/multimodal/
-  app.py                    FastAPI routes + attack orchestration (TO BE BUILT)
-  attacks.py                Attack definitions (12 total: 6 P1 + 6 P5) (TO BE BUILT)
-  defenses.py               Defense implementations (4 defenses) (TO BE BUILT)
-  vision_inference.py       HF Inference Providers wrapper (Qwen2.5-VL-72B via OVH cloud)
-  ocr_pipeline.py           Tesseract integration for OCR Pre-Scan defense (TO BE BUILT)
-  Dockerfile                CPU + Tesseract + Python deps (TO BE BUILT per deployment_spec)
-  requirements.txt          Pinned deps: fastapi, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub
-  README.md                 HF Spaces card with frontmatter (UPDATED in bootstrap)
+  app.py                    FastAPI routes + attack orchestration (Phase 1+3 ✅)
+  attacks.py                Attack definitions (12 total: 6 P1 + 6 P5) ✅
+  defenses.py               4 defense layers (Phase 3 ✅)
+  vision_inference.py       HF Inference Providers wrapper (Qwen2.5-VL-72B via OVH cloud) ✅
+  ocr_pipeline.py           Tesseract wrapper for OCR Pre-Scan + Confidence Threshold (Phase 3 ✅)
+  Dockerfile                cpu-basic + tesseract-ocr + Python deps (Phase 3 ✅)
+  requirements.txt          Pinned deps: fastapi, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub, pytesseract ✅
+  README.md                 HF Spaces card with frontmatter ✅
   CLAUDE.md                 This file
   specs/
     overview_spec.md        v1 scope, scenario, audience, success criteria
@@ -51,18 +51,18 @@ spaces/multimodal/
     project-status.md       Space-level status tracker
   static/
     css/
-      multimodal.css        Space-specific overrides (only when needed) (TO BE BUILT)
+      multimodal.css        Space-specific overrides (empty stub; Phase 4 fills it) ✅
     js/
-      app.js                Space entry point — imports from core.js (TO BE BUILT)
-      image_gallery.js      Thumbnail grid + selection (TO BE BUILT)
-      image_upload.js       File picker + validation (TO BE BUILT)
-      attack_runner.js      Attack orchestration + cold-start UX (TO BE BUILT)
+      app.js                Space entry point — imports from core.js (Phase 4 — TO BE BUILT)
+      image_gallery.js      Thumbnail grid + selection (Phase 4 — TO BE BUILT)
+      image_upload.js       File picker + validation (Phase 4 — TO BE BUILT)
+      attack_runner.js      Attack orchestration + cold-start UX (Phase 4 — TO BE BUILT)
     images/
-      canned/               24 pre-canned images (12 attack + 12 legit) (TO BE BUILT)
+      canned/               24 pre-canned images (12 attack + 12 legit) ✅ (committed `417f9d7`)
   templates/
-    index.html              SPA shell (TO BE BUILT)
+    index.html              Phase 1 placeholder shell (Phase 4 will replace with full SPA shell) ✅ for Phase 1
   postman/
-    multimodal-lab.postman_collection.json   API testing contract (TO BE BUILT)
+    multimodal-lab.postman_collection.json   API testing contract (Phase 5/6 — TO BE BUILT)
 ```
 
 ------------------------------------------------------------------------
@@ -110,7 +110,7 @@ This space does **NOT** use Groq. The platform's `framework/groq_client.py` is u
 | P5.5 | ocr_poisoning | Rotated Margin Text | Text at edge rotated for OCR | canary |
 | P5.6 | ocr_poisoning | Adversarial Font | Font that humans read as one word, OCR as another | canary |
 
-Exact attack image content + system prompts + canary phrases per attack are defined in `attacks.py` (TO BE BUILT, sourced from `overview_spec.md` + per-attack mini-specs).
+Exact attack image content + system prompts + canary phrases per attack are defined in `attacks.py` ✅ (built Phase 1, sourced from `overview_spec.md` + per-attack mini-specs).
 
 ------------------------------------------------------------------------
 
@@ -176,9 +176,9 @@ Claude MUST NOT:
 
 # Current Status
 
-**Bootstrap Phase** as of 2026-04-27. Specs exist; no implementation code yet.
+**Phase 3 complete** as of 2026-04-28. Live at `nikobehar/ai-sec-lab4-multimodal` with 4 toggleable defenses (`ocr_prescan`, `output_redaction`, `boundary_hardening`, `confidence_threshold`). Phase 4 (frontend SPA shell) is next.
 
-See `docs/project-status.md` for active task and next steps.
+See `docs/project-status.md` for active task and next steps; calibration baseline lives at `docs/phase3-calibration.md`.
 
 ------------------------------------------------------------------------
 

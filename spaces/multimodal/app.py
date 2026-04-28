@@ -59,7 +59,7 @@ SYSTEM_PROMPT_DOCRECEIVE = (
 USER_PROMPT_PROCESS = "Process this document."
 
 
-app = FastAPI(title="Multimodal Security Lab", version="0.1-phase1")
+app = FastAPI(title="Multimodal Security Lab", version="0.3-phase3")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -81,7 +81,7 @@ async def health():
         "model_id": MODEL_ID,
         "attack_count": len(ATTACKS),
         "image_library_size": canned_count,
-        "phase": 1,
+        "phase": 3,
     }
 
 
