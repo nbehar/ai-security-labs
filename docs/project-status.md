@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-27 (Session 12 + Audit)*
+*Last updated: 2026-04-27 (Session 12 + Audit + Multimodal Bootstrap)*
 
 ---------------------------------------------------------------------
 
@@ -72,15 +72,17 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 
 ## Planned Products (7 remaining)
 
-| Priority | Space | Content | Hardware | Issues |
-|----------|-------|---------|----------|--------|
-| 3 | Multimodal Security | Image injection, adversarial, stego, OCR, deepfake, CAPTCHA | GPU (T4) | #13-20 |
-| 4 | Data Poisoning Lab | RAG poisoning, fine-tuning poisoning, synthetic data | GPU (T4) | #7-8, 19 |
-| 5 | Detection & Monitoring | Log analysis, anomaly detection, output sanitization | CPU | — |
-| 6 | Incident Response | AI breach simulation, containment, forensics | CPU | — |
-| 7 | Multi-Agent Security | Multi-agent attack, cascading failures | CPU | #10 |
-| 8 | Model Forensics | Backdoor detection, train your own guard, DP demo | GPU (T4) | #15, 22-23 |
-| 9 | AI Governance | Security policy writer, risk assessment, threat modeling | CPU | — |
+*Stale issue refs from a previous repo's numbering removed 2026-04-27. Tracking issues for each space will be filed at bootstrap time.*
+
+| Priority | Space | Status | v1 Content | Hardware |
+|----------|-------|--------|------------|----------|
+| 3 | Multimodal Security | **Bootstrap complete** (specs only) | P1 Image Prompt Injection + P5 OCR Poisoning | ZeroGPU (HF Pro) |
+| 4 | Data Poisoning Lab | Planned | RAG poisoning, fine-tuning poisoning, synthetic data | TBD (likely ZeroGPU) |
+| 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
+| 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
+| 7 | Multi-Agent Security | Planned | Multi-agent attack, cascading failures | CPU |
+| 8 | Model Forensics | Planned | Backdoor detection, train your own guard, DP demo | ZeroGPU |
+| 9 | AI Governance | Planned | Security policy writer, risk assessment, threat modeling | CPU |
 
 ---------------------------------------------------------------------
 
@@ -106,6 +108,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | 12 | Both: WHY explanations | Closed ✅ (2026-04-27) | `2994d90` + `7d157bb` + `cf87474` |
 | **13** | Spec drift: Red Team L1 system prompt framing | **Open** (filed 2026-04-27) | Spec stale; code uses "internal reference" framing |
 | **14** | Spec gap: Educational features not in any spec | **Open** (filed 2026-04-27) | Key Concepts, Why-This-Works, security analogies |
+| **15** | MILESTONE: Multimodal Security Lab v1 build | **Open** (filed 2026-04-27) | Bootstrap complete; implementation pending |
 
 ### llm-top-10-demo repo (OWASP workshop)
 - 31 issues total (12 closed, 19 open)
@@ -270,12 +273,35 @@ Built the monorepo and 2 new workshops:
 - ✅ Filed issue **#13** — Red Team L1 spec drift: spec text describes "TOP SECRET HR override code" framing; code in `challenges.py:18-22` uses "internal reference notes / sprint codename" framing (deliberate change in `d067b53` because LLaMA's safety filter blocked the spec's framing). Spec must be updated to match code; verify L2-L5 in same audit.
 - ✅ Filed issue **#14** — Spec gap: Key Concepts cards, Why-This-Works callouts, traditional-security analogies (firewall, ACL, DPI, SQL-injection, honeytoken, DNS-poisoning, defense-in-depth) are implemented but absent from every spec. Specs need an Educational Layer section.
 
-**Pending follow-up (this session):**
-
-- Resolve untracked governance files (root `.gitignore`, root `CLAUDE.md`) — Phase 3
-- Bootstrap Multimodal Security Lab (4 specs + milestone issue) — Phase 4, awaiting scoping answers
-
 **Pending follow-up (future sessions):**
 
 - Address issue #13 (rewrite Red Team L1 spec; audit L2-L5)
 - Address issue #14 (add Educational Layer section to architecture specs across all live spaces)
+- Implement Multimodal Lab v1 per the four specs in `spaces/multimodal/specs/` (next major build phase)
+
+------------------------------------------------------------------------
+
+### Multimodal Bootstrap 2026-04-27
+
+**Trigger:** Phase 4 of the 2026-04-27 work plan — bootstrap the next planned space.
+
+**Decisions locked in (planning session before bootstrap):**
+
+- Hardware: HF Spaces **ZeroGPU** (free at workshop volume with the existing HF Pro account; cold start ~20s acceptable)
+- Model: `Qwen/Qwen2.5-VL-7B-Instruct` (env-overridable via `MULTIMODAL_MODEL`)
+- v1 scope: P1 Image Prompt Injection + P5 OCR Poisoning only (P6 deepfake → v2)
+- Scenario: **NexaCore DocReceive** — internal document intake portal
+- Image input: pre-canned library (24 images: 12 attack + 12 legit) + opt-in upload
+
+**Artifacts created:**
+
+- `spaces/multimodal/specs/overview_spec.md`
+- `spaces/multimodal/specs/frontend_spec.md`
+- `spaces/multimodal/specs/api_spec.md`
+- `spaces/multimodal/specs/deployment_spec.md`
+- `spaces/multimodal/CLAUDE.md`
+- `spaces/multimodal/docs/project-status.md`
+- `spaces/multimodal/README.md` (updated — stale issue refs dropped, HF Spaces frontmatter added)
+- GitHub milestone issue **#15** filed via MCP (https://github.com/nbehar/ai-security-labs/issues/15)
+
+**Out of scope for this bootstrap:** any implementation code. Specs only, per CLAUDE.md "Creating a New Space" rules.
