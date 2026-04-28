@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-28 (Red Team spec fix + Educational Layer specs + L5 Guardrail Evaluation + Multimodal Phase 1)*
+*Last updated: 2026-04-28 (Red Team spec fix + Educational Layer specs + L5 Guardrail + Multimodal Phase 1+2)*
 
 ---------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 
 | Priority | Space | Status | v1 Content | Hardware |
 |----------|-------|--------|------------|----------|
-| 3 | Multimodal Security | **Phase 1 complete** (backend skeleton) | P1 Image Prompt Injection + P5 OCR Poisoning | ZeroGPU (HF Pro) |
+| 3 | Multimodal Security | **Phase 2 complete** (backend + 24-image library generator) | P1 Image Prompt Injection + P5 OCR Poisoning | ZeroGPU (HF Pro) |
 | 4 | Data Poisoning Lab | Planned | RAG poisoning, fine-tuning poisoning, synthetic data | TBD (likely ZeroGPU) |
 | 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
 | 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
@@ -411,6 +411,32 @@ All 4 Python files AST-parse cleanly. Live verification (Qwen actually follows t
 
 **Pending follow-up (next session):**
 
-- Phase 1 verification: install Pillow, run `python spaces/multimodal/scripts/generate_p1_1.py`, commit the PNG, deploy to `nikobehar/multimodal-workshop` HF Space (private, ZeroGPU), confirm Qwen2.5-VL-7B follows the BANANA SUNDAE injection. If Qwen refuses: model fallback per `deployment_spec.md`.
-- Phase 2 of issue #15: author 11 more generation scripts (P1.2–P1.6, P5.1–P5.6) + 12 legitimate-document images for FP checking
+- Phase 1+2 verification: install Pillow, run `python spaces/multimodal/scripts/generate_canned_images.py`, commit the 24 PNGs, deploy to `nikobehar/multimodal-workshop` HF Space (private, ZeroGPU), confirm Qwen2.5-VL-7B follows the BANANA SUNDAE injection on P1.1 and at least one P5 attack
+- Reviewer/Operator verification of L5 Guardrail end-to-end on the deployed Red Team HF Space (separate post-deploy task)
+
+------------------------------------------------------------------------
+
+### 2026-04-28 (cont.) — Multimodal Phase 2: Pre-canned Image Library Generator
+
+**Trigger:** Issue #15 — Phase 2 of the v1 implementation.
+
+**What was done:**
+
+Authored a single consolidated PIL script (`spaces/multimodal/scripts/generate_canned_images.py`, ~960 lines) with 24 image-generator functions:
+
+- **12 attack images** — 6 for P1 Image Prompt Injection (visible-text injections), 6 for P5 OCR Poisoning (hidden-text/visually-obscured payloads)
+- **12 legitimate images** — clean variants of each attack visual genre, used for false-positive checking when Phase 3 defenses come online
+
+The script supports CLI dispatch (`all` / `attacks` / `legit` / individual key) and shares helpers for fonts (cross-platform fallback chain), colors, headers/footers. Each PNG is 800×1100, RGB, optimize-saved.
+
+PNGs are not committed via MCP push_files (binary round-trip); user runs the script locally after pulling, then commits via standard git.
+
+The older `scripts/generate_p1_1.py` is kept in place as a single-image test harness; the new script supersedes it for full-library generation.
+
+**Verification deferred:** running the script (requires Pillow); visual spot-check of all 24 PNGs; confirming no PNG exceeds 500KB; deploy + Qwen verification on the live HF Space.
+
+**Pending follow-up (next session):**
+
+- Phase 1+2 deploy verification (single verification cycle covers both phases now)
+- Phase 3 of issue #15: implement 4 defenses per `overview_spec.md` (ocr_prescan, output_redaction, boundary_hardening, confidence_threshold) in a new `defenses.py` module. Requires adding `pytesseract` to requirements.txt and `tesseract-ocr` to the Dockerfile.
 - Reviewer/Operator verification of L5 Guardrail end-to-end on the deployed Red Team HF Space (separate post-deploy task)
