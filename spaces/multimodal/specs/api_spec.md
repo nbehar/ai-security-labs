@@ -35,15 +35,16 @@ No SSE for v1 (no scorecard streaming — only 12 attacks, instant responses are
 ```json
 {
   "status": "ok",
-  "groq_api_key_set": true,
-  "model_loaded": false,
+  "hf_token_set": true,
+  "inference_provider": "together",
   "model_id": "Qwen/Qwen2.5-VL-7B-Instruct",
   "attack_count": 12,
-  "image_library_size": 24
+  "image_library_size": 12,
+  "phase": 1
 }
 ```
 
-`model_loaded` is `false` until the first inference triggers ZeroGPU allocation + model load. Frontend uses this to render the cold-start banner.
+`hf_token_set` is `true` once the `HF_TOKEN` Space secret is configured (the inference layer is ready). There is no local model load to gate on — every `POST /api/attack` hits the hosted HF Inference Provider directly.
 
 ---
 

@@ -2,17 +2,18 @@
 Multimodal Security Lab — FastAPI app (Phase 1: backend skeleton).
 
 v1 scope: P1 Image Prompt Injection + P5 OCR Poisoning, NexaCore DocReceive
-scenario, Qwen2.5-VL-7B on HF ZeroGPU. See `specs/` for full design.
+scenario, Qwen2.5-VL-7B via HF Inference Providers. See `specs/` for full design.
 
 Phase 1 endpoints (this commit):
   GET  /            — placeholder shell
-  GET  /health      — model_loaded + attack_count + image_library_size
+  GET  /health      — hf_token_set + inference_provider + attack_count + image_library_size
   GET  /api/attacks — list of 12 attack defs with metadata
   POST /api/attack  — run a canned-image attack against the Vision LLM
                       (no upload, no defenses — those land in Phase 4 / Phase 3)
 
 Workshop by Prof. Nikolas Behar.
-Deploy: HuggingFace Spaces (Docker, ZeroGPU). Tracking: issue #15.
+Deploy: HuggingFace Spaces (Docker, cpu-basic; vision inference via HF Inference Providers).
+Tracking: issue #15.
 """
 
 import logging
@@ -26,7 +27,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from attacks import ATTACKS
-from vision_inference import MODEL_ID, is_loaded, run_vision_inference
+from vision_inference import (
+    INFERENCE_PROVIDER,
+    MODEL_ID,
+    is_ready,
+    run_vision_inference,
+)
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
@@ -65,8 +71,8 @@ async def health():
     )
     return {
         "status": "ok",
-        "groq_api_key_set": False,  # this space does not use Groq; flag kept for cross-space API consistency
-        "model_loaded": is_loaded(),
+        "hf_token_set": is_ready(),
+        "inference_provider": INFERENCE_PROVIDER,
         "model_id": MODEL_ID,
         "attack_count": len(ATTACKS),
         "image_library_size": canned_count,

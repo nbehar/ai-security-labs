@@ -36,17 +36,17 @@ spaces/multimodal/
   app.py                    FastAPI routes + attack orchestration (TO BE BUILT)
   attacks.py                Attack definitions (12 total: 6 P1 + 6 P5) (TO BE BUILT)
   defenses.py               Defense implementations (4 defenses) (TO BE BUILT)
-  vision_inference.py       @spaces.GPU-decorated inference wrapper (TO BE BUILT)
+  vision_inference.py       HF Inference Providers wrapper (Qwen2.5-VL-7B via Together AI)
   ocr_pipeline.py           Tesseract integration for OCR Pre-Scan defense (TO BE BUILT)
   Dockerfile                CPU + Tesseract + Python deps (TO BE BUILT per deployment_spec)
-  requirements.txt          Pinned deps incl. transformers, torch, spaces, qwen-vl-utils (TO BE BUILT)
+  requirements.txt          Pinned deps: fastapi, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub
   README.md                 HF Spaces card with frontmatter (UPDATED in bootstrap)
   CLAUDE.md                 This file
   specs/
     overview_spec.md        v1 scope, scenario, audience, success criteria
     frontend_spec.md        UI structure, tabs, educational scaffolding
     api_spec.md             FastAPI endpoints + Pydantic schemas
-    deployment_spec.md      Hardware, model, Dockerfile, ZeroGPU integration
+    deployment_spec.md      Hardware, model, Dockerfile, HF Inference Providers integration
   docs/
     project-status.md       Space-level status tracker
   static/
@@ -71,12 +71,12 @@ spaces/multimodal/
 
 - **Backend:** FastAPI + Uvicorn (Python 3.11+)
 - **Frontend:** Vanilla ES6+ HTML/CSS/JS — no framework, no build step (consistent with platform)
-- **Model:** `Qwen/Qwen2.5-VL-7B-Instruct` via `transformers` on ZeroGPU
-- **OCR (defense):** Tesseract via `pytesseract`
-- **Deploy:** Docker on HuggingFace Spaces, hardware tier ZeroGPU
+- **Model:** `Qwen/Qwen2.5-VL-7B-Instruct` via HF Inference Providers (Together AI by default; configurable via `HF_INFERENCE_PROVIDER`)
+- **OCR (defense):** Tesseract via `pytesseract` (Phase 3)
+- **Deploy:** Docker on HuggingFace Spaces, hardware tier `cpu-basic` (free). The Vision LLM is hosted by HF; the Space is just orchestration.
 - **Theme:** Dark only — inherits from `framework/static/css/styles.css`
 
-This space does **NOT** use Groq. The platform's `framework/groq_client.py` is unused here.
+This space does **NOT** use Groq. The platform's `framework/groq_client.py` is unused here. Inference goes through `huggingface_hub.InferenceClient` instead.
 
 ------------------------------------------------------------------------
 
@@ -139,13 +139,15 @@ The platform-level "Intentionally Vulnerable" rule applies. Specific to multimod
 
 ------------------------------------------------------------------------
 
-# Hosting Constraints (HuggingFace Spaces — ZeroGPU)
+# Hosting Constraints (HuggingFace Spaces — cpu-basic + Inference Providers)
 
 Per `deployment_spec.md`:
-- Hardware: ZeroGPU (A100 dynamically allocated per call)
-- Cold-start: 10–30s on first request after Space wake
-- Pre-warm strategy: synthetic `/api/attack` call ~5min before workshop start
-- ZeroGPU quota cliff is the main risk; see deployment_spec for fallback path
+- Hardware: `cpu-basic` (free; the Space is a thin FastAPI orchestrator)
+- Inference: hosted Qwen2.5-VL-7B via HF Inference Providers (Together AI)
+- Cold-start: ~10–30s on Space-wake (Docker container start), then 1–3s per inference call (warm)
+- No GPU on the Space, no model load, no quota cliff
+- Required Space secret: `HF_TOKEN` (fine-grained, Inference Providers permission only)
+- Pivoted from ZeroGPU on 2026-04-28 because ZeroGPU is Gradio-only on HF Spaces and the platform standardizes on Docker/FastAPI
 
 ------------------------------------------------------------------------
 

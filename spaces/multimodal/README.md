@@ -4,16 +4,15 @@ emoji: 🖼️
 colorFrom: purple
 colorTo: red
 sdk: docker
-hardware: zero-a10g
 pinned: false
 short_description: AI security workshop — image prompt injection + OCR poisoning
 ---
 
 # Multimodal Security Lab
 
-**Status:** Bootstrap — specs complete, implementation pending
-**Hardware:** HuggingFace Spaces ZeroGPU (A100, dynamic allocation)
-**Model:** `Qwen/Qwen2.5-VL-7B-Instruct`
+**Status:** Phase 2 complete — backend + image library shipped
+**Hardware:** HuggingFace Spaces `cpu-basic` (free)
+**Inference:** HF Inference Providers — hosted `Qwen/Qwen2.5-VL-7B-Instruct` (warm-served, no cold-start)
 **Scenario:** NexaCore DocReceive (internal document intake portal)
 
 Image-based attacks against multimodal LLMs. Part of the [AI Security Labs](https://github.com/nbehar/ai-security-labs) platform.
@@ -42,7 +41,7 @@ Source of truth lives in `specs/`:
 - `overview_spec.md` — purpose, scenario, attack/defense matrices, success criteria
 - `frontend_spec.md` — UI, tabs, educational scaffolding
 - `api_spec.md` — FastAPI endpoints + Pydantic schemas
-- `deployment_spec.md` — hardware, model, Dockerfile, ZeroGPU integration
+- `deployment_spec.md` — hardware, model, Dockerfile, HF Inference Providers integration
 
 ## Status
 
