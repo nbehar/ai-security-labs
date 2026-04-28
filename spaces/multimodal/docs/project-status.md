@@ -1,16 +1,16 @@
 # Multimodal Security Lab — Project Status
 
-*Last updated: 2026-04-28 (Phase 3 BUILT, deployed, smoke-verified; 4 toggleable defenses live with output_redaction catching all 3 sample attacks)*
+*Last updated: 2026-04-28 (Phase 4a BUILT, deployed, smoke-verified; all 8 specced endpoints live + image upload mode + scoring/leaderboard + slowapi rate limit + Postman collection)*
 
 ------------------------------------------------------------------------
 
 ## Current Phase
 
-**Phase 3 deployed and smoke-verified** at `nikobehar/ai-sec-lab4-multimodal` (HF Space commit `63ec0cd`, GitHub commit `0134188`). 4 defenses (`ocr_prescan`, `output_redaction`, `boundary_hardening`, `confidence_threshold`) wired into `POST /api/attack` with toggleable per-defense application via the `defenses` form field. Smoke run confirmed end-to-end wiring; full 12×16 defense-effectiveness matrix is Phase 5.
+**Phase 4a deployed and smoke-verified** at `nikobehar/ai-sec-lab4-multimodal` (HF Space commit `34d100c`, GitHub commit `54cfd01`). All 8 specced endpoints live: `/health`, `/api/attacks`, `/api/images/{attack_id}`, `/api/attack` (canned + uploaded), `/api/score`, `/api/leaderboard`, plus `/` and `/static/*`. Image upload mode validates content-type + magic-bytes + Pillow `verify()` + ≤4MB cap, in-memory only. Scoring + leaderboard are in-memory (resets on restart, same pattern as blue-team/red-team). 10/min/IP rate limit on `/api/attack` via `slowapi`. Postman collection ships at `postman/multimodal-lab.postman_collection.json` with 8 + 2 negative-probe requests.
 
-**Smoke headline (3 attacks × 3 scenarios):** all baselines pass through, all-4-defenses-on blocks 3/3 — but every block is by `output_redaction` post-hoc. `ocr_prescan` and `confidence_threshold` need refinement (Phase 3.1 / v1.1 — see `docs/phase3-calibration.md`).
+**Phase 3 defenses still verified** — Phase 4a smoke included a regression run with all 4 defenses against P1.6, BLOCKED by `ocr_prescan` (different attack from the Phase 3 sample, demonstrates input-side defense catches some attacks).
 
-Phase 4 (frontend SPA shell) is next.
+Phase 4b (frontend SPA shell) is next.
 
 ------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ Phase 4 (frontend SPA shell) is next.
 | `Dockerfile` | ✅ Complete (Tesseract deferred to Phase 3) | Phase 1 |
 | `attacks.py` (12 attack defs) | ✅ Complete | Phase 1 |
 | `vision_inference.py` (HF Inference Providers wrapper — pivoted 2026-04-28) | ✅ Complete | Phase 1 |
-| `app.py` (3 endpoints: /health, /api/attacks, /api/attack) | ✅ Complete | Phase 1 |
+| `app.py` (8 endpoints: /, /health, /api/attacks, /api/images/{id}, /api/attack, /api/score, /api/leaderboard, /static/*) | ✅ Complete (Phase 4a `54cfd01`) | Phase 1+3+4a |
 | `templates/index.html` (Phase 1 placeholder) | ✅ Complete | Phase 1 |
 | `static/css/multimodal.css` (empty stub) | ✅ Complete | Phase 1 |
 | `scripts/generate_p1_1.py` (PIL receipt generator — single-image test harness) | ✅ Complete | Phase 1 |
@@ -63,10 +63,15 @@ Phase 4 (frontend SPA shell) is next.
 | Tesseract apt-get layer in Dockerfile | ✅ Complete (`0134188`) | Phase 3 |
 | `app.py` defenses wiring (validation, ordering, defense_log) | ✅ Complete (`0134188`) | Phase 3 |
 | 12-attack baseline run vs 72B (calibration before designing defenses) | ✅ Complete (`956e39f`, see `docs/phase3-calibration.md`) | Phase 3 prep |
-| Frontend `app.js` + space modules | ⬜ Not started | Phase 4 |
-| Frontend full `index.html` (replaces Phase 1 placeholder) | ⬜ Not started | Phase 4 |
+| `GET /api/images/{attack_id}` route | ✅ Complete (`54cfd01`) | Phase 4a |
+| `POST /api/attack` upload mode (magic-bytes + Pillow verify, in-memory only) | ✅ Complete (`54cfd01`) | Phase 4a |
+| `POST /api/score` + in-memory leaderboard schema | ✅ Complete (`54cfd01`) | Phase 4a |
+| `GET /api/leaderboard` route | ✅ Complete (`54cfd01`) | Phase 4a |
+| `slowapi` 10/min rate limit on /api/attack | ✅ Complete (`54cfd01`) | Phase 4a |
+| Postman collection (8 endpoints + 2 negative probes) | ✅ Complete (`54cfd01`) | Phase 4a |
+| Frontend `app.js` + space modules | ⬜ Not started | Phase 4b |
+| Frontend full `index.html` (replaces Phase 1 placeholder) | ⬜ Not started | Phase 4b |
 | Defense matrix verification (12 attacks × {undefended, +defenses}) | ⬜ Not started | Phase 5 |
-| Postman collection | ⬜ Not started | Phase 5 or 6 |
 
 ------------------------------------------------------------------------
 
@@ -327,3 +332,30 @@ Live `/` re-checked after redeploy — no `ZeroGPU` or `7B-Instruct` substring m
 **What did NOT change:** defense behavior (defenses.py, ocr_pipeline.py, app.py), no spec design semantics rewritten, no API surface changes. Cleanup-only commit.
 
 **Pending follow-up unchanged:** Phase 4 frontend, Phase 3.1 defense improvements, Phase 5 full matrix.
+
+### 2026-04-28 (cont.) — Phase 4a: Full API surface
+
+**Trigger:** Planner approval after Phase 3 cleanup. Frontend Phase 4b is blocked on having all 8 endpoints (frontend gallery needs `/api/images`, upload toggle needs uploaded mode, leaderboard tab needs scoring + leaderboard routes), so 4a goes first.
+
+**What was built (`54cfd01`):**
+
+- **`app.py` refactor** — extracted `_run_defended_inference(image_bytes, attack, enabled) -> dict` so canned and uploaded code paths share the same defense + inference flow. Phase 3 ordering and defense_log shape unchanged.
+- **`GET /api/images/{attack_id}`** — returns the attack's image plus matched legitimate images for false-positive checking; lab-aware (P1 attack → P1 legits, P5 → P5).
+- **`POST /api/attack` upload mode** — accepts `image_file: UploadFile`. New `_validate_image_bytes()` enforces non-empty, ≤4MB, content-type ∈ {image/png, image/jpeg}, magic-bytes prefix match, AND `Pillow.Image.verify()`. In-memory only — no `write_bytes` call in the upload path.
+- **`POST /api/score`** — Pydantic `ScoreRequest` model. Per api_spec.md scoring: `100 - 20*(attempts-1)` floor 20 if succeeded; `+50` bonus if defenses_applied non-empty AND succeeded=false (defense-aware); 0 otherwise. Returns `{score_added, running_total, rank}`.
+- **`GET /api/leaderboard`** — in-memory aggregation: per-participant per-attack high scores, summed to `p1_score` + `p5_score` + `total_score`, with `attacks_completed` count. Sorted descending by total.
+- **`slowapi` rate limit** — `Limiter(key_func=get_remote_address)` registered as app exception handler; `@limiter.limit("10/minute")` on `/api/attack` only (other routes are cheap and unrated).
+- **`requirements.txt`** — added `slowapi>=0.1.9` (pure Python wheel, no apt deps).
+- **`postman/multimodal-lab.postman_collection.json`** (NEW) — 8 endpoints + 2 negative probes (404 unknown attack, 400 bogus defense). Bearer token via `{{HF_TOKEN}}` collection variable; body never embeds the literal token.
+
+**Smoke verification (11-row matrix):** all pass. Notable: scenario 5 (P1.6 with all 4 defenses) was BLOCKED by `ocr_prescan` — the first time an input-side defense caught anything in any smoke run. Earlier Phase 3 calibration's "ocr_prescan caught 0/3" was sampling artifact (different attacks have different injection wording).
+
+**Latency:** unchanged from Phase 3 (~10–20s per `/api/attack` call on 72B; cheap endpoints sub-second). Build was ~1 min — slowapi is pure-Python; Tesseract layer cached from Phase 3.
+
+**No regressions:** Phase 3 defense flow preserved verbatim through the `_run_defended_inference` extraction. Phase 1+2 endpoints unchanged.
+
+**Pending follow-up:**
+
+- Phase 4b — frontend SPA shell (`templates/index.html` rewrite + `static/js/{app,image_gallery,image_upload,attack_runner}.js` + 5-tab UI + educational layer per `frontend_spec.md`)
+- Phase 3.1 / v1.1 — widen `ocr_prescan` patterns; replace `confidence_threshold` semantics; regenerate P1.4/P5.2/P5.5 images
+- Phase 5 — full 12×16 defense matrix verification
