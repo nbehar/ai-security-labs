@@ -1,8 +1,8 @@
 """
 vision_inference.py — Multimodal Lab vision inference via HF Inference Providers.
 
-Routes inference to a hosted Qwen2.5-VL-7B-Instruct (or env-overridden alternate)
-via the HuggingFace Inference Providers API (Together AI by default; configurable
+Routes inference to a hosted Qwen2.5-VL-72B-Instruct (or env-overridden alternate)
+via the HuggingFace Inference Providers API (OVH cloud by default; configurable
 via `HF_INFERENCE_PROVIDER`). The Space itself runs on `cpu-basic` — no GPU, no
 local model load.
 
@@ -10,6 +10,11 @@ This was a deliberate pivot from ZeroGPU + local model load: ZeroGPU on HF Space
 requires the Gradio SDK, which is incompatible with the platform's
 Docker/FastAPI architecture. Routing through Inference Providers keeps the
 existing architecture, eliminates cold-start, and uses HF Pro inference credit.
+
+Model/provider note (set 2026-04-28): the originally-specced 7B variant has no
+live HF Inference Providers route — only Hyperbolic shows the model and its
+status was `error` at deploy time. The 72B sibling is `live` on OVH cloud, same
+Qwen2.5-VL family with stronger OCR/vision behavior.
 
 Per `specs/deployment_spec.md`. Requires `HF_TOKEN` env var (set as a Space
 secret) to authorize Inference Provider calls.
@@ -24,8 +29,8 @@ from huggingface_hub import InferenceClient
 
 logger = logging.getLogger(__name__)
 
-MODEL_ID = os.environ.get("MULTIMODAL_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct")
-INFERENCE_PROVIDER = os.environ.get("HF_INFERENCE_PROVIDER", "together")
+MODEL_ID = os.environ.get("MULTIMODAL_MODEL", "Qwen/Qwen2.5-VL-72B-Instruct")
+INFERENCE_PROVIDER = os.environ.get("HF_INFERENCE_PROVIDER", "ovhcloud")
 
 _client: Optional[InferenceClient] = None
 
