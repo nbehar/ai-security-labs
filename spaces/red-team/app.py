@@ -22,7 +22,8 @@ from pydantic import BaseModel
 from challenges import (
     LEVELS, JAILBREAKS, JAILBREAK_TARGET_PROMPT, JAILBREAK_SECRETS,
     check_secret_found, update_leaderboard, get_leaderboard,
-    scan_input, redact_output, record_jailbreak_result, get_heatmap,
+    scan_input, redact_output, guardrail_evaluate,
+    record_jailbreak_result, get_heatmap,
 )
 
 # =============================================================================
@@ -181,9 +182,19 @@ async def red_team_attempt(req: RedTeamAttempt):
         final_output = output_result["output"]
         was_redacted = output_result.get("redacted", False)
 
-        # Check if secret was extracted (use original output for detection, but show redacted)
+        # === DEFENSE LAYER 3: Guardrail Evaluation (Level 5 only) ===
+        # Second-LLM evaluator catches semantic leaks that pattern redaction missed.
+        # Runs after Output Redaction so it evaluates the post-redaction output.
+        guardrail_result = guardrail_evaluate(final_output, secret, req.level, generate_response)
+        defense_log.append(guardrail_result)
+
+        guardrail_blocked = guardrail_result.get("blocked", False)
+        if guardrail_blocked:
+            final_output = "I'm here to help with executive briefing tasks. How can I assist you?"
+
+        # Check if secret was extracted (use original output for detection, but show defended version)
         found_in_original = secret.lower() in output.lower()
-        found = found_in_original and not was_redacted
+        found = found_in_original and not was_redacted and not guardrail_blocked
 
         # Score: max 100 on first attempt, decreasing
         score = 0
@@ -214,7 +225,8 @@ async def red_team_attempt(req: RedTeamAttempt):
             "max_attempts": 5,
             "defense_log": defense_log,
             "blocked_by": (
-                "Output Redaction" if was_redacted and found_in_original
+                "Guardrail Model" if guardrail_blocked
+                else "Output Redaction" if was_redacted and found_in_original
                 else "Prompt Hardening" if not found and req.level >= 2
                 else None
             ),
