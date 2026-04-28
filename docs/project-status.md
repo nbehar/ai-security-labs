@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-09 (Session 10)*
+*Last updated: 2026-04-27 (Session 12 + Audit)*
 
 ---------------------------------------------------------------------
 
@@ -87,20 +87,25 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 ## GitHub Issues
 
 ### ai-security-labs repo
-| # | Title | Status |
-|---|-------|--------|
-| 1 | SPEC: Blue Team Architecture | Open |
-| 2 | SPEC: Prompt Hardening Challenge | Open |
-| 3 | SPEC: WAF Rules Challenge | Open |
-| 4 | SPEC: Defense Pipeline Builder | Open |
-| 5 | SPEC: Model Behavioral Testing | Open |
-| 6 | Blue Team: Guided warm-up | Closed ✅ |
-| 7 | Blue Team: Per-level educational cards | Closed ✅ |
-| 8 | Blue Team: What-to-try suggestions | Closed ✅ |
-| 9 | Red Team: Per-level briefing cards | Closed ✅ |
-| 10 | Red Team: Technique suggestions | Closed ✅ |
-| 11 | Both: Progress visualization | Closed ✅ |
-| 12 | Both: WHY explanations | Closed ✅ |
+
+*Triaged via MCP on 2026-04-27 by Audit Phase.*
+
+| # | Title | Status | Implementation |
+|---|-------|--------|----------------|
+| 1 | SPEC: Blue Team Architecture | Closed ✅ (2026-04-27) | All 4 challenges built |
+| 2 | SPEC: Prompt Hardening Challenge | Closed ✅ (2026-04-27) | `e7dfece` |
+| 3 | SPEC: WAF Rules Challenge | Closed ✅ (2026-04-27) | `dadc6b7` |
+| 4 | SPEC: Defense Pipeline Builder | Closed ✅ (2026-04-27) | `9978006` |
+| 5 | SPEC: Model Behavioral Testing | Closed ✅ (2026-04-27) | `9978006` |
+| 6 | Blue Team: Guided warm-up | Closed ✅ | — |
+| 7 | Blue Team: Per-level educational cards | Closed ✅ | — |
+| 8 | Blue Team: What-to-try suggestions | Closed ✅ (2026-04-27) | `39fe586` + `7d157bb` |
+| 9 | Red Team: Per-level briefing cards | Closed ✅ (2026-04-27) | `39fe586` + `cf87474` |
+| 10 | Red Team: Technique suggestions | Closed ✅ (2026-04-27) | `39fe586` + `cf87474` |
+| 11 | Both: Progress visualization | Closed ✅ (2026-04-27) | `2994d90` |
+| 12 | Both: WHY explanations | Closed ✅ (2026-04-27) | `2994d90` + `7d157bb` + `cf87474` |
+| **13** | Spec drift: Red Team L1 system prompt framing | **Open** (filed 2026-04-27) | Spec stale; code uses "internal reference" framing |
+| **14** | Spec gap: Educational features not in any spec | **Open** (filed 2026-04-27) | Key Concepts, Why-This-Works, security analogies |
 
 ### llm-top-10-demo repo (OWASP workshop)
 - 31 issues total (12 closed, 19 open)
@@ -214,3 +219,63 @@ Built the monorepo and 2 new workshops:
    - Level 4 input scanning blocks "ignore...translate" prompt correctly
    - Defense Log shows "Input Scanner — BLOCKED — Blocked patterns detected: ignore, translate, system prompt"
    - Jailbreak heatmap populated after first test (Ignore Previous Instructions: 100%, 1/1)
+
+### Session 11 — 2026-04-09 (QA Fixes)
+
+**What was accomplished:**
+
+1. **Red Team QA fixes** (`90bc522`)
+   - Guided practice step 2 text corrected: "classified" → "internal reference note" (matches updated Level 1 system prompt)
+   - User-typed prompt now preserved in textarea after submission (was clearing on re-render)
+   - "Blocked by: Prompt Hardening" badge shown when model refuses at L2+ (previously displayed no explanation)
+2. **Blue Team QA fix** (`33285d5`)
+   - Prompt Hardening textarea was reverting to default after submission because the DOM element didn't exist during re-render
+   - Fixed by saving prompt in `state.lastPrompt` before re-rendering
+
+### Session 12 — 2026-04-09 (Educational Enhancements)
+
+**What was accomplished:**
+
+1. **Red Team educational enhancements** (`cf87474`) — for community-college-level students
+   - Key Concepts card on Info tab: defines system prompt, prompt injection (with SQL injection analogy), jailbreaking, with a visual diagram of how prompt injection works
+   - "Why this works" blue callouts on all 15 jailbreak techniques explaining the underlying vulnerability (e.g., encoding bypasses English-language safety filters)
+   - Traditional security analogies on all 5 level briefing cards (ACL, WAF, input sanitization, DLP, defense in depth)
+2. **Blue Team educational enhancements** (`7d157bb`)
+   - Key Concepts card on Info tab: defines prompt hardening (firewall analogy), false positives, RAG (DNS poisoning analogy), OWASP LLM Top 10, recommended tab order
+   - Traditional security analogies on all 5 Prompt Hardening level briefings (ACL → DPI → input validation → command injection/XSS prevention → full audit)
+   - Enhanced WAF Rules briefing: precision/recall/F1 explained via firewall tuning analogy
+   - Enhanced Pipeline Builder briefing: defense-in-depth analogy with IDS/WAF/DLP/IPS mapping
+   - Enhanced Behavioral Testing briefing: pentest analogy + per-category descriptions
+3. **Cross-workshop Canary/System Prompt definitions** (`d3ef22d`)
+   - Red Team: Canary (honeytoken) definition with coal mine analogy
+   - Blue Team: System Prompt and Canary definitions
+   - Framework-level enhancement from CC student QA walkthrough
+
+### Audit 2026-04-27
+
+**Trigger:** Session 11 + 12 commits had not been recorded in this status file. Project-status.md was 18 days stale.
+
+**Actions taken in this audit:**
+
+1. Refreshed Session History with Sessions 11 + 12 (above)
+2. Reconciled GitHub Issues table against live MCP query — discovered #8–#12 were marked closed in this file but are still OPEN on GitHub
+3. Marked all stale issues for triage in the Audit Phase (separate session work item)
+4. Updated last-updated date to 2026-04-27
+
+**Audit Phase results (2026-04-27):**
+
+- ✅ Cross-checked Sessions 11-12 commits against blue-team and red-team specs
+- ✅ Closed issues #1–5 (Blue Team specs — implementation complete) with implementing-commit references
+- ✅ Verified and closed #8–12 (educational UX — confirmed in `app.js` and `core.js`) with implementing-commit references
+- ✅ Filed issue **#13** — Red Team L1 spec drift: spec text describes "TOP SECRET HR override code" framing; code in `challenges.py:18-22` uses "internal reference notes / sprint codename" framing (deliberate change in `d067b53` because LLaMA's safety filter blocked the spec's framing). Spec must be updated to match code; verify L2-L5 in same audit.
+- ✅ Filed issue **#14** — Spec gap: Key Concepts cards, Why-This-Works callouts, traditional-security analogies (firewall, ACL, DPI, SQL-injection, honeytoken, DNS-poisoning, defense-in-depth) are implemented but absent from every spec. Specs need an Educational Layer section.
+
+**Pending follow-up (this session):**
+
+- Resolve untracked governance files (root `.gitignore`, root `CLAUDE.md`) — Phase 3
+- Bootstrap Multimodal Security Lab (4 specs + milestone issue) — Phase 4, awaiting scoping answers
+
+**Pending follow-up (future sessions):**
+
+- Address issue #13 (rewrite Red Team L1 spec; audit L2-L5)
+- Address issue #14 (add Educational Layer section to architecture specs across all live spaces)
