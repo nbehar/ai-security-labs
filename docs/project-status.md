@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-27 (Session 12 + Audit + Multimodal Bootstrap)*
+*Last updated: 2026-04-28 (Red Team L1-L5 spec fix)*
 
 ---------------------------------------------------------------------
 
@@ -106,9 +106,10 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | 10 | Red Team: Technique suggestions | Closed ✅ (2026-04-27) | `39fe586` + `cf87474` |
 | 11 | Both: Progress visualization | Closed ✅ (2026-04-27) | `2994d90` |
 | 12 | Both: WHY explanations | Closed ✅ (2026-04-27) | `2994d90` + `7d157bb` + `cf87474` |
-| **13** | Spec drift: Red Team L1 system prompt framing | **Open** (filed 2026-04-27) | Spec stale; code uses "internal reference" framing |
+| 13 | Spec drift: Red Team L1 system prompt framing | Closed ✅ (2026-04-28) | Fixed in red_team_challenge.md — drift was on all 5 levels, not just L1 |
 | **14** | Spec gap: Educational features not in any spec | **Open** (filed 2026-04-27) | Key Concepts, Why-This-Works, security analogies |
 | **15** | MILESTONE: Multimodal Security Lab v1 build | **Open** (filed 2026-04-27) | Bootstrap complete; implementation pending |
+| **16** | Red Team L5 missing Guardrail Evaluation defense layer | **Open** (filed 2026-04-28) | Spec describes 4-layer L5 defense; code only implements 3 — found during #13 audit |
 
 ### llm-top-10-demo repo (OWASP workshop)
 - 31 issues total (12 closed, 19 open)
@@ -305,3 +306,39 @@ Built the monorepo and 2 new workshops:
 - GitHub milestone issue **#15** filed via MCP (https://github.com/nbehar/ai-security-labs/issues/15)
 
 **Out of scope for this bootstrap:** any implementation code. Specs only, per CLAUDE.md "Creating a New Space" rules.
+
+------------------------------------------------------------------------
+
+### 2026-04-28 — Red Team L1-L5 Spec Fix
+
+**Trigger:** Issue #13 (Red Team L1 spec drift) — first item from the 2026-04-27 audit's pending follow-up list.
+
+**What was found:**
+
+Audit of `spaces/red-team/specs/red_team_challenge.md` against `spaces/red-team/challenges.py` revealed drift on **all 5 levels**, not just L1 as #13 had hypothesized:
+
+| Level | Drift type |
+|---|---|
+| L1 | Whole framing changed: "TOP SECRET HR override code" → "sprint project codename" + helpful posture (commit `d067b53`) |
+| L2 | Department name + secret context differ; refusal softened to "redirect to manager" |
+| L3 | XML tag format differs (`<\|...\|>` → `<...>`); 7 rules → 3 rules |
+| L4 | Secret context differs (root SSH credential → migration codename); 7 rules → 5; added "you CAN discuss in general terms" allowance (commit `b8ddf34`) |
+| L5 | Secret context differs (emergency protocol → strategic initiative); 8 rules → 7; **defense layer gap** — spec describes 4 layers including "Guardrail Evaluation" not implemented in code |
+
+**Actions taken:**
+
+- ✅ Filed issue **#16** (Red Team L5 missing Guardrail Evaluation defense layer) for the implementation gap discovered during audit, per CLAUDE.md Auto-Issue Mode
+- ✅ Rewrote all 5 level System Prompt blocks to match `challenges.py` verbatim
+- ✅ Added Implementation Notes subsections under L1, L2, L4 explaining model-safety-driven framing decisions (with commit references)
+- ✅ Updated each level's Defenses section to match deployed code (3-rule policies for L3, 5-rule for L4, 7-rule for L5)
+- ✅ Updated L5 to clearly mark Guardrail as "PLANNED — see issue #16" rather than as a deployed defense
+- ✅ Updated top-level Scenario table + Mechanism diagram to reflect 3-layer L5 stack
+- ✅ Cleaned the messy inline-corrected Scoring formula section (removed "Wait -- the requirement states..." artifact)
+- ✅ Updated stale "guardrail model's evaluation" reference in Possible Bypasses
+- ✅ Closed issue **#13** with implementing-commit reference
+
+**Pending follow-up (next session):**
+
+- Address issue **#14** (Educational Layer spec gap across blue-team + red-team architecture specs)
+- Implement Multimodal Lab v1 per issue **#15** (Phase 1: backend skeleton)
+- Optionally address issue **#16** (Implement L5 Guardrail Evaluation — small, ~one Groq call)
