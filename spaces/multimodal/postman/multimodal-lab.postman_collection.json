@@ -1,0 +1,29 @@
+{
+  "info": {
+    "_postman_id": "ai-sec-lab4-multimodal-v1",
+    "name": "Multimodal Security Lab",
+    "description": "Phase 4a API contract for the AI Security Labs Multimodal workshop. All 8 endpoints. Set the {{base_url}} and {{HF_TOKEN}} collection variables before running. The Space is private — every request requires the Bearer token.\n\nSmoke test order:\n1. health\n2. api/attacks\n3. api/images/{attack_id}\n4. api/attack (canned)\n5. api/attack (uploaded — set body to a local PNG)\n6. api/score\n7. api/leaderboard\n8. api/attack (rate-limit probe — fire 11 in <60s, 11th should 429)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{"key": "token", "value": "{{HF_TOKEN}}", "type": "string"}]
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://nikobehar-ai-sec-lab4-multimodal.hf.space", "type": "string"},
+    {"key": "HF_TOKEN", "value": "", "type": "string", "description": "Set in your Postman environment, never commit"},
+    {"key": "attack_id", "value": "P1.1", "type": "string"}
+  ],
+  "item": [
+    {"name": "GET /health", "request": {"method": "GET", "url": {"raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"]}}, "response": []},
+    {"name": "GET /api/attacks", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/attacks", "host": ["{{base_url}}"], "path": ["api", "attacks"]}}, "response": []},
+    {"name": "GET /api/images/{attack_id}", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/images/{{attack_id}}", "host": ["{{base_url}}"], "path": ["api", "images", "{{attack_id}}"]}}, "response": []},
+    {"name": "POST /api/attack (canned, no defenses)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "{{attack_id}}", "type": "text"}, {"key": "image_source", "value": "canned", "type": "text"}, {"key": "participant_name", "value": "PostmanSmoke", "type": "text"}]}}, "response": []},
+    {"name": "POST /api/attack (canned, all 4 defenses)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "{{attack_id}}", "type": "text"}, {"key": "image_source", "value": "canned", "type": "text"}, {"key": "defenses", "value": "[\"ocr_prescan\",\"output_redaction\",\"boundary_hardening\",\"confidence_threshold\"]", "type": "text"}, {"key": "participant_name", "value": "PostmanSmoke", "type": "text"}]}}, "response": []},
+    {"name": "POST /api/attack (uploaded)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "{{attack_id}}", "type": "text"}, {"key": "image_source", "value": "uploaded", "type": "text"}, {"key": "image_file", "type": "file", "src": [], "description": "Set to a local PNG/JPEG ≤4MB"}, {"key": "participant_name", "value": "PostmanSmoke", "type": "text"}]}, "description": "Manually attach a local PNG/JPEG file to the image_file field before sending. Backend validates magic-bytes + Pillow verify(); never writes to disk."}, "response": []},
+    {"name": "POST /api/score", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/score", "host": ["{{base_url}}"], "path": ["api", "score"]}, "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"participant_name\": \"PostmanSmoke\",\n  \"attack_id\": \"{{attack_id}}\",\n  \"succeeded\": true,\n  \"defenses_applied\": [],\n  \"attempts\": 1\n}"}}, "response": []},
+    {"name": "GET /api/leaderboard", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/leaderboard", "host": ["{{base_url}}"], "path": ["api", "leaderboard"]}}, "response": []},
+    {"name": "GET /api/images/UNKNOWN (404 probe)", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/images/BOGUS.99", "host": ["{{base_url}}"], "path": ["api", "images", "BOGUS.99"]}, "description": "Should return 404 with 'Unknown attack' detail."}, "response": []},
+    {"name": "POST /api/attack (bogus defense, 400 probe)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "{{attack_id}}", "type": "text"}, {"key": "image_source", "value": "canned", "type": "text"}, {"key": "defenses", "value": "[\"bogus_defense\"]", "type": "text"}]}, "description": "Should return 400 with the list of known defense IDs."}, "response": []}
+  ]
+}
