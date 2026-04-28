@@ -5,7 +5,7 @@ colorFrom: purple
 colorTo: red
 sdk: docker
 pinned: false
-short_description: AI security workshop — image prompt injection + OCR poisoning
+short_description: Image prompt injection + OCR poisoning workshop
 ---
 
 # Multimodal Security Lab
