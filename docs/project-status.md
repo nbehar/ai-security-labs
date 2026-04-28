@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-28 (Red Team spec fix + Educational Layer specs + L5 Guardrail + Multimodal Phase 1+2)*
+*Last updated: 2026-04-28 (Red Team spec fix + Educational Layer specs + L5 Guardrail + Multimodal Phase 1+2 + ZeroGPU→Inference-API pivot)*
 
 ---------------------------------------------------------------------
 
@@ -76,12 +76,12 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 
 | Priority | Space | Status | v1 Content | Hardware |
 |----------|-------|--------|------------|----------|
-| 3 | Multimodal Security | **Phase 2 complete** (backend + 24-image library generator) | P1 Image Prompt Injection + P5 OCR Poisoning | ZeroGPU (HF Pro) |
-| 4 | Data Poisoning Lab | Planned | RAG poisoning, fine-tuning poisoning, synthetic data | TBD (likely ZeroGPU) |
+| 3 | Multimodal Security | **Phase 2 complete** (backend + 24-image library generator) | P1 Image Prompt Injection + P5 OCR Poisoning | `cpu-basic` + HF Inference Providers |
+| 4 | Data Poisoning Lab | Planned | RAG poisoning, fine-tuning poisoning, synthetic data | TBD (likely `cpu-basic` + HF Inference Providers) |
 | 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
 | 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
 | 7 | Multi-Agent Security | Planned | Multi-agent attack, cascading failures | CPU |
-| 8 | Model Forensics | Planned | Backdoor detection, train your own guard, DP demo | ZeroGPU |
+| 8 | Model Forensics | Planned | Backdoor detection, train your own guard, DP demo | TBD (`cpu-basic` + HF Inference Providers most likely) |
 | 9 | AI Governance | Planned | Security policy writer, risk assessment, threat modeling | CPU |
 
 ---------------------------------------------------------------------
@@ -411,8 +411,46 @@ All 4 Python files AST-parse cleanly. Live verification (Qwen actually follows t
 
 **Pending follow-up (next session):**
 
-- Phase 1+2 verification: install Pillow, run `python spaces/multimodal/scripts/generate_canned_images.py`, commit the 24 PNGs, deploy to `nikobehar/ai-sec-lab4-multimodal` HF Space (private, ZeroGPU), confirm Qwen2.5-VL-7B follows the BANANA SUNDAE injection on P1.1 and at least one P5 attack
+- Deploy verification: provision `HF_TOKEN` Space secret (fine-grained, Inference Providers permission only), create `nikobehar/ai-sec-lab4-multimodal` Space (private, Docker SDK, `cpu-basic`), `hf upload` the multimodal directory, confirm Qwen2.5-VL-7B follows the BANANA SUNDAE injection on P1.1 and at least one P5 attack
 - Reviewer/Operator verification of L5 Guardrail end-to-end on the deployed Red Team HF Space (separate post-deploy task)
+
+------------------------------------------------------------------------
+
+### 2026-04-28 (cont.) — Multimodal: Pivot from ZeroGPU to HF Inference Providers
+
+**Trigger:** Discovered at HF Space creation time that **ZeroGPU is Gradio-SDK-only on HF Spaces** — incompatible with the platform's Docker/FastAPI architecture. Must pick a different inference path before deploy.
+
+**Decision:** Run the Multimodal Lab on `cpu-basic` (free) and route vision inference through HF Inference Providers (Together AI by default, hosted Qwen2.5-VL-7B). Considered alternatives:
+
+- **Switch SDK to Gradio + ZeroGPU** — free, but rewrites the workshop UI/API to Gradio Blocks paradigm; diverges from platform pattern. Rejected.
+- **Stay Docker, use paid GPU (`t4-small`)** — works as-is at ~$0.40/hr. Rejected (recurring cost; need to manage idle/active state).
+- **Stay Docker, route inference through HF Inference Providers** — chosen. Free at workshop volume (HF Pro credit), eliminates cold-start, simplifies the dependency stack significantly.
+
+**Code/spec impact:** Substantial but focused on the inference layer.
+
+- `spaces/multimodal/vision_inference.py` — replaced `@spaces.GPU` + local Qwen load with `huggingface_hub.InferenceClient.chat_completion`. ~50 lines, simpler.
+- `spaces/multimodal/requirements.txt` — dropped torch, transformers, accelerate, spaces, qwen-vl-utils; added huggingface_hub. 11 deps → 7 deps.
+- `spaces/multimodal/Dockerfile` — dropped libgl1, libglib2.0-0, build-essential. Now identical to blue-team/red-team Dockerfile.
+- `spaces/multimodal/app.py` — `/health` reports `hf_token_set` + `inference_provider` (replacing `groq_api_key_set`).
+- `spaces/multimodal/specs/deployment_spec.md` — substantial rewrite: Hosting, Dependencies, Dockerfile, Inference Integration, HF Space Metadata, Environment Variables (HF_TOKEN required), Cold-Start Behavior, Health Verification, Acceptance Checks.
+- `spaces/multimodal/CLAUDE.md` — Stack + Hosting Constraints sections.
+- `spaces/multimodal/README.md` — HF frontmatter (`hardware:` field removed), status line.
+- This file: Planned Products table updated (cpu-basic + Inference Providers); Lab 8 Model Forensics also retargeted (was ZeroGPU).
+- Platform `/CLAUDE.md` — HF Space Names table; new Inference architecture decision note.
+
+**What did NOT change:**
+
+- The 24 canned PNGs (already committed at `417f9d7`)
+- attacks.py, generate_canned_images.py, templates/index.html, static/css/multimodal.css
+- The 4 specs other than deployment_spec.md
+
+**Cost model:** Space free, inference cost is fractions of a cent per call against the HF Pro monthly credit. Workshop volume fits comfortably.
+
+**Pending follow-up:**
+
+- User: provision fine-grained `HF_TOKEN` (Inference Providers permission only), create the Space, set the secret
+- Operator: `hf upload` the multimodal directory, verify `/health` and a sample attack
+- Phase 3: Defenses (`pytesseract`, `slowapi`, defenses.py module) — implementation unblocked once deploy is verified
 
 ------------------------------------------------------------------------
 
