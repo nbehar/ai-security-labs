@@ -2,8 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Pillow's manylinux wheel bundles libjpeg/libpng; no apt deps needed for v1.
-# Tesseract will be added in Phase 3 when the OCR Pre-Scan defense lands.
+# Pillow's manylinux wheel covers libjpeg/libpng.
+# Tesseract added in Phase 3 for the OCR Pre-Scan + Confidence Threshold defenses.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
