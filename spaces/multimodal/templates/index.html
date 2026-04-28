@@ -48,17 +48,17 @@
     <div class="container">
         <h1>🖼️ Multimodal Security Lab</h1>
         <p class="subtitle">
-            <span class="badge">Phase 1 • Backend skeleton</span>
+            <span class="badge">Phase 3 • Backend + 4 defenses</span>
             Image-based attacks against multimodal LLMs · NexaCore DocReceive scenario
         </p>
 
         <div class="phase">
-            <strong>This is a backend-only deploy.</strong> The frontend ships in
-            Phase 4. For now, the API surface is live at:
+            <strong>This is a backend-only deploy.</strong> The frontend SPA shell
+            ships in Phase 4. For now, the API surface is live at:
             <ul>
-                <li><code>GET /health</code> — model load state, attack count, image library size</li>
+                <li><code>GET /health</code> — token state, inference provider, model id, attack &amp; image counts</li>
                 <li><code>GET /api/attacks</code> — list of 12 attack definitions</li>
-                <li><code>POST /api/attack</code> — run a canned-image attack against Qwen2.5-VL-7B</li>
+                <li><code>POST /api/attack</code> — run a canned-image attack with optional defenses (<code>defenses</code> form field accepts a JSON subset of <code>["ocr_prescan", "output_redaction", "boundary_hardening", "confidence_threshold"]</code>)</li>
                 <li>OpenAPI docs at <a href="/docs"><code>/docs</code></a></li>
             </ul>
         </div>
@@ -66,12 +66,15 @@
         <p>
             Tracking: <a href="https://github.com/nbehar/ai-security-labs/issues/15">issue #15</a>.
             Specs: <code>spaces/multimodal/specs/</code> in the monorepo.
+            Defense calibration: <code>docs/phase3-calibration.md</code>.
         </p>
 
         <p>
             <strong>v1 scope:</strong> 6 Image Prompt Injection attacks (P1.x) + 6 OCR Poisoning
-            attacks (P5.x) anchored in NexaCore DocReceive. Hardware: HF ZeroGPU
-            running <code>Qwen/Qwen2.5-VL-7B-Instruct</code>.
+            attacks (P5.x) anchored in NexaCore DocReceive. Hardware: HF Spaces
+            <code>cpu-basic</code>. Inference: hosted <code>Qwen/Qwen2.5-VL-72B-Instruct</code>
+            via HF Inference Providers (OVH cloud) — warm-served, no cold-start;
+            ~10–20s per attack call.
         </p>
     </div>
 </body>

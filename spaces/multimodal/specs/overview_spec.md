@@ -55,9 +55,11 @@ A small defense matrix mirroring the OWASP-space pattern:
 | 1 | Image OCR Pre-Scan | Input scanner | Extracts text from image with separate OCR engine; flags injection keywords ("ignore", "forget", "system prompt") before model call |
 | 2 | Output Redaction | Output scanner | Scans model response for sensitive markers (transferred funds, "approved", canary phrase) and redacts |
 | 3 | Visual-Text Boundary Hardening | Prompt engineering | System prompt instructs model to treat all image-extracted text as untrusted document content, never as instructions |
-| 4 | Confidence Threshold | OCR signal | Reject documents where OCR confidence below threshold (catches obfuscated injections) |
+| 4 | Confidence Threshold | OCR signal | Intended to reject documents where OCR confidence is low (Phase 3.1 follow-up needed for hidden-text attacks like white-on-white where Tesseract is confident on the visible legit text — see calibration doc) |
 
 No single defense covers all attacks — that's the lesson, same as OWASP space.
+
+**Catch-rate claims above describe design intent.** Measured per-defense effectiveness against the 12-attack matrix (calibrated against `Qwen/Qwen2.5-VL-72B-Instruct` via OVH cloud as deployed) is recorded in `docs/phase3-calibration.md` "Phase 3 verification" section. Phase 3.1 / v1.1 follow-ups address known gaps: widening `ocr_prescan` keyword set; replacing `confidence_threshold` semantics with text-color-vs-background-color analysis; strengthening `boundary_hardening` (current passive rule list is bypassed by the 72B's instruction-following on the injection text). Per CLAUDE.md anti-hallucination rule, this paragraph is required so the spec doesn't claim coverage that the deployed implementation lacks.
 
 ## Success Criteria
 
