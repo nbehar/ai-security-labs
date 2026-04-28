@@ -98,17 +98,19 @@ not at runtime.
 
 Naming convention (set 2026-04-28): **`nikobehar/ai-sec-lab<N>-<name>`** for spaces deployed from Lab 4 onward. The first 3 spaces use legacy names; rename them in a future cleanup pass.
 
+**Inference architecture decision (set 2026-04-28):** ZeroGPU is Gradio-SDK-only on HF Spaces. The platform standardizes on Docker/FastAPI, so spaces that need a hosted vision model (Lab 4 Multimodal, future Lab 9 Model Forensics) use **HF Inference Providers** (`huggingface_hub.InferenceClient`) from a `cpu-basic` Space rather than ZeroGPU. This keeps Docker/FastAPI everywhere, eliminates cold-start, and uses HF Pro inference credit. Required Space secret: `HF_TOKEN` (fine-grained, Inference Providers permission only).
+
 | # | Space dir       | HF Space name                              | Hardware |
 |---|-----------------|--------------------------------------------|----------|
 | 1 | owasp-top-10    | `nikobehar/llm-top-10` (legacy)            | CPU      |
 | 2 | blue-team       | `nikobehar/blue-team-workshop` (legacy)    | CPU      |
 | 3 | red-team        | `nikobehar/red-team-workshop` (legacy)     | CPU      |
-| 4 | multimodal      | `nikobehar/ai-sec-lab4-multimodal`         | ZeroGPU  |
+| 4 | multimodal      | `nikobehar/ai-sec-lab4-multimodal`         | `cpu-basic` (Vision LLM via HF Inference Providers) |
 | 5 | data-poisoning  | `nikobehar/ai-sec-lab5-data-poisoning` (planned) | TBD |
 | 6 | detection-monitoring | `nikobehar/ai-sec-lab6-detection` (planned) | CPU |
 | 7 | incident-response | `nikobehar/ai-sec-lab7-incident-response` (planned) | CPU |
 | 8 | multi-agent     | `nikobehar/ai-sec-lab8-multi-agent` (planned) | CPU |
-| 9 | model-forensics | `nikobehar/ai-sec-lab9-model-forensics` (planned) | ZeroGPU |
+| 9 | model-forensics | `nikobehar/ai-sec-lab9-model-forensics` (planned) | TBD (`cpu-basic` + HF Inference Providers most likely) |
 | 10 | ai-governance  | `nikobehar/ai-sec-lab10-governance` (planned) | CPU |
 
 ------------------------------------------------------------------------
