@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-28 (Red Team L1-L5 spec fix + Educational Layer specs + L5 Guardrail Evaluation)*
+*Last updated: 2026-04-28 (Red Team spec fix + Educational Layer specs + L5 Guardrail Evaluation + Multimodal Phase 1)*
 
 ---------------------------------------------------------------------
 
@@ -76,7 +76,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 
 | Priority | Space | Status | v1 Content | Hardware |
 |----------|-------|--------|------------|----------|
-| 3 | Multimodal Security | **Bootstrap complete** (specs only) | P1 Image Prompt Injection + P5 OCR Poisoning | ZeroGPU (HF Pro) |
+| 3 | Multimodal Security | **Phase 1 complete** (backend skeleton) | P1 Image Prompt Injection + P5 OCR Poisoning | ZeroGPU (HF Pro) |
 | 4 | Data Poisoning Lab | Planned | RAG poisoning, fine-tuning poisoning, synthetic data | TBD (likely ZeroGPU) |
 | 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
 | 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
@@ -382,5 +382,35 @@ Implemented the 4th defense layer for Red Team Level 5. This was the first **cod
 
 **Pending follow-up (next session):**
 
-- Implement Multimodal Lab v1 per issue **#15** (Phase 1: backend skeleton)
 - Reviewer/Operator verification of L5 Guardrail end-to-end on the deployed HF Space (post-deploy task)
+
+------------------------------------------------------------------------
+
+### 2026-04-28 (cont.) — Multimodal Lab Phase 1 (Backend Skeleton)
+
+**Trigger:** Issue #15 milestone — Phase 1 of the Multimodal Lab v1 implementation.
+
+**What was done:**
+
+Authored the minimum-viable backend per the Phase 1 scope in issue #15. No frontend (Phase 4), no defenses (Phase 3), no full image library (Phase 2) — just enough to wire Qwen2.5-VL-7B end-to-end on ZeroGPU and prove the stack works.
+
+Files created in `spaces/multimodal/`:
+
+- `requirements.txt` — Phase 1 minimum (FastAPI, transformers, spaces, qwen-vl-utils, etc.)
+- `Dockerfile` — Python 3.11-slim + libgl1 + libglib2.0-0
+- `attacks.py` — 12 attack definitions (P1.1–P1.6, P5.1–P5.6) with distinct canary phrases
+- `vision_inference.py` — `@spaces.GPU(duration=60)` wrapper with lazy Qwen2.5-VL load
+- `app.py` — `GET /health`, `GET /api/attacks`, `POST /api/attack` (canned-only, no defenses)
+- `templates/index.html` — Phase 1 placeholder shell
+- `static/css/multimodal.css` — empty stub
+- `scripts/generate_p1_1.py` — PIL script producing the P1.1 fake-receipt PNG
+
+The P1.1 PNG itself is not committed (PNG bytes don't round-trip via MCP push_files); user runs the script locally after pulling, then commits the resulting image.
+
+All 4 Python files AST-parse cleanly. Live verification (Qwen actually follows the image-embedded injection) is the post-deploy Operator/Reviewer step.
+
+**Pending follow-up (next session):**
+
+- Phase 1 verification: install Pillow, run `python spaces/multimodal/scripts/generate_p1_1.py`, commit the PNG, deploy to `nikobehar/multimodal-workshop` HF Space (private, ZeroGPU), confirm Qwen2.5-VL-7B follows the BANANA SUNDAE injection. If Qwen refuses: model fallback per `deployment_spec.md`.
+- Phase 2 of issue #15: author 11 more generation scripts (P1.2–P1.6, P5.1–P5.6) + 12 legitimate-document images for FP checking
+- Reviewer/Operator verification of L5 Guardrail end-to-end on the deployed Red Team HF Space (separate post-deploy task)
