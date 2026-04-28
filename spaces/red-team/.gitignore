@@ -1,1 +1,4 @@
+# Root .gitignore covers this space — see ../../.gitignore
 __pycache__/
+.env
+.env.op

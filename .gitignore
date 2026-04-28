@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Secrets
+.env
+.env.local
+.env.*.local
+.env.op
+
+# ML model cache (can be multi-GB)
+models/
+*.bin
+*.safetensors
+*.onnx
+.cache/
+
+# HuggingFace
+hf_cache/
+
+# Logs
+*.log
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Deploy artifacts
+build_context/
