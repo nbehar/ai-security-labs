@@ -1,12 +1,49 @@
+---
+title: Multimodal Security Lab
+emoji: 🖼️
+colorFrom: purple
+colorTo: red
+sdk: docker
+hardware: zero-a10g
+pinned: false
+short_description: AI security workshop — image prompt injection + OCR poisoning
+---
+
 # Multimodal Security Lab
-**Status:** Planned | **Hardware:** GPU (T4) | **Issues:** #13, #14, #16, #17, #18, #20
 
-Attacks on vision, image, and document processing models.
+**Status:** Bootstrap — specs complete, implementation pending
+**Hardware:** HuggingFace Spaces ZeroGPU (A100, dynamic allocation)
+**Model:** `Qwen/Qwen2.5-VL-7B-Instruct`
+**Scenario:** NexaCore DocReceive (internal document intake portal)
 
-## Labs
-- **P1: Image Prompt Injection** — Hidden text in images tricks multimodal models
-- **P2: Adversarial Image Lab** — Perturbation sliders fool classifiers in real-time
-- **P4: Steganographic Payloads** — EXIF/LSB/invisible text attacks
-- **P5: OCR Poisoning** — Hidden text in documents extracted by OCR
-- **P6: Deepfake Detection** — Real vs AI-generated image identification
-- **P8: CAPTCHA Breaking** — Vision models defeat visual security
+Image-based attacks against multimodal LLMs. Part of the [AI Security Labs](https://github.com/nbehar/ai-security-labs) platform.
+
+## v1 Labs
+
+| ID | Lab | Attack class |
+|----|-----|--------------|
+| **P1** | Image Prompt Injection | Visible text in images carries injection payloads the vision LLM follows |
+| **P5** | OCR Poisoning | Hidden text (white-on-white, microprint, layered) extracted by OCR is acted on |
+
+Each lab provides ~6 pre-canned attacks plus opt-in upload mode, defense toggles, Cause/Effect/Impact panels, and educational analogies (per platform pattern).
+
+## Future Labs (v2+)
+
+These are planned but explicitly out of scope for v1:
+
+- **P6 Deepfake Detection** — Different stack (classifier model). Next addition.
+- **P2 Adversarial Image Lab** — Needs gradient access, incompatible with API-served models.
+- **P4 Steganographic Payloads** — Educational overlap with P1, defer for clarity.
+- **P8 CAPTCHA Breaking** — Legal/ethical concerns; likely permanent skip.
+
+## Specs
+
+Source of truth lives in `specs/`:
+- `overview_spec.md` — purpose, scenario, attack/defense matrices, success criteria
+- `frontend_spec.md` — UI, tabs, educational scaffolding
+- `api_spec.md` — FastAPI endpoints + Pydantic schemas
+- `deployment_spec.md` — hardware, model, Dockerfile, ZeroGPU integration
+
+## Status
+
+Bootstrap complete on 2026-04-27. Implementation tracked in [`docs/project-status.md`](./docs/project-status.md) and the platform-level milestone issue.
