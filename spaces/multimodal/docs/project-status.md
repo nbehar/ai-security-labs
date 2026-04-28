@@ -1,14 +1,14 @@
 # Multimodal Security Lab — Project Status
 
-*Last updated: 2026-04-28 (Phase 1: Backend skeleton complete)*
+*Last updated: 2026-04-28 (Phase 2: Image library generator complete)*
 
 ------------------------------------------------------------------------
 
 ## Current Phase
 
-**Phase 1 complete (backend skeleton).** Backend code shipped; awaiting deploy + Qwen verification.
+**Phase 2 complete (image-library generator).** All 24 image generators authored in a single PIL script. PNGs themselves are produced post-pull by running the script.
 
-Per platform `/CLAUDE.md`, the next phase (Phase 2: Pre-canned Image Library) requires Planner approval before implementation.
+Per platform `/CLAUDE.md`, the next phase (Phase 3: Defenses) requires Planner approval before implementation.
 
 ------------------------------------------------------------------------
 
@@ -51,9 +51,9 @@ Per platform `/CLAUDE.md`, the next phase (Phase 2: Pre-canned Image Library) re
 | `app.py` (3 endpoints: /health, /api/attacks, /api/attack) | ✅ Complete | Phase 1 |
 | `templates/index.html` (Phase 1 placeholder) | ✅ Complete | Phase 1 |
 | `static/css/multimodal.css` (empty stub) | ✅ Complete | Phase 1 |
-| `scripts/generate_p1_1.py` (PIL receipt generator) | ✅ Complete | Phase 1 |
-| `static/images/canned/p1_1_receipt_override.png` | ⬜ **Generated post-pull** (run `python scripts/generate_p1_1.py`) | Phase 1 |
-| Pre-canned image library (remaining 11 images) | ⬜ Not started | Phase 2 |
+| `scripts/generate_p1_1.py` (PIL receipt generator — single-image test harness) | ✅ Complete | Phase 1 |
+| `scripts/generate_canned_images.py` (full 24-image library generator) | ✅ Complete | Phase 2 |
+| `static/images/canned/*.png` (24 PNGs) | ⬜ **Generated post-pull** (run `python scripts/generate_canned_images.py`) | Phase 1+2 |
 | `defenses.py` (4 defenses) | ⬜ Not started | Phase 3 |
 | `ocr_pipeline.py` (Tesseract integration) | ⬜ Not started | Phase 3 |
 | Frontend `app.js` + space modules | ⬜ Not started | Phase 4 |
@@ -75,19 +75,18 @@ Per platform `/CLAUDE.md`, the next phase (Phase 2: Pre-canned Image Library) re
 
 ## Next Recommended Task
 
-**Phase 1 verification + Phase 2 kickoff.**
+**Phase 1+2 deploy verification + Phase 3 kickoff.**
 
 Two-part next-task:
 
-1. **Phase 1 deploy + verification (Operator/Reviewer).** Pre-deploy: install Pillow locally and run `python scripts/generate_p1_1.py` to produce `static/images/canned/p1_1_receipt_override.png`. Commit the PNG. Then deploy: create the HF Space at `nikobehar/multimodal-workshop` (private, ZeroGPU enabled), run `./scripts/deploy.sh multimodal`. Verify:
-   - `GET /health` reports `attack_count: 12` and `image_library_size: 1` after the PNG is committed
-   - First `POST /api/attack` with `attack_id=P1.1, image_source=canned` triggers cold-start (~10–30s), then returns a model response
-   - Confirm `succeeded: true` (Qwen2.5-VL-7B follows the BANANA SUNDAE injection)
-   - If Qwen refuses: try `MULTIMODAL_MODEL=Qwen/Qwen2.5-VL-3B-Instruct` or `MULTIMODAL_MODEL=llava-hf/llava-v1.6-mistral-7b-hf` per `specs/deployment_spec.md`
+1. **Generate + deploy (Operator/Reviewer).** Pre-deploy: install Pillow locally and run `python scripts/generate_canned_images.py` to produce all 24 PNGs in `static/images/canned/`. Commit the 24 PNGs (binary; standard git flow, not MCP). Then deploy: create the HF Space at `nikobehar/multimodal-workshop` (private, ZeroGPU enabled), run `./scripts/deploy.sh multimodal`. Verify:
+   - `GET /health` reports `attack_count: 12` and `image_library_size: 12` (only attack PNGs are referenced from the attacks dict; legit PNGs are present but not enumerated)
+   - First `POST /api/attack` with each of the 12 attack IDs triggers a model response. Spot-check P1.1 (BANANA SUNDAE) for Phase 1 verification, plus a sample P5 attack for Phase 2 verification.
+   - If Qwen refuses any attack: log it for Phase 5 verification matrix; consider model fallback per `specs/deployment_spec.md`.
 
-2. **Phase 2: Pre-canned image library.** Author 11 more PIL generation scripts (P1.2 – P1.6, P5.1 – P5.6) producing the remaining attack images plus 12 legitimate-document images for false-positive checking (per `specs/overview_spec.md` Image Input section). Subtle visual techniques per attack — white-on-white pixel ops for P5.1, microprint for P5.2, etc.
+2. **Phase 3: Defenses.** Implement the 4 defense layers per `specs/overview_spec.md` Defenses section: `ocr_prescan` (Tesseract; requires adding `pytesseract` to requirements.txt and `tesseract-ocr` to Dockerfile), `output_redaction`, `boundary_hardening` (system prompt update), `confidence_threshold`. Each defense is a function in a new `defenses.py` module that returns a defense_log entry. Wire into `app.py` `/api/attack` flow with toggleable per-defense application. Use the 12 legit PNGs to verify each defense doesn't false-positive on legitimate documents.
 
-Per platform CLAUDE.md, propose Phase 2 via Planner Agent and wait for approval before implementing.
+Per platform CLAUDE.md, propose Phase 3 via Planner Agent and wait for approval before implementing.
 
 ------------------------------------------------------------------------
 
@@ -134,3 +133,28 @@ No implementation code in this session — bootstrap phase only.
 - `Qwen2.5-VL safety alignment` — STILL OPEN (resolved by Phase 1 verification step)
 - `ZeroGPU quota cliff` — STILL OPEN (mitigation: pre-warm; relevant for live workshops, not Phase 1)
 - `Pre-canned attack image authoring` — Partially addressed (P1.1 script shipped); remaining 11 scripts are Phase 2 work
+
+### 2026-04-28 — Phase 2: Pre-canned Image Library Generator
+
+**What was built:**
+
+- **`scripts/generate_canned_images.py`** (~960 lines) — single consolidated PIL script with 24 image-generator functions:
+  - 6 P1 Image Prompt Injection attacks (P1.1 Receipt Override, P1.2 Contract Authority Spoof, P1.3 Badge Self-Approve, P1.4 Watermark Injection, P1.5 Multi-Step Hijack, P1.6 Persona Override)
+  - 6 P5 OCR Poisoning attacks (P5.1 White-on-White, P5.2 Microprint, P5.3 Color-Adjacent, P5.4 Layered PDF, P5.5 Rotated Margin, P5.6 Adversarial Font)
+  - 6 legitimate P1 documents (clean variants for FP checking)
+  - 6 legitimate P5 documents (clean variants for FP checking)
+- Shared helpers for fonts (cross-platform fallback chain), colors, headers/footers
+- CLI dispatch: `all` (default) | `attacks` | `legit` | individual key (e.g. `p5_3`)
+- Each PNG is 800×1100, RGB, optimize-saved. Filenames match the `filename` field in `attacks.py` for the 12 attack images; legit images use `legit_*.png` prefix.
+
+**Verification done:**
+
+- Script AST-parses cleanly (959 lines)
+
+**Verification deferred to Operator/Reviewer (post-pull):**
+
+- Run `python scripts/generate_canned_images.py` locally with Pillow installed and confirm all 24 PNGs are produced
+- Spot-check visual content (P1.x attacks should have visible injection text; P5.x attacks should have hidden/obscured payloads; legit images should look like clean documents)
+- Verify no PNG exceeds 500KB (per spec — image library budget 12MB total)
+
+**Note on the older `scripts/generate_p1_1.py`:** kept in place as a single-image test harness. The new `generate_canned_images.py p1_1` produces a comparable (not byte-identical) P1.1 image. Last-writer wins on the output file.
