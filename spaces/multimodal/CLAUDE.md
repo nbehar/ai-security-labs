@@ -39,7 +39,7 @@ spaces/multimodal/
   vision_inference.py       HF Inference Providers wrapper (Qwen2.5-VL-72B via OVH cloud) ✅
   ocr_pipeline.py           Tesseract wrapper for OCR Pre-Scan + Confidence Threshold (Phase 3 ✅)
   Dockerfile                cpu-basic + tesseract-ocr + Python deps (Phase 3 ✅)
-  requirements.txt          Pinned deps: fastapi, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub, pytesseract ✅
+  requirements.txt          Pinned deps: fastapi, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub, pytesseract, slowapi ✅
   README.md                 HF Spaces card with frontmatter ✅
   CLAUDE.md                 This file
   specs/
@@ -62,7 +62,7 @@ spaces/multimodal/
   templates/
     index.html              Phase 1 placeholder shell (Phase 4 will replace with full SPA shell) ✅ for Phase 1
   postman/
-    multimodal-lab.postman_collection.json   API testing contract (Phase 5/6 — TO BE BUILT)
+    multimodal-lab.postman_collection.json   API testing contract (Phase 4a ✅ all 8 endpoints + 2 negative probes)
 ```
 
 ------------------------------------------------------------------------
@@ -176,7 +176,7 @@ Claude MUST NOT:
 
 # Current Status
 
-**Phase 3 complete** as of 2026-04-28. Live at `nikobehar/ai-sec-lab4-multimodal` with 4 toggleable defenses (`ocr_prescan`, `output_redaction`, `boundary_hardening`, `confidence_threshold`). Phase 4 (frontend SPA shell) is next.
+**Phase 4a complete** as of 2026-04-28. Live at `nikobehar/ai-sec-lab4-multimodal` with all 8 specced endpoints, 4 toggleable defenses, image upload mode, scoring + leaderboard, and 10/min rate limit. Phase 4b (frontend SPA shell — `templates/index.html` rewrite + 4 JS modules) is next.
 
 See `docs/project-status.md` for active task and next steps; calibration baseline lives at `docs/phase3-calibration.md`.
 

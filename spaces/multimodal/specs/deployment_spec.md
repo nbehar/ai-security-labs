@@ -71,16 +71,16 @@ python-multipart>=0.0.12
 pydantic>=2.0.0
 pillow>=10.0.0
 huggingface_hub>=0.27.0
+pytesseract>=0.3.10
+slowapi>=0.1.9
 ```
 
 Notes:
 - `huggingface_hub` — provides `InferenceClient` for hosted inference calls. Replaces the previously-planned `torch` / `transformers` / `accelerate` / `spaces` / `qwen-vl-utils` stack (no local model load).
-- `pillow` — image bytes parsing only (no model preprocessing locally)
+- `pillow` — image bytes parsing + magic-bytes verification (`Image.open(BytesIO).verify()` on uploads)
+- `pytesseract` — Phase 3, OCR Pre-Scan + Confidence Threshold defenses
+- `slowapi` — Phase 4a, 10 req/min per IP rate limit on `/api/attack`
 - DO NOT include `groq` — Multimodal lab does not use Groq
-
-Phase 3 will add:
-- `pytesseract>=0.3.10` — for the OCR Pre-Scan defense
-- `slowapi>=0.1.9` — rate limiting (10 req/min per IP per `api_spec.md`)
 
 ## Dockerfile
 
@@ -89,8 +89,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Pillow's manylinux wheel bundles libjpeg/libpng; no apt deps needed for v1.
-# Tesseract will be added in Phase 3 when the OCR Pre-Scan defense lands.
+# Pillow's manylinux wheel covers libjpeg/libpng.
+# Tesseract added in Phase 3 for the OCR Pre-Scan + Confidence Threshold defenses.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -102,7 +105,7 @@ EXPOSE 7860
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
 ```
 
-Identical pattern to blue-team / red-team Dockerfile (Python 3.11-slim, port 7860, uvicorn). No system deps in v1.
+Same Python 3.11-slim base as blue-team / red-team. The single apt layer is `tesseract-ocr` (Phase 3); blue-team/red-team don't need it because they're text-only.
 
 ## Inference Integration (HF Inference Providers)
 
@@ -229,16 +232,16 @@ Per CLAUDE.md, after `deploy.sh multimodal` completes, Reviewer Agent MUST verif
 
 ## Acceptance Checks
 
-- [ ] HF Space created at `nikobehar/ai-sec-lab4-multimodal` (private, Docker SDK, default `cpu-basic`)
-- [ ] `HF_TOKEN` configured as a Space secret (fine-grained, Inference Providers permission only)
-- [ ] Dockerfile pulls clean (no apt deps in v1)
-- [ ] `requirements.txt` pinned and complete (FastAPI, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub)
-- [ ] `vision_inference.py` uses `huggingface_hub.InferenceClient` (no local model load)
-- [ ] Pre-canned image library shipped in `spaces/multimodal/static/images/canned/` (24 images)
-- [ ] `/health` reports correct values (`hf_token_set: true`, `inference_provider`, `model_id`, `attack_count: 12`, `image_library_size: 12`)
-- [ ] First call to `/api/attack` returns within ~20s (Space-wake + warm hosted 72B inference; 7B-class models would land in the ~5s range)
-- [ ] `MULTIMODAL_MODEL` and `HF_INFERENCE_PROVIDER` env var overrides work
-- [ ] No `GROQ_API_KEY` referenced in this space's code (Multimodal does not use Groq)
-- [ ] All 12 attacks succeed against undefended model (Phase 5)
+- [x] HF Space created at `nikobehar/ai-sec-lab4-multimodal` (private, Docker SDK, default `cpu-basic`) — verified 2026-04-28
+- [x] `HF_TOKEN` configured as a Space secret (fine-grained, Inference Providers permission only)
+- [x] Dockerfile builds clean (Phase 3 added single `tesseract-ocr` apt layer; otherwise matches blue-team/red-team pattern)
+- [x] `requirements.txt` pinned and complete (FastAPI, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub, pytesseract, slowapi as of Phase 4a)
+- [x] `vision_inference.py` uses `huggingface_hub.InferenceClient` (no local model load)
+- [x] Pre-canned image library shipped in `spaces/multimodal/static/images/canned/` (24 images, committed `417f9d7`)
+- [x] `/health` reports correct values (`hf_token_set: true`, `inference_provider`, `model_id`, `attack_count: 12`, `image_library_size: 12`)
+- [x] First call to `/api/attack` returns within ~20s (P1.1 measured at ~16s on 2026-04-28; P95 ≈ 60s outlier on verbose responses)
+- [x] `MULTIMODAL_MODEL` and `HF_INFERENCE_PROVIDER` env var overrides work (used during the 7B→72B / together→ovhcloud pivot)
+- [x] No `GROQ_API_KEY` referenced in this space's code (Multimodal does not use Groq)
+- [ ] All 12 attacks succeed against undefended model (Phase 5 — calibration ran 6/12 clean, 3 self-flagged, 3 image-side issues; see `docs/phase3-calibration.md`)
 - [ ] All 12 legit images pass without false positives (Phase 5)
 - [ ] Defense matrix verified end-to-end on the live Space (Phase 5)

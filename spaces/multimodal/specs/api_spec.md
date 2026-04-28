@@ -40,7 +40,7 @@ No SSE for v1 (no scorecard streaming — only 12 attacks, instant responses are
   "model_id": "Qwen/Qwen2.5-VL-72B-Instruct",
   "attack_count": 12,
   "image_library_size": 12,
-  "phase": 1
+  "phase": 3
 }
 ```
 
@@ -254,11 +254,13 @@ Per the `spaces/owasp-top-10/CLAUDE.md` precedent, this space MUST maintain `pos
 
 ## Acceptance Checks
 
-- [ ] All 8 endpoints implemented and respond per the schemas above
-- [ ] Pydantic validates every request shape
-- [ ] Image upload enforces PNG/JPEG + 4MB cap + magic-bytes check
-- [ ] Rate limit 10/min/IP applied to `/api/attack`
-- [ ] `/health` reports `hf_token_set` accurately (renamed from `model_loaded` during the 2026-04-28 ZeroGPU→Inference-API pivot — there's no local model load to gate on)
-- [ ] No path-traversal possible via `image_filename` (whitelist-only, derived from `/api/attacks`)
-- [ ] Postman collection added with one request per endpoint
-- [ ] Uploaded images never touch disk
+All implemented as of Phase 4a (2026-04-28, GitHub commit `54cfd01`, HF Space commit `34d100c`):
+
+- [x] All 8 endpoints implemented and respond per the schemas above
+- [x] Pydantic validates every request shape (`ScoreRequest` model on `/api/score`)
+- [x] Image upload enforces PNG/JPEG content-type + 4MB cap + magic-bytes check + Pillow `verify()`
+- [x] Rate limit 10/min/IP applied to `/api/attack` via `slowapi`
+- [x] `/health` reports `hf_token_set` accurately (renamed from `model_loaded` during the 2026-04-28 ZeroGPU→Inference-API pivot — there's no local model load to gate on)
+- [x] No path-traversal possible via `image_filename` (canned mode reads from `CANNED_IMAGE_DIR / fname` with the canned filename whitelist; uploaded mode never touches disk)
+- [x] Postman collection added at `postman/multimodal-lab.postman_collection.json` with one request per endpoint + 2 negative-test cases (404 unknown attack, 400 bogus defense)
+- [x] Uploaded images never touch disk (`UploadFile.read()` → bytes → `_run_defended_inference`; no `write_bytes` call in upload path)
