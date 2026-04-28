@@ -11,7 +11,7 @@ Define hosting, hardware, model loading, env config, and verification for deploy
 - **Hardware tier:** **`cpu-basic`** (free)
 - **Visibility:** Private (consistent with other spaces — workshop access controlled via HF Space link)
 - **HF Space name:** `nikobehar/ai-sec-lab4-multimodal` (per platform `ai-sec-lab#-name` convention; this is the 4th workshop deployed)
-- **Inference path:** HuggingFace Inference Providers (Together AI by default), called via `huggingface_hub.InferenceClient`. Vision inference is *hosted* — no GPU on the Space itself, no local model load, no cold-start.
+- **Inference path:** HuggingFace Inference Providers (OVH cloud by default), called via `huggingface_hub.InferenceClient`. Vision inference is *hosted* — no GPU on the Space itself, no local model load, no cold-start.
 
 ### Why not ZeroGPU
 
@@ -25,24 +25,41 @@ The 2026-04-27 plan assumed ZeroGPU + a locally loaded Qwen2.5-VL-7B. Discovered
 
 ### Cost model
 
-`cpu-basic` is free. Inference runs on HF's hosted infrastructure, billed via the user's HF Pro inference credit. Per-call cost for Qwen2.5-VL-7B is on the order of a fraction of a cent; workshop volume (e.g. 30 students × 20 attacks each = 600 calls) easily fits within the monthly Pro credit.
+`cpu-basic` is free. Inference runs on HF's hosted infrastructure, billed via the user's HF Pro inference credit. Per-call cost for Qwen2.5-VL-72B is on the order of a fraction of a cent; workshop volume (e.g. 30 students × 20 attacks each = 600 calls) easily fits within the monthly Pro credit.
 
 ## Model
 
-- **Primary:** `Qwen/Qwen2.5-VL-7B-Instruct` served via the `together` provider (HF Inference Providers default)
+- **Primary:** `Qwen/Qwen2.5-VL-72B-Instruct` served via the `ovhcloud` provider
 - **License:** Apache 2.0 (open weights, no gating)
 - **Configurability:** model ID stored as env var `MULTIMODAL_MODEL`; provider as `HF_INFERENCE_PROVIDER`. Switching requires re-running the verification matrix.
 
-### Acceptable alternate models (if Qwen2.5-VL-7B refuses our injections, or the Together provider is unavailable)
+### Why 72B and not 7B (set 2026-04-28 at deploy time)
+
+The original spec called for `Qwen/Qwen2.5-VL-7B-Instruct`. At deploy time, querying `https://huggingface.co/api/models/<id>?expand=inferenceProviderMapping` showed:
+
+- `Qwen/Qwen2.5-VL-7B-Instruct` → only Hyperbolic, status `error` (not actually serving)
+- `Qwen/Qwen2.5-VL-72B-Instruct` → OVH cloud, status `live` ✅
+
+The 72B sibling is the same Qwen2.5-VL family with stronger OCR/vision behavior — strictly an upgrade for the workshop (P1 visible-text and P5 OCR-poisoning attacks both benefit from better OCR). Cost remains within HF Pro credit at workshop volume. Trade-off: 72B is more safety-aware than 7B would have been; some attacks succeed by canary-leak but the model still flags the document — Phase 3 defense lessons must account for this baseline.
+
+### Verifying provider availability before swapping
+
+```
+curl -s "https://huggingface.co/api/models/<MODEL_ID>?expand=inferenceProviderMapping" | python3 -m json.tool
+```
+
+Look for at least one provider with `"status": "live"`. Do NOT swap to a model whose only provider is `error` or `staging`.
+
+### Acceptable alternate models (if Qwen2.5-VL-72B refuses our injections, or OVH cloud is unavailable)
 
 | Model | Provider candidates | Reason to consider | Tradeoff |
 |-------|--------------------|--------------------|----------|
-| `Qwen/Qwen2.5-VL-3B-Instruct` | together, hyperbolic | Smaller, may be less safety-aligned | Worse OCR — may hurt P5 fidelity |
-| `llava-hf/llava-v1.6-mistral-7b-hf` | replicate | Older, broadly tested | Older OCR quality |
-| `meta-llama/Llama-3.2-11B-Vision-Instruct` | together, fireworks-ai | Different model family | Different injection-following behavior; verify |
-| `mistralai/Pixtral-12B-2409` | together | Strong OCR | Larger; slightly more cost per call |
+| `Qwen/Qwen2-VL-7B-Instruct` | check live mapping at swap time | Older Qwen, may be less safety-aligned | Older OCR; verify before swap |
+| `google/gemma-3-27b-it` | featherless-ai (live), scaleway (live) | Different model family, multimodal Gemma 3 | Not OCR-specialized; different injection-following behavior |
+| `meta-llama/Llama-3.2-11B-Vision-Instruct` | check live mapping | Different family | At time of writing: no live HF Inference Providers route — verify |
+| `mistralai/Pixtral-12B-2409` | check live mapping | Strong OCR | At time of writing: no live HF Inference Providers route — verify |
 
-DO NOT swap without re-running the full attack/defense verification matrix.
+DO NOT swap without (1) verifying live provider availability, and (2) re-running the full attack/defense verification matrix.
 
 ## Dependencies (`requirements.txt`)
 
@@ -94,10 +111,10 @@ Inference function uses `huggingface_hub.InferenceClient`:
 ```python
 from huggingface_hub import InferenceClient
 
-client = InferenceClient(provider="together", token=os.environ["HF_TOKEN"])
+client = InferenceClient(provider="ovhcloud", token=os.environ["HF_TOKEN"])
 
 response = client.chat_completion(
-    model="Qwen/Qwen2.5-VL-7B-Instruct",
+    model="Qwen/Qwen2.5-VL-72B-Instruct",
     messages=[{
         "role": "user",
         "content": [
@@ -111,7 +128,7 @@ response = client.chat_completion(
 
 Latency: 1–3s typical. No cold-start. On Inference Provider errors (rate limit, model unavailable), the exception propagates to the caller (FastAPI returns 503).
 
-If Together AI doesn't have Qwen2.5-VL-7B available, swap providers via `HF_INFERENCE_PROVIDER` env var. Candidates: `together`, `fireworks-ai`, `hyperbolic`, `replicate`.
+If OVH cloud doesn't have the configured model available, swap providers via `HF_INFERENCE_PROVIDER` env var. Always verify live availability via the `inferenceProviderMapping` API call shown above before swapping. Common provider IDs: `ovhcloud`, `together`, `fireworks-ai`, `hyperbolic`, `replicate`, `featherless-ai`, `scaleway`, `nebius`.
 
 ## HuggingFace Space Metadata
 
@@ -125,7 +142,7 @@ colorFrom: purple
 colorTo: red
 sdk: docker
 pinned: false
-short_description: AI security workshop — image prompt injection + OCR poisoning
+short_description: Image prompt injection + OCR poisoning workshop
 ---
 ```
 
@@ -136,8 +153,8 @@ No `hardware` field needed — HF Spaces default to `cpu-basic` for Docker SDK w
 | Variable | Required | Set Via | Purpose |
 |----------|----------|---------|---------|
 | `HF_TOKEN` | **Yes** | HF Space **secret** | Auth to HF Inference Providers. Use a fine-grained token with `Make calls to Inference Providers` permission only — read-only inference, no repo access. |
-| `MULTIMODAL_MODEL` | No (default `Qwen/Qwen2.5-VL-7B-Instruct`) | HF Space variable | Override model ID |
-| `HF_INFERENCE_PROVIDER` | No (default `together`) | HF Space variable | Override Inference Provider (e.g. `fireworks-ai`, `hyperbolic`, `replicate`) |
+| `MULTIMODAL_MODEL` | No (default `Qwen/Qwen2.5-VL-72B-Instruct`) | HF Space variable | Override model ID |
+| `HF_INFERENCE_PROVIDER` | No (default `ovhcloud`) | HF Space variable | Override Inference Provider (e.g. `together`, `fireworks-ai`, `hyperbolic`, `replicate`, `featherless-ai`, `scaleway`) |
 | `LOG_LEVEL` | No (default `INFO`) | HF Space variable | Standard Python logging |
 
 This space does NOT use `GROQ_API_KEY`. The `HF_TOKEN` secret should be a fine-grained token with **Inference Providers** permission only — narrowest scope sufficient for inference calls.
@@ -194,7 +211,7 @@ No pre-warm required — even after a sleep, the first request is just the Space
 
 Per CLAUDE.md, after `deploy.sh multimodal` completes, Reviewer Agent MUST verify:
 
-- `GET /health` returns 200 with `hf_token_set: true`, `inference_provider: together`, `model_id: Qwen/Qwen2.5-VL-7B-Instruct`, `attack_count: 12`, `image_library_size: 12` (the 12 attack PNGs the attacks dict references)
+- `GET /health` returns 200 with `hf_token_set: true`, `inference_provider: ovhcloud`, `model_id: Qwen/Qwen2.5-VL-72B-Instruct`, `attack_count: 12`, `image_library_size: 12` (the 12 attack PNGs the attacks dict references)
 - No startup errors in HF Space build logs
 - `POST /api/attack` with `attack_id=P1.1, image_source=canned` returns a model response within ~5s
 - All 12 canned attack images succeed against the (undefended) hosted Qwen
@@ -206,9 +223,9 @@ Per CLAUDE.md, after `deploy.sh multimodal` completes, Reviewer Agent MUST verif
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | `/health` reports `hf_token_set: false` | `HF_TOKEN` not set as Space secret | Add `HF_TOKEN` as a Space secret in HF UI; restart the Space |
-| `POST /api/attack` returns 503 with "InferenceClient" error | HF Inference Providers rate limit or provider down | Retry; if persistent, swap provider via `HF_INFERENCE_PROVIDER` env (`fireworks-ai`, `hyperbolic`, `replicate`) |
+| `POST /api/attack` returns 503 with "InferenceClient" error | HF Inference Providers rate limit or provider down | Retry; if persistent, swap provider via `HF_INFERENCE_PROVIDER` env (e.g. `together`, `fireworks-ai`, `hyperbolic`, `replicate`, `featherless-ai`, `scaleway`). Always check live availability via the `inferenceProviderMapping` API before swapping. |
 | `POST /api/attack` returns 503 with "model not available" | Provider doesn't host the requested model | Swap to a provider that does, or change `MULTIMODAL_MODEL` to a model the current provider hosts |
-| Inference responses don't follow the image-embedded injection | Qwen2.5-VL-7B safety alignment | Try a less-aligned alternate model via `MULTIMODAL_MODEL` (see Acceptable alternate models) |
+| Inference responses don't follow the image-embedded injection | Qwen2.5-VL-72B safety alignment (it tends to flag injections as suspicious) | Try a less-aligned alternate model via `MULTIMODAL_MODEL` (see Acceptable alternate models). Note: at deploy time the 7B variant has no live HF Inference Providers route, so falling back to a smaller Qwen requires checking live mappings first. |
 
 ## Acceptance Checks
 

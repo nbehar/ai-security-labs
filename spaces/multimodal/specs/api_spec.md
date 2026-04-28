@@ -36,8 +36,8 @@ No SSE for v1 (no scorecard streaming — only 12 attacks, instant responses are
 {
   "status": "ok",
   "hf_token_set": true,
-  "inference_provider": "together",
-  "model_id": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "inference_provider": "ovhcloud",
+  "model_id": "Qwen/Qwen2.5-VL-72B-Instruct",
   "attack_count": 12,
   "image_library_size": 12,
   "phase": 1

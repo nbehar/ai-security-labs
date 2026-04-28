@@ -63,7 +63,7 @@ No single defense covers all attacks — that's the lesson, same as OWASP space.
 
 The Multimodal Lab v1 is "done" (per CLAUDE.md Definition of Done) when:
 
-- All 12 attack images (6×P1 + 6×P5) succeed against undefended `Qwen2.5-VL-7B-Instruct`
+- All 12 attack images (6×P1 + 6×P5) succeed against undefended `Qwen2.5-VL-72B-Instruct` (the originally-specced 7B variant had no live HF Inference Providers route at deploy time on 2026-04-28; see `deployment_spec.md` for details)
 - All 12 legitimate images (6×P1 + 6×P5) pass without false positives across the recommended defense stack
 - Defense matrix is verified — each defense catches what it claims to catch
 - Cold-start UX is documented and tested (~20s on first request after Space wake)
@@ -84,9 +84,9 @@ The Multimodal Lab v1 is "done" (per CLAUDE.md Definition of Done) when:
 
 | Risk | Mitigation |
 |------|------------|
-| Qwen2.5-VL-7B refuses to follow image-embedded injections (built-in safety) | Spec the model as an env var (`MULTIMODAL_MODEL`) so we can swap to a smaller/older Qwen variant or LLaVA-1.6 if Qwen2.5-VL is over-aligned. Verify before declaring v1 done. |
-| ZeroGPU quota cliff during a live workshop | Document the cap in `deployment_spec.md`; pre-warm the Space before sessions; have HF Inference Providers as a fallback path documented |
-| Cold-start anxiety in classroom | UI shows explicit "GPU cold-starting (~20s on first request)" messaging; pre-canned attacks tested cold-start tolerant |
+| Qwen2.5-VL-72B is more safety-aware than the 7B would have been (flags injections as suspicious even while echoing canaries) | Model ID is env-overridable (`MULTIMODAL_MODEL`); always verify live HF Inference Providers route before swap (see `deployment_spec.md`). For workshop purposes, canary-leak still counts as success — but Phase 3 defense lessons must reflect that the baseline already self-flags. |
+| HF Inference Providers route disappears (provider deprecates the model, or routes to `error`) | Always check `inferenceProviderMapping` API before swap; the 7B → 72B story on 2026-04-28 is the canonical example |
+| Cold-start anxiety in classroom | Inference is warm-served by HF Inference Providers (no model load on the Space). The Space itself wakes in ~10–30s after idle; UI messaging covers that case only. |
 | OCR poisoning attacks are too subtle to demonstrate cleanly | Pre-canned image library is curated to hit the educational point clearly; the participant doesn't need to craft the obfuscation themselves |
 | Pre-canned image library balloons repo size | Cap each image at 500KB (PNG/JPEG), 12 attack + 12 legit = 24 images × 500KB = 12MB max, acceptable |
 | Upload abuse (NSFW, malware-named files) | API-layer enforcement: PNG/JPEG only, ≤4MB, in-memory only (no disk write), rejected if validation fails. Public Space → assume untrusted (per platform CLAUDE.md). |

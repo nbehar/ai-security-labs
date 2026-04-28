@@ -12,7 +12,7 @@ short_description: Image prompt injection + OCR poisoning workshop
 
 **Status:** Phase 2 complete — backend + image library shipped
 **Hardware:** HuggingFace Spaces `cpu-basic` (free)
-**Inference:** HF Inference Providers — hosted `Qwen/Qwen2.5-VL-7B-Instruct` (warm-served, no cold-start)
+**Inference:** HF Inference Providers — hosted `Qwen/Qwen2.5-VL-72B-Instruct` via OVH cloud (warm-served, no cold-start)
 **Scenario:** NexaCore DocReceive (internal document intake portal)
 
 Image-based attacks against multimodal LLMs. Part of the [AI Security Labs](https://github.com/nbehar/ai-security-labs) platform.

@@ -36,7 +36,7 @@ spaces/multimodal/
   app.py                    FastAPI routes + attack orchestration (TO BE BUILT)
   attacks.py                Attack definitions (12 total: 6 P1 + 6 P5) (TO BE BUILT)
   defenses.py               Defense implementations (4 defenses) (TO BE BUILT)
-  vision_inference.py       HF Inference Providers wrapper (Qwen2.5-VL-7B via Together AI)
+  vision_inference.py       HF Inference Providers wrapper (Qwen2.5-VL-72B via OVH cloud)
   ocr_pipeline.py           Tesseract integration for OCR Pre-Scan defense (TO BE BUILT)
   Dockerfile                CPU + Tesseract + Python deps (TO BE BUILT per deployment_spec)
   requirements.txt          Pinned deps: fastapi, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub
@@ -71,7 +71,7 @@ spaces/multimodal/
 
 - **Backend:** FastAPI + Uvicorn (Python 3.11+)
 - **Frontend:** Vanilla ES6+ HTML/CSS/JS — no framework, no build step (consistent with platform)
-- **Model:** `Qwen/Qwen2.5-VL-7B-Instruct` via HF Inference Providers (Together AI by default; configurable via `HF_INFERENCE_PROVIDER`)
+- **Model:** `Qwen/Qwen2.5-VL-72B-Instruct` via HF Inference Providers (OVH cloud by default; configurable via `HF_INFERENCE_PROVIDER`). The 7B was originally specced but had no live HF Inference Providers route at deploy time on 2026-04-28 — the 72B sibling is the same family and is `live` on OVH cloud.
 - **OCR (defense):** Tesseract via `pytesseract` (Phase 3)
 - **Deploy:** Docker on HuggingFace Spaces, hardware tier `cpu-basic` (free). The Vision LLM is hosted by HF; the Space is just orchestration.
 - **Theme:** Dark only — inherits from `framework/static/css/styles.css`
@@ -143,7 +143,7 @@ The platform-level "Intentionally Vulnerable" rule applies. Specific to multimod
 
 Per `deployment_spec.md`:
 - Hardware: `cpu-basic` (free; the Space is a thin FastAPI orchestrator)
-- Inference: hosted Qwen2.5-VL-7B via HF Inference Providers (Together AI)
+- Inference: hosted Qwen2.5-VL-72B via HF Inference Providers (OVH cloud)
 - Cold-start: ~10–30s on Space-wake (Docker container start), then 1–3s per inference call (warm)
 - No GPU on the Space, no model load, no quota cliff
 - Required Space secret: `HF_TOKEN` (fine-grained, Inference Providers permission only)
