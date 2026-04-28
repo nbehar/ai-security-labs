@@ -434,7 +434,7 @@ Example (`ignore_previous` technique): *"The model processes system prompt + use
 
 **What:** A collapsible Defense Log panel below each attempt result shows which defense layers fired and their verdicts (PASSED / BLOCKED / SKIPPED). Crucial for the educational point of "no defense is a black box."
 
-For Level 5, the log shows three entries (Hardening / Input Scanner / Output Redaction). When issue #16 is resolved, a fourth (Guardrail) will be added.
+For Level 5, the log shows four entries (Hardening / Input Scanner / Output Redaction / Guardrail Model).
 
 **Trigger location:** Below each attempt result in the Red Team Levels tab.
 **Content source:** Backend `app.py` returns `defense_log` array in `/api/attempt` response. Each entry has `tool`, `verdict`, `detail`. UI renders as a Defense Log panel.
