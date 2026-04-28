@@ -313,3 +313,17 @@ No implementation code in this session — bootstrap phase only.
 - Phase 4 — frontend SPA shell + defense toggles UI
 - Phase 3.1 / v1.1 — widen ocr_prescan keywords; replace confidence_threshold metric; regenerate P1.4/P5.2/P5.5 images
 - Phase 5 — full 12×16 defense matrix verification
+
+### 2026-04-28 (cont.) — Phase 3 cleanup: Reviewer findings A+B
+
+**Trigger:** Reviewer pass after Phase 3 completion flagged two spec-drift items.
+
+**Finding A — `templates/index.html` showed live wrong copy.** The Phase 1 placeholder homepage rendered "Hardware: HF ZeroGPU running Qwen/Qwen2.5-VL-7B-Instruct" — visible to anyone hitting the deployed Space's `/`. Replaced with current reality: `cpu-basic` hardware, hosted Qwen2.5-VL-72B via HF Inference Providers (OVH cloud), 10–20s per call, 4 defenses available. Bumped the badge from "Phase 1 • Backend skeleton" to "Phase 3 • Backend + 4 defenses", and updated the `POST /api/attack` description to mention the `defenses` form field with the 4 known IDs.
+
+**Finding B — `overview_spec.md` Defenses table claimed coverage smoke didn't support.** Per CLAUDE.md anti-hallucination rule "Document a defense as 'catches X' without verifying against the actual deployed model," softened the `confidence_threshold` row's "catches obfuscated injections" claim and appended a paragraph after the table noting that catch-rate cells describe design intent; measured effectiveness lives in `docs/phase3-calibration.md` Phase 3 verification section; Phase 3.1 follow-ups are listed.
+
+Live `/` re-checked after redeploy — no `ZeroGPU` or `7B-Instruct` substring matches.
+
+**What did NOT change:** defense behavior (defenses.py, ocr_pipeline.py, app.py), no spec design semantics rewritten, no API surface changes. Cleanup-only commit.
+
+**Pending follow-up unchanged:** Phase 4 frontend, Phase 3.1 defense improvements, Phase 5 full matrix.
