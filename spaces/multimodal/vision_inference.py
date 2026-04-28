@@ -1,112 +1,95 @@
 """
-vision_inference.py — ZeroGPU wrapper for the Multimodal Lab's Vision LLM.
+vision_inference.py — Multimodal Lab vision inference via HF Inference Providers.
 
-Runs Qwen/Qwen2.5-VL-7B-Instruct (or env-overridden alternate) inside an HF
-ZeroGPU `@spaces.GPU` allocation. The first call after a Space wake takes
-10–30s for GPU allocation + model load (cached on local disk after first
-download). Subsequent calls are ~1–3s.
+Routes inference to a hosted Qwen2.5-VL-7B-Instruct (or env-overridden alternate)
+via the HuggingFace Inference Providers API (Together AI by default; configurable
+via `HF_INFERENCE_PROVIDER`). The Space itself runs on `cpu-basic` — no GPU, no
+local model load.
 
-Per `specs/deployment_spec.md` and platform CLAUDE.md, this space does NOT use
-Groq. All inference is local on ZeroGPU.
+This was a deliberate pivot from ZeroGPU + local model load: ZeroGPU on HF Spaces
+requires the Gradio SDK, which is incompatible with the platform's
+Docker/FastAPI architecture. Routing through Inference Providers keeps the
+existing architecture, eliminates cold-start, and uses HF Pro inference credit.
+
+Per `specs/deployment_spec.md`. Requires `HF_TOKEN` env var (set as a Space
+secret) to authorize Inference Provider calls.
 """
 
-import io
+import base64
 import logging
 import os
+from typing import Optional
 
-import spaces
-from PIL import Image
+from huggingface_hub import InferenceClient
 
 logger = logging.getLogger(__name__)
 
 MODEL_ID = os.environ.get("MULTIMODAL_MODEL", "Qwen/Qwen2.5-VL-7B-Instruct")
-MAX_GPU_DURATION = int(os.environ.get("MAX_GPU_DURATION_SECONDS", "60"))
+INFERENCE_PROVIDER = os.environ.get("HF_INFERENCE_PROVIDER", "together")
 
-# Lazy module-level globals — the first call to run_vision_inference allocates
-# GPU, loads the model, and populates these. They persist across subsequent
-# calls within the same Space session.
-_model = None
-_processor = None
+_client: Optional[InferenceClient] = None
 
 
-def _ensure_loaded():
-    """Lazy-load processor + model. Idempotent."""
-    global _model, _processor
-    if _model is not None:
-        return
-
-    import torch
-    from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
-
-    logger.info(f"Loading multimodal model: {MODEL_ID}")
-    _processor = AutoProcessor.from_pretrained(MODEL_ID)
-    _model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-        MODEL_ID,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
-    )
-    logger.info(f"Model loaded on device: {_model.device}")
+def _get_client() -> InferenceClient:
+    """Lazy-initialize the InferenceClient. Idempotent."""
+    global _client
+    if _client is None:
+        token = os.environ.get("HF_TOKEN")
+        if not token:
+            raise RuntimeError("HF_TOKEN environment variable not set")
+        _client = InferenceClient(provider=INFERENCE_PROVIDER, token=token)
+        logger.info(
+            f"Initialized HF InferenceClient (provider={INFERENCE_PROVIDER}, "
+            f"model={MODEL_ID})"
+        )
+    return _client
 
 
-@spaces.GPU(duration=MAX_GPU_DURATION)
 def run_vision_inference(image_bytes: bytes, prompt: str, max_new_tokens: int = 512) -> str:
     """Run vision inference on (image, prompt) → response text.
 
     Args:
-        image_bytes: raw PNG/JPEG bytes (decoded via PIL.Image.open).
-        prompt: text prompt for the model. For the Multimodal Lab, this is
-            typically a system-prompt-style description of the DocReceive
-            assistant's role concatenated with a generic user request like
-            "Process this document."
+        image_bytes: raw PNG/JPEG bytes.
+        prompt: text prompt for the model.
         max_new_tokens: generation cap. Default 512.
 
     Returns:
-        The model's response text, stripped.
+        Model response text, stripped.
 
-    Cold-start: ~10–30s on first call after Space wake (ZeroGPU allocation
-    + model load). Steady-state: ~1–3s per image. On Groq/transformers errors
-    the exception propagates — caller is expected to wrap in try/except and
-    return a 503.
+    Latency: typically 1–3s. No cold-start: HF's hosted model is warm-served.
+    On HF API errors the exception propagates — caller wraps in try/except.
+
+    Cost: per-call via HF Inference Providers (cheap; HF Pro accounts include
+    monthly inference credit that covers workshop volume).
     """
-    _ensure_loaded()
+    img_b64 = base64.b64encode(image_bytes).decode("ascii")
+    data_url = f"data:image/png;base64,{img_b64}"
 
-    from qwen_vl_utils import process_vision_info
-
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "image", "image": image},
-                {"type": "text", "text": prompt},
-            ],
-        }
-    ]
-
-    text = _processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    image_inputs, video_inputs = process_vision_info(messages)
-    inputs = _processor(
-        text=[text],
-        images=image_inputs,
-        videos=video_inputs,
-        padding=True,
-        return_tensors="pt",
-    ).to(_model.device)
-
-    generated_ids = _model.generate(**inputs, max_new_tokens=max_new_tokens)
-    generated_ids_trimmed = [
-        out_ids[len(in_ids):]
-        for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
-    ]
-    output = _processor.batch_decode(
-        generated_ids_trimmed,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=False,
-    )[0]
-    return output.strip()
+    client = _get_client()
+    response = client.chat_completion(
+        model=MODEL_ID,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                    {"type": "text", "text": prompt},
+                ],
+            }
+        ],
+        max_tokens=max_new_tokens,
+    )
+    return response.choices[0].message.content.strip()
 
 
-def is_loaded() -> bool:
-    """True once the first inference has triggered GPU allocation + model load."""
-    return _model is not None
+def is_ready() -> bool:
+    """True if HF_TOKEN is set (the inference layer is configured).
+
+    There is no local model load to gate on — every call hits the hosted API.
+    This flag mainly drives the /health endpoint.
+    """
+    return bool(os.environ.get("HF_TOKEN"))
+
+
+# Backwards-compatible alias — earlier Phase 1 code referenced is_loaded()
+is_loaded = is_ready

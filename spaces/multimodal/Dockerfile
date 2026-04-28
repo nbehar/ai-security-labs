@@ -2,13 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System deps for Pillow + opencv (transitive). Tesseract is added in Phase 3
-# along with the OCR Pre-Scan defense.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# Pillow's manylinux wheel bundles libjpeg/libpng; no apt deps needed for v1.
+# Tesseract will be added in Phase 3 when the OCR Pre-Scan defense lands.
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
