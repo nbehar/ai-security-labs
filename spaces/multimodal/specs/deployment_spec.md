@@ -202,7 +202,7 @@ Substantially simpler than the original ZeroGPU plan. The Space itself is a tiny
 |-------|----------|------------------|
 | Space sleep → wake | 10–30s | HF spinning up the Docker container (small image, fast pull) |
 | Container start → first `/api/attack` | <1s | App server up, ready for requests |
-| Each `/api/attack` call | 1–3s | HF Inference Providers call (warm, no cold-start) |
+| Each `/api/attack` call | 10–20s typical (P1.1 measured at ~16s on 2026-04-28 with `Qwen/Qwen2.5-VL-72B-Instruct` via `ovhcloud`, generating ~500 output tokens) | HF Inference Providers call. Warm-served (no cold-start), but the 72B is meaningfully slower than the originally-specced 7B for vision tasks; latency dominated by output-token generation. Re-baseline if the model is changed. |
 | Idle → Space sleeps | After ~48h idle (HF default for free tier) | Container hibernates; next request triggers a Space wake |
 
 No pre-warm required — even after a sleep, the first request is just the Space-wake (~30s), not a model load.
@@ -213,7 +213,7 @@ Per CLAUDE.md, after `deploy.sh multimodal` completes, Reviewer Agent MUST verif
 
 - `GET /health` returns 200 with `hf_token_set: true`, `inference_provider: ovhcloud`, `model_id: Qwen/Qwen2.5-VL-72B-Instruct`, `attack_count: 12`, `image_library_size: 12` (the 12 attack PNGs the attacks dict references)
 - No startup errors in HF Space build logs
-- `POST /api/attack` with `attack_id=P1.1, image_source=canned` returns a model response within ~5s
+- `POST /api/attack` with `attack_id=P1.1, image_source=canned` returns a model response within ~20s (72B latency budget; observed 16s on 2026-04-28). Tighten to 1–3s if the model is later swapped to a 7B-class variant.
 - All 12 canned attack images succeed against the (undefended) hosted Qwen
 - All 12 legitimate images do NOT trigger false positives across the recommended defense stack (Phase 5 task)
 - Defense matrix verified — each defense catches what it claims (Phase 5 task)
@@ -236,7 +236,7 @@ Per CLAUDE.md, after `deploy.sh multimodal` completes, Reviewer Agent MUST verif
 - [ ] `vision_inference.py` uses `huggingface_hub.InferenceClient` (no local model load)
 - [ ] Pre-canned image library shipped in `spaces/multimodal/static/images/canned/` (24 images)
 - [ ] `/health` reports correct values (`hf_token_set: true`, `inference_provider`, `model_id`, `attack_count: 12`, `image_library_size: 12`)
-- [ ] First call to `/api/attack` returns within ~5s (Space-wake + warm hosted inference)
+- [ ] First call to `/api/attack` returns within ~20s (Space-wake + warm hosted 72B inference; 7B-class models would land in the ~5s range)
 - [ ] `MULTIMODAL_MODEL` and `HF_INFERENCE_PROVIDER` env var overrides work
 - [ ] No `GROQ_API_KEY` referenced in this space's code (Multimodal does not use Groq)
 - [ ] All 12 attacks succeed against undefended model (Phase 5)
