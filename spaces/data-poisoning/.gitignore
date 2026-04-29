@@ -1,0 +1,8 @@
+# Root .gitignore covers __pycache__/, .env, .env.op. Anything below is
+# data-poisoning-specific.
+
+# --- Vendored Luminex brand asset (Phase 0) ---
+# owl.svg is the master brand mark (~200KB, embedded base64 PNG). Lives
+# canonically at ~/luminex/owl.svg. Copied in at deploy time via
+# `hf upload --include="static/owl.svg"`. Not committed to GitHub.
+static/owl.svg
