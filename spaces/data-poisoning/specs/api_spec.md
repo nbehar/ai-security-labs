@@ -269,6 +269,7 @@ class AttackResponse(BaseModel):
     canary: str
     blocked_by: Optional[str]
     elapsed_seconds: float
+    participant_name: str  # echoed back from the form field; defaults to "Anonymous"
     phase: int
 ```
 
@@ -279,8 +280,8 @@ The `defense_log` list shape is shared with Multimodal Lab — same field names,
 Defense application order (matters for blocking semantics):
 1. `provenance_check` (ingestion-side; blocks before retrieval)
 2. `adversarial_filter` (ingestion-side; blocks before retrieval)
-3. `retrieval_diversity` (retrieval-side; modifies top-k)
-4. `<retrieve top-k>`
+3. `<retrieve top-k>`
+4. `retrieval_diversity` (retrieval-side; runs against top-k; can BLOCK)
 5. `<LLM generate>`
 6. `output_grounding` (post-LLM; checks every claim cites a real doc; can BLOCK)
 
