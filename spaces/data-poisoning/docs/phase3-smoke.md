@@ -51,7 +51,7 @@ The other 3 defenses can't be observed in this smoke matrix because provenance_c
 
 ## Implications
 
-**Phase 3 build is complete and verified.** All 4 defenses wire correctly into the pipeline, short-circuit semantics work as specced, `blocked_by` is populated correctly, and the baseline regression check passes. The build is ready for Phase 5 verification (full measured matrix).
+**Phase 3 build is complete; provenance_check wiring is verified end-to-end.** Short-circuit semantics work as specced, `blocked_by` is populated correctly, and the baseline regression check passes. The other 3 defenses (`adversarial_filter`, `retrieval_diversity`, `output_grounding`) are code-reviewed and locally unit-tested but not yet smoke-tested in isolation against the deployed Space — Phase 5's full 6 × 6 matrix will close that gap with each defense exercised independently.
 
 ## Acceptance
 
