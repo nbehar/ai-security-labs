@@ -8,6 +8,10 @@
  * All values reference tokens from luminex-tokens.css. No hardcoded primitives.
  */
 
+:root {
+  --color-white: #ffffff; /* companion to --color-accent-aisl-interactive "button fills (with white text)" */
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -516,7 +520,7 @@ pre {
 
 .btn-primary {
   background: var(--color-accent-aisl-interactive);
-  color: #ffffff;
+  color: var(--color-white);
   border-color: var(--color-accent-aisl-interactive);
 }
 .btn-primary:hover {
