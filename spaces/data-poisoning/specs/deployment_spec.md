@@ -7,8 +7,8 @@ Define the runtime: hardware tier, model + embedding choices, Dockerfile, enviro
 ## Hardware
 
 - **HF Space tier:** `cpu-basic` (free; matches Multimodal Lab pattern post-ZeroGPU pivot)
-- **RAM:** ~16 GB (default cpu-basic) — ample for MiniLM-L6 (90MB) + 21 corpus embeddings (21 × 384 floats × 4 bytes = 32KB negligible) + FastAPI + slowapi
-- **No GPU.** Embedding compute on CPU: encoding 15 seed docs at startup ≈ 1-2s. Per-query encode ≈ 10-30ms. LLM is hosted by Groq, not in-process.
+- **RAM:** ~16 GB (default cpu-basic) — ample for MiniLM-L6 (90MB) + corpus embeddings (~23 × 384 floats × 4 bytes ≈ 35KB negligible) + FastAPI + slowapi
+- **No GPU.** Embedding compute on CPU: encoding the seed docs at startup ≈ 1-2s. Per-query encode ≈ 10-30ms. LLM is hosted by Groq, not in-process.
 
 ## HF Space
 
@@ -29,7 +29,7 @@ Define the runtime: hardware tier, model + embedding choices, Dockerfile, enviro
 
 ### Embeddings — sentence-transformers MiniLM-L6
 
-- **Library:** `sentence-transformers>=2.5.0`
+- **Library:** `sentence-transformers>=2.5.0,<5.0.0`
 - **Model:** `sentence-transformers/all-MiniLM-L6-v2` (384-dim)
 - **Why this model:** Standard educational embedding choice. Small (90MB download, instant load on CPU). Fast (10-30ms per encode on cpu-basic). Differentiates well between semantically distinct docs at corpus scale ≤30.
 - **Env-overridable:** `EMBEDDING_MODEL` env var — operator can swap to `all-mpnet-base-v2` (768-dim, 5× larger, more accurate) if MiniLM-L6 turns out insufficient during defense matrix verification.
@@ -45,16 +45,19 @@ Define the runtime: hardware tier, model + embedding choices, Dockerfile, enviro
 `requirements.txt`:
 
 ```
-fastapi>=0.110.0
-uvicorn[standard]>=0.27.0
-jinja2>=3.1.3
-python-multipart>=0.0.9
-pydantic>=2.6.0
-pillow>=10.2.0          # only for the favicon, not used at runtime
-sentence-transformers>=2.5.0
-numpy>=1.24.0
-groq>=0.4.0             # the Groq Python SDK
-slowapi>=0.1.9
+# Pinned with narrow major-version ranges to prevent breaking changes between
+# rebuilds. `>=X,<Y` allows patch + minor security updates within the major
+# but blocks API-breaking major bumps. Update intentionally with each phase.
+fastapi>=0.110.0,<1.0.0
+uvicorn[standard]>=0.27.0,<1.0.0
+jinja2>=3.1.3,<4.0.0
+python-multipart>=0.0.9,<1.0.0
+pydantic>=2.6.0,<3.0.0
+pillow>=10.2.0,<12.0.0          # only for the favicon, not used at runtime
+sentence-transformers>=2.5.0,<5.0.0
+numpy>=1.24.0,<3.0.0
+groq>=0.4.0,<1.0.0               # the Groq Python SDK
+slowapi>=0.1.9,<1.0.0
 ```
 
 Note: `sentence-transformers` pulls in `torch` (CPU wheel ~200MB). Total Docker image size ≈ 1.2 GB. Comparable to Multimodal Lab post-Tesseract.
@@ -133,7 +136,7 @@ Same pattern Multimodal Lab uses post-Phase 4. Faster than full `deploy.sh` for 
 ## Cold-Start Behavior
 
 - **Space-wake from 48h idle:** ~10-30s for HF to spin up the Docker container.
-- **Embedding model first-encode:** model is pre-downloaded into the image (Dockerfile RUN line above) but lazy-loads on first encode → ~1-2s on first `POST /api/attack` after container start. The Multimodal-Lab-style "warm at startup" pattern: encode the 15 seed docs at app init so the first user request is hot.
+- **Embedding model first-encode:** model is pre-downloaded into the image (Dockerfile RUN line above) but lazy-loads on first encode → ~1-2s on first `POST /api/attack` after container start. The Multimodal-Lab-style "warm at startup" pattern: encode the seed docs at app init so the first user request is hot.
 - **Per `/api/attack`:** ~1-3s for Groq LLaMA + ~10-30ms embed. Well under the deployment_spec.md "10-20s typical" budget.
 
 The frontend MUST display "Composing answer… (1-3s)" rather than the Multimodal Lab's "10-20s on the 72B model" — the latency profile is different here.
@@ -153,7 +156,7 @@ Expected fields:
 - `embedding_model: "sentence-transformers/all-MiniLM-L6-v2"`
 - `llm_model: "llama-3.3-70b-versatile"`
 - `attack_count: 6`
-- `corpus_size: 21`
+- `corpus_size: 14` at Phase 1 (6 legit + 8 attack — RP.6 ships as 3 sibling docs); `corpus_size: 23` post-Phase-2 (15 legit + 8 attack)
 - `embeddings_loaded: true`
 - `phase: <current phase number>`
 
