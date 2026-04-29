@@ -5,14 +5,14 @@ Hub scenario. Stack: Groq LLaMA 3.3 70B + sentence-transformers MiniLM-L6
 in-process embeddings + in-memory cosine retrieval. See `specs/` for the
 full design.
 
-Phase 1 endpoints (subset of the 9 specced):
+Phase 1 + Phase 3 endpoints (subset of the 9 specced):
   GET  /                   — placeholder shell with Luminex master nav
   GET  /health             — readiness probe
   GET  /api/attacks        — list 6 RP attack defs
-  POST /api/attack         — run a canned RAG attack (no defenses yet at v1)
+  POST /api/attack         — run a canned RAG attack with optional defenses
 
-Phase 3 will add /api/score, /api/leaderboard, /api/corpus, /api/queries,
-upload mode, and defense wiring. Phase 4b ships the full SPA.
+Phase 4a will add /api/score, /api/leaderboard, /api/corpus, /api/queries,
+and upload mode. Phase 4b ships the full SPA.
 
 Workshop by Prof. Nikolas Behar.
 Tracking: issue #22.
@@ -35,6 +35,7 @@ from slowapi.util import get_remote_address
 
 from attacks import ATTACKS, QUERIES
 from corpus import CORPUS, EMBEDDING_MODEL
+from defenses import DEFENSE_IDS
 from rag_pipeline import LLM_MODEL, run_attack
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
@@ -66,7 +67,7 @@ def get_groq_client():
 # ---------------------------------------------------------------------------
 
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Data Poisoning Lab", version="0.1-phase1")
+app = FastAPI(title="Data Poisoning Lab", version="0.3-phase3")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -103,7 +104,8 @@ async def health():
         "attack_count": len(ATTACKS),
         "corpus_size": len(CORPUS.all_documents()),
         "embeddings_loaded": CORPUS.is_warm(),
-        "phase": 1,
+        "defenses_available": sorted(DEFENSE_IDS),
+        "phase": 3,
     }
 
 
@@ -137,31 +139,32 @@ async def post_attack(
     defenses: Optional[str] = Form(None),
     participant_name: str = Form("Anonymous"),
 ):
-    """Run a canned RAG poisoning attack (Phase 1 — canned mode only).
+    """Run a canned RAG poisoning attack with optional toggleable defenses.
 
     Phase 4a will add `doc_source=uploaded` mode + Pydantic-validated upload.
-    Phase 3 will parse the `defenses` JSON field and apply the 4 layers.
     """
     if attack_id not in ATTACKS:
         raise HTTPException(400, f"Unknown attack: {attack_id}")
     if doc_source != "canned":
-        raise HTTPException(400, "Only 'canned' doc_source supported in Phase 1")
+        raise HTTPException(400, "Only 'canned' doc_source supported in Phase 1+3")
     if not GROQ_API_KEY:
         raise HTTPException(503, "GROQ_API_KEY is not configured on this Space")
 
-    # Phase 3 will parse the defenses field (JSON array of defense IDs); for
-    # Phase 1 we accept the param so the UI can be wired but ignore the value.
     parsed_defenses: list[str] = []
     if defenses:
-        # Permissive parse — Phase 3 hardens this with the same validation
-        # pattern the Multimodal Lab uses.
         import json
         try:
             parsed_defenses = json.loads(defenses)
-            if not isinstance(parsed_defenses, list):
-                raise ValueError("defenses must be a JSON array")
-        except (ValueError, json.JSONDecodeError) as e:
-            raise HTTPException(400, f"Bad defenses field: {e}")
+        except json.JSONDecodeError as e:
+            raise HTTPException(400, f"Bad defenses field (must be JSON array): {e}")
+        if not isinstance(parsed_defenses, list):
+            raise HTTPException(400, "defenses must be a JSON array of defense IDs")
+        unknown = [d for d in parsed_defenses if d not in DEFENSE_IDS]
+        if unknown:
+            raise HTTPException(
+                400,
+                f"Unknown defense ID(s): {unknown}. Valid: {sorted(DEFENSE_IDS)}",
+            )
 
     try:
         result = run_attack(attack_id, get_groq_client(), defenses=parsed_defenses)
@@ -169,5 +172,5 @@ async def post_attack(
         raise HTTPException(503, str(e))
 
     result["participant_name"] = participant_name
-    result["phase"] = 1
+    result["phase"] = 3
     return result
