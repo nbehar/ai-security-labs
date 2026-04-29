@@ -1,0 +1,204 @@
+/*
+ * data-poisoning.css — AI Security Labs / Data Poisoning Lab (Luminex Learning)
+ *
+ * Master brand: Luminex Learning (gold owl + wordmark via alt text in nav).
+ * Product: AI Security Labs (AISL violet accent for product-scoped UI).
+ * Section: Data Poisoning — RAG corpus poisoning attacks.
+ *
+ * Phase 1: minimal placeholder styles + master nav. Phase 4b will add the
+ * full SPA stylesheet (4 tabs, attack runner, defenses tab, corpus browser).
+ *
+ * All values reference tokens from luminex-tokens.css. No hardcoded primitives.
+ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+code, pre, .mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+pre {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--color-text-primary);
+}
+
+/* =============================================================================
+   NAVIGATION (master brand — owl + NexaCore / AI Security Labs + page label)
+   Layout matches digistore-mock-client Sidebar.tsx + Layout.tsx pattern.
+   ========================================================================== */
+
+.nav {
+  background: var(--color-surface-1);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 72px;
+}
+
+.nav-owl {
+  height: 48px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.nav-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nav-customer-name {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.nav-hairline {
+  height: 1px;
+  background: var(--color-border-strong);
+  width: 100%;
+}
+
+.nav-product-name {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+}
+
+.nav-spacer { flex: 1; }
+
+.nav-page-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+}
+
+.nav-page-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent-aisl-highlight);
+  flex-shrink: 0;
+}
+
+.nav-page-name {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+  letter-spacing: var(--tracking-tight);
+}
+
+@media (max-width: 768px) {
+  .nav { min-height: 64px; padding: var(--space-2) var(--space-3); }
+  .nav-owl { height: 40px; }
+  .nav-page-name { font-size: var(--text-base); }
+  .nav-page-icon { width: 16px; height: 16px; }
+}
+
+/* =============================================================================
+   PAGE LAYOUT (Phase 1 placeholder)
+   ========================================================================== */
+
+.page {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-16);
+}
+
+.page-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--color-accent-aisl-highlight);
+  margin-bottom: var(--space-2);
+}
+
+.page-title {
+  font-family: var(--font-sans);
+  font-weight: var(--font-bold);
+  font-size: var(--text-3xl);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+  line-height: var(--leading-tight);
+}
+
+.page-subtitle {
+  font-size: var(--text-md);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-6) 0;
+  line-height: var(--leading-snug);
+}
+
+.card {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.card-accent {
+  border-left: 3px solid var(--color-accent-aisl-highlight);
+}
+
+.card-title {
+  font-family: var(--font-sans);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-md);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3) 0;
+  letter-spacing: var(--tracking-tight);
+}
+
+.card-body {
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  line-height: var(--leading-relaxed);
+}
+
+.card-body p { margin: 0 0 var(--space-3) 0; }
+.card-body p:last-child { margin-bottom: 0; }
+.card-body ul { padding-left: var(--space-5); margin: var(--space-2) 0; }
+.card-body li { margin: var(--space-1) 0; }
+
+.muted { color: var(--color-text-secondary); }
+.text-mono { font-family: var(--font-mono); }
