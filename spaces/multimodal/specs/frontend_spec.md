@@ -7,13 +7,13 @@ Define the UI structure, interactions, and educational scaffolding for the Multi
 ## Stack & Theme
 
 - Vanilla ES6+ HTML/CSS/JS — no framework, no build step, no npm
-- Imports `framework/static/js/core.js` via ES module: `$, $$, escapeHtml, fetchJSON, renderTabs, renderInfoPage, renderLevelBriefing, renderProgress, renderWhyCard, renderLeaderboard`
+- Imports `framework/static/js/core.js` via ES module: `$, $$, escapeHtml, fetchJSON, renderTabs, renderInfoPage, renderLevelBriefing, renderProgress, renderWhyCard` (no `renderLeaderboard` — this space has no leaderboard UI)
 - Uses `framework/static/css/styles.css` (canonical dark theme — `#0a0a0b` background, `#141416` surfaces). Space-specific overrides in `spaces/multimodal/static/css/multimodal.css` only when needed.
 - Mobile responsive — tabs scroll horizontally below 768px
 
 ## Tab Structure
 
-5 tabs across the top:
+4 tabs across the top:
 
 | Order | Tab | Purpose |
 |-------|-----|---------|
@@ -21,9 +21,10 @@ Define the UI structure, interactions, and educational scaffolding for the Multi
 | 2 | **Image Prompt Injection** | P1 lab — visible-text injection attacks |
 | 3 | **OCR Poisoning** | P5 lab — hidden-text / OCR-extraction attacks |
 | 4 | **Defenses** | Defense matrix view, defense toggles, per-attack defense effectiveness |
-| 5 | **Leaderboard** | Aggregate score across both labs |
 
-Order matters — Info → P1 → P5 → Defenses → Leaderboard mirrors the recommended workshop flow.
+Order matters — Info → P1 → P5 → Defenses mirrors the recommended workshop flow.
+
+**No leaderboard tab.** This space is used as an individual graduate-course assignment, not a competitive workshop. Scoring is per-attempt and per-student, not ranked across participants. The `POST /api/score` and `GET /api/leaderboard` backend endpoints are kept for future Canvas LMS integration (Phase 6 — autograde + score submission via Canvas API), not for live leaderboard display. Per-student progress (which attacks attempted, points earned) is shown inline within each lab tab, not aggregated into a separate ranking view.
 
 ## Info Tab
 
@@ -53,7 +54,7 @@ Card-style definitions with traditional-security analogies:
 
 ### Recommended Tab Order
 
-Numbered call-out: "Start at Info → run a P1 attack with no defenses → run a P5 attack → toggle defenses → check the leaderboard."
+Numbered call-out: "Start at Info → run a P1 attack with no defenses → run a P5 attack → toggle defenses and observe what changes → review your score on the assignment."
 
 ## Image Prompt Injection Tab (P1)
 
@@ -131,14 +132,22 @@ For each defense:
 - Pros / Cons (cost, latency, false-positive risk)
 - "Try this defense" link that pre-toggles it on the P1 or P5 tab
 
-## Leaderboard Tab
+## Per-Student Scoring (no Leaderboard tab)
 
-Aggregate scoring using `framework/scoring.py` and `renderLeaderboard` from core.js:
+Updated 2026-04-28: this space is used as an individual graduate-course assignment, not a competitive workshop. Scoring is recorded per-attempt and per-student via `POST /api/score` (already shipped in Phase 4a) but there is **no leaderboard UI tab**. The scoring formula is preserved for the eventual Canvas LMS integration (Phase 6):
 
-- Score per attack: 100 first try, -20 per retry (consistent with Red Team pattern)
-- Bonus +50 for getting a defense to block an attack that succeeded undefended (defense-aware scoring)
-- Total = sum across both labs
-- Leaderboard shows participant name + total score + per-lab breakdown
+- Score per attack: 100 first try, −20 per retry (floor at 20)
+- Bonus +50 when a defense blocks an attack that would have succeeded (defense-aware)
+- Per-student running total surfaced inline within each lab tab (not as an aggregated ranking)
+
+`POST /api/score` and `GET /api/leaderboard` endpoints stay alive on the backend so Phase 6 (Canvas autograde) has a foundation to consume — but the frontend does NOT call `renderLeaderboard` and does NOT show other students' scores. The student sees only their own attempt scores.
+
+**Phase 6 — Canvas LMS integration (deferred):**
+- Per-student session/auth (LTI 1.3 or API-key paste)
+- `canvas_client.py` — Canvas API client (assignment ID, score submission endpoint)
+- "Submit to Canvas" button or auto-submit on assignment completion
+- Score-mapping policy (one assignment per attack? per lab? per workshop?)
+- Out of scope for v1; documented here so the scoring API surface isn't ripped out prematurely.
 
 ## Latency UX (HF Inference Providers, Space-wake)
 
@@ -176,7 +185,7 @@ Out of scope for v1 — English only. (OWASP space has EN/ES; that pattern can b
 | Level briefing card | `core.js` `renderLevelBriefing` | Reuse |
 | Progress stars | `core.js` `renderProgress` | Reuse |
 | Why-this-works card | `core.js` `renderWhyCard` | Reuse |
-| Leaderboard | `core.js` `renderLeaderboard` | Reuse |
+| ~~Leaderboard~~ | `core.js` `renderLeaderboard` | **NOT used** — no leaderboard UI in this space (individual graduate assignments; Phase 6 will route scores to Canvas LMS) |
 | API calls | `core.js` `fetchJSON` | Reuse |
 | HTML escaping | `core.js` `escapeHtml` | Reuse |
 
@@ -187,12 +196,13 @@ New space-specific JS modules:
 
 ## Acceptance Checks
 
-- [ ] 5 tabs render and switch correctly on desktop and mobile
+- [ ] 4 tabs render and switch correctly on desktop and mobile
 - [ ] Info tab renders NexaCore DocReceive scenario + 5 Key Concepts cards + recommended tab order
 - [ ] P1 tab: 6 pre-canned attacks selectable; upload mode validates type/size; run produces Cause/Effect/Impact panels; spinner shows honest 10–20s latency message
 - [ ] P5 tab: same as P1 plus OCR-extraction layer visible in Cause panel
 - [ ] Defenses tab: 4×attack defense matrix renders; defense detail cards link back to labs
-- [ ] Leaderboard shows aggregate scoring across both labs
+- [ ] Per-student running total displayed inline within each lab tab (NO leaderboard tab — individual graduate assignments)
 - [ ] All tab content escapes user-controlled strings via `escapeHtml`
 - [ ] No frontend framework dependencies introduced (vanilla JS only)
 - [ ] All educational scaffolding (Key Concepts, briefings, why-cards, analogies) present
+- [ ] Phase 6 (Canvas LMS integration) tracked in `docs/project-status.md` as a planned future phase

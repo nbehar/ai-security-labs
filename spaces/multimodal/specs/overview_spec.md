@@ -12,7 +12,9 @@ The portal is the multimodal-attack equivalent of the OWASP Top 10 workshop's te
 
 ## Audience
 
-Community-college-level security students. Same audience as the live spaces. Educational scaffolding (Key Concepts, Why-This-Works, traditional-security analogies) is mandatory, not optional — see `frontend_spec.md` Educational Layer section.
+Graduate-level security students completing this Lab as an **individual assignment** in Prof. Behar's course. Educational scaffolding (Key Concepts, Why-This-Works, traditional-security analogies) is mandatory, not optional — see `frontend_spec.md` Educational Layer section.
+
+**Grading model (set 2026-04-28):** This is NOT a competitive workshop with a public leaderboard. Each student works through the attacks individually; their per-attempt scores are recorded server-side via `POST /api/score` and will eventually be submitted to **Canvas LMS via API** (Phase 6 — autograde + score push, deferred). The frontend shows the student only their own running total, not other students' scores. The shared `framework/scoring.py` Leaderboard pattern used by blue-team / red-team is preserved on the backend (`GET /api/leaderboard` still works, useful for instructor inspection during workshop sessions) but is not surfaced in the UI.
 
 ## v1 Scope (this bootstrap)
 
