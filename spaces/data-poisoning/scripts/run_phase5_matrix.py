@@ -103,13 +103,16 @@ def main() -> int:
 
     for attack_id in ATTACK_IDS:
         for scenario_name, defenses in SCENARIOS:
+            # Always send `defenses` explicitly as a JSON array (including `[]`
+            # for the `none` scenario) rather than relying on the server to
+            # coerce a missing field to "no defenses." Resilient to future
+            # app.py changes that might require the field.
             fields = {
                 "attack_id": attack_id,
                 "doc_source": "canned",
                 "participant_name": "Phase5",
+                "defenses": json.dumps(defenses),
             }
-            if defenses:
-                fields["defenses"] = json.dumps(defenses)
             print(f"  {attack_id:<5} x {scenario_name:<22} ...", end=" ", flush=True)
             status, body = post_multipart(
                 f"{args.host}/api/attack",
