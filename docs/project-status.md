@@ -611,7 +611,7 @@ Ran the full 6 attacks × 6 defense conditions = 36-cell measured matrix live ag
 | `output_grounding` | **1/6** (RP.4) | 1–2/6 ✅ |
 | `all_four` | **6/6** (all blocked at provenance via short-circuit, 0.0s) | 6/6 ✅ |
 
-**Per-attack catch profile:** every attack caught by ≥1 designed-for defense. **RP.5 (Embedding Adjacency) is caught by `provenance_check` alone** — the lab's sharpest pedagogical finding: keyword stuffing has no obvious injection patterns, no fake citations, no sibling docs; only source-based filtering catches it. Defense-in-depth narrative confirmed.
+**Per-attack catch profile:** every attack caught by ≥1 designed-for defense. **RP.5 (Embedding Adjacency) is caught by `provenance_check` alone** — the lab's sharpest pedagogical finding: keyword stuffing has no obvious injection patterns, no fake citations, no sibling docs; only source-based filtering catches it. **Provenance-as-primary-defense is confirmed; layered defense-in-depth is a v2 corpus concern** — `all_four` is 6/6 because provenance fires first via short-circuit, not because each layer contributes (see `docs/phase5-matrix.md` Educational Reframing item 4 for the nuance).
 
 **Latency profile:** 0.0s ingestion-side block (provenance/adv_filter when fired) vs ~1s LLM-call cost — the "block at ingestion vs block at output" contrast is now measured and visible to participants via `elapsed_seconds`.
 
