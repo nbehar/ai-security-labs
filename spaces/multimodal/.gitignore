@@ -1,0 +1,18 @@
+# Space-level ignores. The root .gitignore covers __pycache__/, .env, and
+# .env.op. Anything below is multimodal-specific.
+
+# --- Vendored Luminex brand asset (Phase 4b) ---
+# owl.svg is the master brand mark. It lives canonically at
+# ~/luminex/owl.svg (~200KB, embedded base64 PNG). It is copied into the
+# HF Space at deploy time via `hf upload --include="static/owl.svg"` (see
+# session log on 2026-04-28). The monorepo does NOT commit it to keep the
+# git tree small; brand-system tokens (luminex-tokens.css) are vendored
+# as text and ARE committed.
+static/owl.svg
+
+# --- Framework files copied at deploy time ---
+# scripts/deploy.sh copies framework/static/* into spaces/{space}/static/
+# at deploy time. We ignore the destination copies so they don't drift
+# from the canonical framework/ source.
+static/css/styles.css
+static/js/core.js

@@ -42,6 +42,7 @@ spaces/multimodal/
   requirements.txt          Pinned deps: fastapi, uvicorn, jinja2, python-multipart, pydantic, pillow, huggingface_hub, pytesseract, slowapi ✅
   README.md                 HF Spaces card with frontmatter ✅
   CLAUDE.md                 This file
+  .gitignore                Vendored brand assets + framework copies (Phase 4b ✅)
   specs/
     overview_spec.md        v1 scope, scenario, audience, success criteria
     frontend_spec.md        UI structure, tabs, educational scaffolding
@@ -49,18 +50,23 @@ spaces/multimodal/
     deployment_spec.md      Hardware, model, Dockerfile, HF Inference Providers integration
   docs/
     project-status.md       Space-level status tracker
+    phase3-calibration.md   Calibration baseline for the 4 defenses
   static/
+    owl.svg                 Vendored Luminex brand mark (gitignored; see Vendored Assets) ✅
     css/
-      multimodal.css        Space-specific overrides (empty stub; Phase 4 fills it) ✅
+      luminex-tokens.css    Vendored from ~/luminex/brand-system/design-tokens.json (Phase 4b) ✅
+      multimodal.css        Space-specific styles using Luminex tokens (Phase 4b) ✅
+      styles.css            Framework copy (gitignored; copied at deploy time)
     js/
-      app.js                Space entry point — imports from core.js (Phase 4 — TO BE BUILT)
-      image_gallery.js      Thumbnail grid + selection (Phase 4 — TO BE BUILT)
-      image_upload.js       File picker + validation (Phase 4 — TO BE BUILT)
-      attack_runner.js      Attack orchestration + cold-start UX (Phase 4 — TO BE BUILT)
+      app.js                SPA entry, /health probe, tab routing, Info + Defenses tabs (Phase 4b) ✅
+      attack_runner.js      P1 + P5 lab tab renderer, Cause/Effect/Impact panels, score banner (Phase 4b) ✅
+      image_gallery.js      Thumbnail grid + selection (Phase 4b) ✅
+      image_upload.js       File picker + PNG/JPEG validation (Phase 4b) ✅
+      core.js               Framework copy (gitignored; copied at deploy time)
     images/
       canned/               24 pre-canned images (12 attack + 12 legit) ✅ (committed `417f9d7`)
   templates/
-    index.html              Phase 1 placeholder shell (Phase 4 will replace with full SPA shell) ✅ for Phase 1
+    index.html              4-tab SPA shell with Luminex Learning master nav (Phase 4b ✅)
   postman/
     multimodal-lab.postman_collection.json   API testing contract (Phase 4a ✅ all 8 endpoints + 2 negative probes)
 ```
@@ -74,9 +80,30 @@ spaces/multimodal/
 - **Model:** `Qwen/Qwen2.5-VL-72B-Instruct` via HF Inference Providers (OVH cloud by default; configurable via `HF_INFERENCE_PROVIDER`). The 7B was originally specced but had no live HF Inference Providers route at deploy time on 2026-04-28 — the 72B sibling is the same family and is `live` on OVH cloud.
 - **OCR (defense):** Tesseract via `pytesseract` (Phase 3)
 - **Deploy:** Docker on HuggingFace Spaces, hardware tier `cpu-basic` (free). The Vision LLM is hosted by HF; the Space is just orchestration.
-- **Theme:** Dark only — inherits from `framework/static/css/styles.css`
+- **Theme:** Dark only — Luminex Learning brand system. AISL violet accent for product-scoped UI; brand gold for the master nav owl + wordmark. See Vendored Assets.
 
 This space does **NOT** use Groq. The platform's `framework/groq_client.py` is unused here. Inference goes through `huggingface_hub.InferenceClient` instead.
+
+------------------------------------------------------------------------
+
+# Vendored Assets (Phase 4b)
+
+This space is one of four Luminex Learning products (Red Team Labs, GRC Labs, AI Security Labs, Blue Team Labs). The brand identity is governed by `~/luminex/brand-system/` and enforced by the `brand-identity-enforcer` skill. Two artifacts are vendored into the space at build time:
+
+| Asset | Source of truth | How it ships | Committed? |
+|-------|-----------------|--------------|------------|
+| `static/owl.svg` | `~/luminex/owl.svg` | `cp` to local working tree, then `hf upload --include="static/owl.svg"` to HF Space | **No** (~200KB, gitignored) |
+| `static/css/luminex-tokens.css` | `~/luminex/brand-system/design-tokens.json` (full :root block) | Hand-vendored when tokens revise | **Yes** (5.5KB text, source-of-truth pinned by commit) |
+
+**Master brand rules** (from `brand-identity-enforcer` SKILL.md, non-negotiable):
+- Owl mark is rendered with `.owl-gold` (`--owl-filter-gold` filter). Always brand gold, never product accent.
+- Wordmark is `Luminex Learning` (two words, both capitalized) in Inter 700.
+- Page background is `#09090f` / `--color-bg-base` only.
+- Approved fonts: Inter, JetBrains Mono. (DM Serif Display is marketing-only, never product UI.)
+- AISL violet (`--color-accent-aisl-highlight #a78bfa`, `--color-accent-aisl-interactive #7c3aed`) is the product-scoped accent for tab underlines, primary CTAs inside lab panels, and the page-eyebrow.
+- No hardcoded color primitives outside `luminex-tokens.css`.
+
+If the brand system revises `design-tokens.json`, re-vendor `luminex-tokens.css` and re-deploy the space. Do not modify token values inline.
 
 ------------------------------------------------------------------------
 
@@ -136,6 +163,7 @@ The platform-level "Intentionally Vulnerable" rule applies. Specific to multimod
 - Image bytes are processed in-memory only — never written to disk
 - The pre-canned image library is part of the workshop content; review for content appropriateness, but the *attack* content is the educational point
 - No external API keys required (no `GROQ_API_KEY`, no Together/Replicate keys)
+- Frontend XSS posture: every interpolated value passes through `escapeHtml`; renders use `Range.createContextualFragment` (`setHtml` helper in `app.js`) rather than direct innerHTML. Static template literals are author-trusted.
 
 ------------------------------------------------------------------------
 
@@ -171,14 +199,19 @@ Claude MUST NOT:
 - Invent NexaCore departments not described in `overview_spec.md`
 - Use real company names or real document templates as attack examples
 - Rename DocReceive without updating all 4 specs + this file
+- Use `NexaCore` (or `NexaCore Technologies`) as the brand name for this product. The brand is **AI Security Labs / Luminex Learning**. NexaCore is the fictional in-product attack target only.
 
 ------------------------------------------------------------------------
 
 # Current Status
 
-**Phase 4a complete** as of 2026-04-28. Live at `nikobehar/ai-sec-lab4-multimodal` with all 8 specced endpoints, 4 toggleable defenses, image upload mode, scoring API, and 10/min rate limit. Phase 4b (frontend SPA shell — `templates/index.html` rewrite + 4 JS modules) is next.
+**Phase 4b complete** as of 2026-04-29. Live at `nikobehar/ai-sec-lab4-multimodal` with the full Luminex Learning SPA shell: 4 tabs (Info / P1 / P5 / Defenses), master nav with brand-gold owl + "Luminex Learning" wordmark + "AI Security Labs" product label + "Multimodal" section, AISL violet accent for product-scoped UI, per-student inline scoring (no leaderboard tab).
 
-**Workshop usage:** Individual graduate-course assignments (not competitive). Phase 4b ships 4 tabs (Info / P1 / P5 / Defenses) — no leaderboard tab. The `POST /api/score` and `GET /api/leaderboard` backend endpoints stay alive for the eventual **Phase 6: Canvas LMS integration** (autograde + score submission via Canvas API).
+**Workshop usage:** Individual graduate-course assignments (not competitive). The `POST /api/score` and `GET /api/leaderboard` backend endpoints stay alive for the eventual **Phase 6: Canvas LMS integration** (autograde + score submission via Canvas API).
+
+**Next phases:**
+- Phase 5: tighten spec gaps surfaced by deployment (calibration drift, defense details).
+- Phase 6: Canvas LMS autograde + score push (deferred).
 
 See `docs/project-status.md` for active task and next steps; calibration baseline lives at `docs/phase3-calibration.md`.
 
