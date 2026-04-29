@@ -6,8 +6,8 @@ in the active set). The rag_pipeline runs them at the correct stage:
 
   1. provenance_check     — pre-retrieval, ingestion-side allowlist
   2. adversarial_filter   — pre-retrieval, ingestion-side keyword/regex
-  3. retrieval_diversity  — post-retrieval, pre-LLM (single-source clustering)
-  4. <retrieve top-k>
+  3. <retrieve top-k>
+  4. retrieval_diversity  — post-retrieval, pre-LLM (single-source clustering)
   5. <LLM generate>
   6. output_grounding     — post-LLM, validates cited doc IDs
 
@@ -53,7 +53,7 @@ def provenance_check(active_docs: list[Document]) -> Optional[dict]:
 
     The 8 attack docs all use source `(attack — pre-canned)`, which won't match
     any prefix in `TRUSTED_SOURCE_PREFIXES`. The 6 legit docs all start with
-    `internal-policies/`. → expected 6/6 catches at v1 corpus size.
+    `internal-policies/`. -> expected 6/6 catches at v1 corpus size.
     """
     bad = [d for d in active_docs if not d.source.startswith(TRUSTED_SOURCE_PREFIXES)]
     if not bad:
@@ -193,7 +193,12 @@ def output_grounding(model_response: str, valid_doc_ids: set[str]) -> Optional[d
             "verdict": "PASSED",
             "detail": "model response cites no doc IDs; nothing to ground",
         }
-    fabricated = sorted(c for c in candidates if c not in valid_doc_ids)
+    # Case-insensitive membership: the regex uses re.IGNORECASE so candidates
+    # may differ in case from the canonical (lowercase) corpus IDs. Without this
+    # normalization, a model echoing "FIN-001-REIMBURSEMENT-2025" would be
+    # misclassified as a fabricated citation.
+    valid_lower = {vid.lower() for vid in valid_doc_ids}
+    fabricated = sorted(c for c in candidates if c.lower() not in valid_lower)
     if not fabricated:
         return {
             "name": "output_grounding",
