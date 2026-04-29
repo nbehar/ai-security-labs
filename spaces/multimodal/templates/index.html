@@ -1,81 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Multimodal Security Lab</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-            background: #0a0a0b;
-            color: #e5e5e5;
-            margin: 0;
-            padding: 40px 20px;
-            line-height: 1.6;
-        }
-        .container { max-width: 720px; margin: 0 auto; }
-        h1 { color: #a78bfa; margin-bottom: 8px; }
-        .subtitle { color: #888; margin-top: 0; }
-        .badge {
-            display: inline-block;
-            background: #1f1b3a;
-            color: #c4b5fd;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 13px;
-            font-family: monospace;
-        }
-        code {
-            background: #141416;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: "SF Mono", Menlo, monospace;
-            font-size: 13px;
-        }
-        a { color: #a78bfa; }
-        ul { padding-left: 20px; }
-        li { margin: 6px 0; }
-        .phase {
-            background: #141416;
-            border-left: 3px solid #a78bfa;
-            padding: 12px 16px;
-            border-radius: 0 4px 4px 0;
-            margin: 24px 0;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multimodal Lab · AI Security Labs · Luminex Learning</title>
+  <link rel="icon" type="image/svg+xml" href="/static/owl.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/luminex-tokens.css">
+  <link rel="stylesheet" href="/static/css/multimodal.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🖼️ Multimodal Security Lab</h1>
-        <p class="subtitle">
-            <span class="badge">Phase 3 • Backend + 4 defenses</span>
-            Image-based attacks against multimodal LLMs · NexaCore DocReceive scenario
-        </p>
+  <header class="nav" role="banner">
+    <a class="nav-brand" href="/" aria-label="Luminex Learning home">
+      <img src="/static/owl.svg" alt="" class="owl-gold" aria-hidden="true">
+      <span class="nav-wordmark">Luminex Learning</span>
+    </a>
+    <span class="nav-divider" aria-hidden="true"></span>
+    <span class="nav-product">AI Security Labs</span>
+    <span class="nav-divider" aria-hidden="true"></span>
+    <span class="nav-section">Multimodal</span>
+    <span class="nav-spacer"></span>
+    <span class="nav-meta" id="nav-status" aria-live="polite"></span>
+  </header>
 
-        <div class="phase">
-            <strong>This is a backend-only deploy.</strong> The frontend SPA shell
-            ships in Phase 4. For now, the API surface is live at:
-            <ul>
-                <li><code>GET /health</code> — token state, inference provider, model id, attack &amp; image counts</li>
-                <li><code>GET /api/attacks</code> — list of 12 attack definitions</li>
-                <li><code>POST /api/attack</code> — run a canned-image attack with optional defenses (<code>defenses</code> form field accepts a JSON subset of <code>["ocr_prescan", "output_redaction", "boundary_hardening", "confidence_threshold"]</code>)</li>
-                <li>OpenAPI docs at <a href="/docs"><code>/docs</code></a></li>
-            </ul>
-        </div>
+  <main class="page" id="page">
+    <header class="page-header">
+      <div class="page-eyebrow">NexaCore DocReceive · OWASP LLM01</div>
+      <h1 class="page-title">Multimodal Security Lab</h1>
+      <p class="page-subtitle">
+        Image-based attacks against multimodal LLMs — visible-text injection (P1) and OCR poisoning (P5),
+        anchored in the NexaCore DocReceive intake scenario.
+      </p>
+    </header>
 
-        <p>
-            Tracking: <a href="https://github.com/nbehar/ai-security-labs/issues/15">issue #15</a>.
-            Specs: <code>spaces/multimodal/specs/</code> in the monorepo.
-            Defense calibration: <code>docs/phase3-calibration.md</code>.
-        </p>
+    <div id="banners"></div>
 
-        <p>
-            <strong>v1 scope:</strong> 6 Image Prompt Injection attacks (P1.x) + 6 OCR Poisoning
-            attacks (P5.x) anchored in NexaCore DocReceive. Hardware: HF Spaces
-            <code>cpu-basic</code>. Inference: hosted <code>Qwen/Qwen2.5-VL-72B-Instruct</code>
-            via HF Inference Providers (OVH cloud) — warm-served, no cold-start;
-            ~10–20s per attack call.
-        </p>
-    </div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Lab sections"></nav>
+
+    <section id="content" role="tabpanel" aria-live="polite">
+      <div class="card">
+        <div class="card-eyebrow">Loading</div>
+        <div class="card-body"><span class="spinner"></span> <span class="muted">Initializing lab&hellip;</span></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>
