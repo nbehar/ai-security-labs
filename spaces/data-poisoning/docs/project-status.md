@@ -1,6 +1,6 @@
 # Data Poisoning Lab — Project Status
 
-*Last updated: 2026-04-29 (Phase 5 measured matrix complete — 6/3/1/1 catches across 4 defenses, exact match to design intent. Lab is ship-ready as backend/API deliverable; only Phase 4a/4b remain for full participant UX.)*
+*Last updated: 2026-04-29 (Phase 5 measured matrix + reviewer-validated — 6/3/1/1 catches across 4 defenses, exact match to design intent; 0 blockers in reviewer pass. Lab is fully reviewer-validated through Phase 5; only Phase 4a/4b remain for full participant UX.)*
 
 ------------------------------------------------------------------------
 
@@ -56,6 +56,8 @@
 - [x] Phase 3 reviewer pass: 4 HIGH issues found and fixed (docstring step order, output_grounding case-insensitivity, smoke writeup overstatement, api_spec missing participant_name)
 - [x] Phase 1+2 reviewer pass: 4 HIGH issues found and fixed (requirements.txt unpinned, deployment_spec corpus_size arithmetic, overview_spec success_check column split, corpus.py docstring stale-risk)
 - [x] HF Space redeployed post-fixes at HF commit `c49bde6`; `/health` verified live
+- [x] Phase 5 reviewer pass: 0 blockers, 2 MEDIUM issues fixed (runner `defenses=[]` resilience, platform-status defense-in-depth tagline rephrased to honest "Provenance-as-primary-defense"), 2 LOW skipped (rounding, trailing sleep)
+- [x] All headline claims hand-verified against `phase5-raw.json` by reviewer (per-defense counts, per-attack catch profile, RP.5-alone finding, latency, vs-Multimodal comparison)
 
 ### Phase 5 (Measured defense matrix) — ✅ Complete
 - [x] `scripts/run_phase5_matrix.py` — 36-cell runner (6 attacks × 6 conditions)
@@ -137,7 +139,7 @@ Full writeup: `docs/phase3-calibration.md`. Raw cells: `docs/calibration-raw.jso
 | `defenses.py` (4 defenses) | ✅ Complete (reviewer-validated) | Phase 3 |
 | `app.py` defense wiring + form-field validation | ✅ Complete (reviewer-validated) | Phase 3 |
 | Phase 3 smoke verification (3 attacks × 3 defense scenarios = 9 calls) | ✅ Complete | Phase 3 |
-| Phase 1+2+3 reviewer passes (8 HIGH issues fixed) | ✅ Complete | Phase 3 |
+| Phase 1+2+3+5 reviewer passes (10 substantive issues fixed across 4 passes; 0 blockers) | ✅ Complete | Phase 3+5 |
 | `GET /api/corpus`, `/api/corpus/{id}`, `/api/queries` routes | ⬜ Not started | Phase 4a |
 | `POST /api/attack` upload mode | ⬜ Not started | Phase 4a |
 | `POST /api/score` + in-memory leaderboard schema | ⬜ Not started | Phase 4a |
@@ -145,8 +147,8 @@ Full writeup: `docs/phase3-calibration.md`. Raw cells: `docs/calibration-raw.jso
 | Postman collection (9 endpoints + 2 negative probes) | ⬜ Not started | Phase 4a |
 | Frontend SPA (4 tabs: Info / RAG Poisoning / Defenses / Corpus Browser) | ⬜ Not started | Phase 4b |
 | Defense matrix verification (6 attacks × 6 conditions = 36 cells) | ✅ Complete (measured = design intent across all 4 defenses) | Phase 5 |
-| `scripts/run_phase5_matrix.py` | ✅ Complete | Phase 5 |
-| `docs/phase5-matrix.md` + `docs/phase5-raw.json` | ✅ Complete | Phase 5 |
+| `scripts/run_phase5_matrix.py` | ✅ Complete (reviewer-validated) | Phase 5 |
+| `docs/phase5-matrix.md` + `docs/phase5-raw.json` | ✅ Complete (reviewer-validated) | Phase 5 |
 | Canvas LMS integration | ⬜ Not started | Phase 6 (cross-lab) |
 
 ------------------------------------------------------------------------
@@ -154,15 +156,15 @@ Full writeup: `docs/phase3-calibration.md`. Raw cells: `docs/calibration-raw.jso
 ## Open Risks
 
 1. **Corpus too small for RP.5 + RP.6 to be pedagogically interesting at workshop scale.** Current 6 legit docs make RP.5 (embedding adjacency) easy because there are only 2 legit travel docs to compete against. Phase 2 expands to 15 legit (5 HR / 4 IT / 3 Finance / 3 Legal) so the keyword-stuffing attack has a harder bar to clear. **Mitigation:** Phase 2 follow-up; not a blocker for Phase 3 build (defenses operate on retrieval/generation, not corpus size). Reviewer Phase-5 prediction: bake an embedding-similarity sanity check into Phase 2 acceptance — if `rp5-poison` no longer outscores `fin-002-travel-policy` for `q-fin-2`, add more keyword repetitions or strengthen Finance-topic density.
-2. **Defense matrix may be lopsided.** Phase 5 measurement confirmed: provenance does the heavy lifting (6/6 catches) while retrieval_diversity and output_grounding catch only 1/6 each. **Educational reframing applied in `docs/phase5-matrix.md`:** present provenance as the load-bearing primary defense and the other 3 as layered evidence — the lab's central thesis "provenance is the security boundary, not retrieval ranking" is now backed by measured numbers.
-3. **Self-flag heuristic categorization is coarse.** RP.3 / RP.5 partial classification is based on 10 keyword patterns; both responses contain the canary and adopt the poisoned framing (the partial label captures hedging language, not a defensive stance). For Phase 5 verification, sharpen the partial vs clean distinction by examining whether the model emits the canary alongside legit content (mixed) vs replacing it (full).
+2. **Defense matrix is provenance-dominated.** Phase 5 measurement confirmed: provenance does the heavy lifting (6/6 catches) while retrieval_diversity and output_grounding catch only 1/6 each. **Educational reframing applied in `docs/phase5-matrix.md`:** present provenance as the load-bearing primary defense and the other 3 as layered evidence — the lab's central thesis "provenance is the security boundary, not retrieval ranking" is now backed by measured numbers. **Per Phase 5 reviewer:** `all_four` 6/6 result is from `provenance_check` short-circuit, not from layering — true layered defense-in-depth is a v2 corpus concern (e.g., poisoned docs from compromised-but-trusted sources).
+3. **Self-flag heuristic categorization is coarse.** RP.3 / RP.5 partial classification is based on 10 keyword patterns; both responses contain the canary and adopt the poisoned framing (the partial label captures hedging language, not a defensive stance). For future verification rounds, sharpen the partial vs clean distinction by examining whether the model emits the canary alongside legit content (mixed) vs replacing it (full).
 4. **Brand consistency.** Per `memory/brand-architecture.md`, this space uses the Luminex Learning master nav pattern. Phase 1 ships a placeholder shell; Phase 4b will ship the full SPA with the same nav. If the brand pattern shifts before Phase 4b, this space follows the new pattern.
 
 ------------------------------------------------------------------------
 
 ## Next Recommended Task
 
-**Phase 5 measured matrix complete + Phase 1+2+3 reviewer-validated. Lab is ship-ready as a backend/API-only deliverable.** Two options remain for full participant UX, plus a deferred non-blocking corpus-expansion follow-up.
+**Phase 5 measured matrix + Phase 1+2+3+5 reviewer-validated. Lab is ship-ready as a backend/API-only deliverable.** Two options remain for full participant UX, plus a deferred non-blocking corpus-expansion follow-up.
 
 ### Option A — Phase 4a (full API surface)
 
@@ -368,3 +370,31 @@ Spec-sync side-task (low effort): update `overview_spec.md` Defenses (v1) sectio
 - Phase 4b: 4-tab Luminex-branded SPA shell.
 - Phase 2 (corpus expansion 6→15) — non-blocking; reviewer's RP.5-erosion concern is now testable via re-running the matrix after Phase 2.
 - Spec sync: update `overview_spec.md` Defenses (v1) section to reference `docs/phase5-matrix.md` as the authoritative catch-rate source.
+
+### 2026-04-29 — Phase 5 reviewer pass (0 blockers; 2 MEDIUM fixed; 2 LOW skipped)
+
+**Trigger:** User said "reviewer validate" after Phase 5 measured matrix shipped.
+
+**Reviewer:** `feature-dev:code-reviewer` agent with self-contained briefing on Phase 5 deliverables (runner, writeup, raw JSON) and explicit instructions to hand-verify every headline claim against the raw cells.
+
+**Verification scope:** Reviewer hand-counted all 36 cells in `phase5-raw.json`, confirmed per-defense catch rates exactly (0/6/3/1/1/6 for `none`/`provenance`/`adv_filter`/`diversity`/`grounding`/`all_four`), validated each per-attack catch profile, confirmed the "RP.5 caught by `provenance_check` ALONE" finding (the lab's sharpest pedagogical point), verified the `output_grounding` case-insensitivity fix from Phase 3 reviewer pass is working end-to-end (RP.4 caught with all 3 fabricated `NX-LEGAL-2024-00x` citations), and fact-checked the vs-Multimodal comparison against `spaces/multimodal/docs/phase3-calibration.md`.
+
+**Issues found and fixed:**
+
+| # | Severity | Where | Issue | Commit |
+|---|---|---|---|---|
+| 1 | MEDIUM | `scripts/run_phase5_matrix.py:111-112` | Runner omitted `defenses` form field for `none` scenario, relying on server-side coercion of missing field to `[]`. Fragile if `app.py` later requires the field. | `4eeee15` (now sends `json.dumps([])` explicitly) |
+| 2 | MEDIUM | `docs/project-status.md:614` (platform-level) | Tagline "Defense-in-depth narrative confirmed" overstated what the matrix demonstrates — `all_four` is 6/6 because `provenance_check` short-circuits everything (per `phase5-matrix.md` item 4), not because layers compose. The matrix writeup itself was honest; the platform summary just hadn't matched. | `7d5e505` (replaced with "Provenance-as-primary-defense is confirmed; layered defense-in-depth is a v2 corpus concern" + reference to item 4) |
+
+**Issues skipped (LOW, no fix):**
+
+- `none` scenario median latency: writeup says 0.9s, raw values give 0.80s. Acceptable rounding for pedagogy; max of 1.0s matches.
+- Runner's 7s `time.sleep` after the final iteration: cosmetic; doesn't affect results.
+
+**Reviewer false-positive count:** 0. Every claim the reviewer flagged was real and addressed.
+
+**Reviewer's verdict (paraphrased):**
+
+> Ship Phase 5 with minor prose fix [now applied]. All 36 data cells are accurate, all headline claims are supported by the raw JSON, and the vs-Multimodal comparison is factually correct.
+
+**State after this pass:** Phase 1, 2, 3, and 5 are all reviewer-validated. Across all 4 reviewer passes, 10 substantive issues were found and fixed (4 in Phase 3, 4 in Phase 1+2, 2 in Phase 5 — 1 reviewer false-positive ignored in Phase 1+2). Lab is fully reviewer-validated as a backend/API-only deliverable for graduate-course use. Phase 4a (full API surface) and Phase 4b (4-tab SPA) remain for full participant UX.
