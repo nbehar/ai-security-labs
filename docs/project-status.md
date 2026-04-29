@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-29 (Multimodal Phase 5 measured matrix + Data Poisoning bootstrap → Phase 3 build → smoke matrix → Phase 1+2+3 reviewer-validated)*
+*Last updated: 2026-04-29 (Multimodal Phase 5 + Data Poisoning Phase 0→3+5 measured matrix + reviewer-validated; Data Poisoning is ship-ready as backend/API deliverable, only Phase 4a/4b remain)*
 
 ---------------------------------------------------------------------
 
@@ -77,7 +77,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | Priority | Space | Status | v1 Content | Hardware |
 |----------|-------|--------|------------|----------|
 | 3 | Multimodal Security | **Phase 5 MEASURED** at `nikobehar/ai-sec-lab4-multimodal` — full 12×6 defense matrix run live; per-defense catches: `output_redaction` 10/10, `ocr_prescan` 4/10, `boundary_hardening` 0/10 catch + 2/10 deters, `confidence_threshold` 0/10, `all_four` 9/10. Phase 4b SPA shell + Phase 3.1 defense improvements (issue #21) remain. | P1 Image Prompt Injection + P5 OCR Poisoning | `cpu-basic` + HF Inference Providers (`Qwen/Qwen2.5-VL-72B-Instruct` via `ovhcloud`) |
-| 4 | Data Poisoning Lab | **Phase 3 DEPLOYED** at `nikobehar/ai-sec-lab5-data-poisoning` — backend (4 endpoints), 6 RP attacks, 14-doc seed corpus (6 legit + 8 attack), 4 toggleable defenses (provenance/adversarial_filter/diversity/grounding) with stage-aware short-circuit, 3×3 smoke verified. Phase 1+2+3 all reviewer-validated. Phase 4a (full API surface) + Phase 4b (SPA) + Phase 5 (full 6×6 measured matrix) + Phase 2 (corpus 6→15 expansion) remain. | RAG corpus poisoning (RP.1—RP.6) | `cpu-basic` + Groq (`llama-3.3-70b-versatile`) + sentence-transformers MiniLM-L6 in-process |
+| 4 | Data Poisoning Lab | **Phase 5 MEASURED** at `nikobehar/ai-sec-lab5-data-poisoning` — backend (4 endpoints), 6 RP attacks, 14-doc seed corpus, 4 toggleable defenses with stage-aware short-circuit, 36-cell measured matrix (catches: provenance 6/6, adv_filter 3/6, retrieval_diversity 1/6, output_grounding 1/6, all_four 6/6 — exact match to design intent across all 4 defenses, the cleanest measured matrix on the platform). Phase 1+2+3 reviewer-validated. Lab is ship-ready as backend/API deliverable. Phase 4a (full API surface) + Phase 4b (SPA) + Phase 2 (corpus 6→15 expansion) remain. | RAG corpus poisoning (RP.1—RP.6) | `cpu-basic` + Groq (`llama-3.3-70b-versatile`) + sentence-transformers MiniLM-L6 in-process |
 | 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
 | 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
 | 7 | Multi-Agent Security | Planned | Multi-agent attack, cascading failures | CPU |
@@ -110,7 +110,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | 14 | Spec gap: Educational features not in any spec | Closed ✅ (2026-04-28) | Educational Layer sections added to blue-team + red-team architecture.md |
 | **15** | MILESTONE: Multimodal Security Lab v1 build | **Open** (filed 2026-04-27) | Phase 4a complete — backend, defenses, full API surface deployed. Phase 4b (frontend) + Phase 5 (full defense matrix) remain. |
 | 16 | Red Team L5 missing Guardrail Evaluation defense layer | Closed ✅ (2026-04-28) | Implemented `guardrail_evaluate()` in challenges.py; wired into L5 attack flow in app.py |
-| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 0 (specs) → Phase 1 (backend skeleton) → Phase 3 prep (calibration: 4 clean / 2 partial / 0 failed) → Phase 3 build (4 toggleable defenses) → Phase 3 smoke (3×3, 3/3 baseline + 6/6 blocked) → Reviewer-validated Phases 1+2+3. Deployed live. Phase 4a + 4b + 5 + Phase 2 corpus expansion remain. |
+| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 0 (specs) → Phase 1 (backend) → Phase 3 prep (4 clean / 2 partial / 0 failed) → Phase 3 build (4 toggleable defenses) → Phase 3 smoke (3×3) → reviewer-validated Phases 1+2+3 → **Phase 5 measured matrix** (6/3/1/1 catches, exact match to design intent — cleanest measured matrix on the platform). Deployed live. Phase 4a + 4b + Phase 2 corpus expansion remain for full participant UX. |
 
 ### llm-top-10-demo repo (OWASP workshop)
 - 31 issues total (12 closed, 19 open)
@@ -589,3 +589,45 @@ Single-day push. Multimodal Phase 5 closed out the v1 build's design-intent matr
 - Phase 2 (Data Poisoning corpus expansion 6→15 legit docs) — deferred non-blocking; reviewer confirmed Phase 1 files don't need changes for Phase 2 to proceed.
 - Multimodal Phase 4b (SPA shell) + issue #21 (Phase 3.1 defense improvements) + 2 v1.1 image regens (P1.4, P5.5).
 - OWASP Top 10 brand refresh (deferred while private; required before public).
+
+------------------------------------------------------------------------
+
+### 2026-04-29 (cont.) — Data Poisoning Phase 5 measured defense matrix
+
+**Trigger:** User said "proceed" after Phase 1+2 reviewer fixes shipped.
+
+**What was done:**
+
+Ran the full 6 attacks × 6 defense conditions = 36-cell measured matrix live against the deployed Space (HF commit `c49bde6`). Conditions: `none` (baseline), 4 single-defense scenarios (`provenance_check`, `adversarial_filter`, `retrieval_diversity`, `output_grounding`), and `all_four` combined. Wall time ~270s (36 × 7s rate-limit + ~0.5s median per call).
+
+**Headline:** **The cleanest measured matrix on the platform — exact match to design intent across all 4 defenses, zero divergence.**
+
+| Defense | Measured | Design intent |
+|---|---|---|
+| `none` (baseline) | 0/6 catches, 6/6 leaks | 0/6 ✅ |
+| `provenance_check` | **6/6** | 6/6 ✅ exact |
+| `adversarial_filter` | **3/6** (RP.1, RP.2, RP.3) | 3/6 ✅ exact |
+| `retrieval_diversity` | **1/6** (RP.6) | 1–2/6 ✅ |
+| `output_grounding` | **1/6** (RP.4) | 1–2/6 ✅ |
+| `all_four` | **6/6** (all blocked at provenance via short-circuit, 0.0s) | 6/6 ✅ |
+
+**Per-attack catch profile:** every attack caught by ≥1 designed-for defense. **RP.5 (Embedding Adjacency) is caught by `provenance_check` alone** — the lab's sharpest pedagogical finding: keyword stuffing has no obvious injection patterns, no fake citations, no sibling docs; only source-based filtering catches it. Defense-in-depth narrative confirmed.
+
+**Latency profile:** 0.0s ingestion-side block (provenance/adv_filter when fired) vs ~1s LLM-call cost — the "block at ingestion vs block at output" contrast is now measured and visible to participants via `elapsed_seconds`.
+
+**Vs Multimodal Phase 5:** Multimodal had 3/4 defenses diverge from design intent; Data Poisoning has zero divergence. Tighter coupling because all 6 attacks are RAG variants and each defense was designed for a specific subset (diagonal-clean matrix vs Multimodal's lopsided one).
+
+**Artifacts:**
+- `spaces/data-poisoning/scripts/run_phase5_matrix.py` (commit `fbcc04a`)
+- `spaces/data-poisoning/docs/phase5-matrix.md` (commit `4a091bf`) — full writeup
+- `spaces/data-poisoning/docs/phase5-raw.json` (commit `328591f`) — 36 records
+
+**v1 lab acceptance criteria status:** all backend/defense/measurement criteria met. Lab is **ship-ready as backend/API-only deliverable for graduate-course use**. Phase 4b SPA shell is the only remaining v1 deliverable for full participant UX. No Phase 3.1 defense improvements needed — every defense performs at its design-intent level.
+
+**Pending follow-up:**
+
+- Phase 4a (Data Poisoning): `/api/corpus`, `/api/corpus/{id}`, `/api/queries`, `/api/score`, `/api/leaderboard`, upload mode, Postman.
+- Phase 4b (Data Poisoning): 4-tab Luminex-branded SPA shell.
+- Phase 2 (Data Poisoning corpus expansion 6→15) — non-blocking; reviewer's RP.5-erosion concern is now testable via re-running the matrix post-Phase-2.
+- Spec sync side-task: update `overview_spec.md` Defenses (v1) section to reference `docs/phase5-matrix.md` as the authoritative catch-rate source.
+- Multimodal Phase 4b (SPA shell) + issue #21 (Phase 3.1 defense improvements) remain for that lab.
