@@ -1,14 +1,16 @@
 /*
- * luminex-nav.css — Master nav (stacked-block layout matching brand screenshot).
+ * luminex-nav.css — Master nav matching digistore-mock-client Sidebar.tsx pattern.
  *
- * Layout:
- *   [owl]         │  <Section name>          │  (optional descriptor)
- *   LUMINEX       │  AI Security Labs        │
- *   LEARNING      │                          │
+ * Layout (single composite block; no vertical divider between owl and text):
+ *
+ *   [owl 48px gold]    Red Team       <- 12px bold primary
+ *                      ─────────      <- 1px horizontal hairline
+ *                      AI Security    <- 10px medium secondary
+ *                      Labs
  *
  * Per brand-identity-enforcer non-negotiables:
  *   NR-1  — owl mark in every authenticated nav (.owl-gold filter, brand gold)
- *   NR-2  — wordmark "Luminex Learning" present
+ *   NR-2  — brand name "Luminex Learning" present (alt text on owl image)
  *   NR-10 — owl always brand gold, never product accent
  */
 
@@ -16,86 +18,54 @@
   background: var(--color-surface-1);
   border-bottom: 1px solid var(--color-border);
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+  gap: var(--space-3);
   position: sticky;
   top: 0;
   z-index: 50;
-  min-height: 64px;
+  min-height: 72px;
 }
-
-/* Block 1: master brand (owl + wordmark) */
-.luminex-nav__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-5);
-  text-decoration: none;
-  color: var(--color-text-primary);
-}
-.luminex-nav__brand:hover { text-decoration: none; }
 
 .luminex-nav__owl {
-  width: 32px;
-  height: 32px;
-  display: block;
+  height: 48px;
+  width: auto;
   flex-shrink: 0;
 }
 
-.luminex-nav__wordmark {
+.luminex-nav__brand-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.05;
-}
-
-.luminex-nav__wordmark-l1,
-.luminex-nav__wordmark-l2 {
-  font-family: var(--font-sans);
-  font-weight: var(--font-bold);
-  font-size: 11px;
-  letter-spacing: var(--tracking-widest);
-  color: var(--color-text-primary);
-  text-transform: uppercase;
-}
-
-/* Vertical divider between blocks (full-height of nav) */
-.luminex-nav__divider {
-  width: 1px;
-  background: var(--color-border-strong);
-  align-self: stretch;
-}
-
-/* Block 2: product/section ("Section Name" stacked over "AI Security Labs") */
-.luminex-nav__product-block {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: var(--space-2) var(--space-5);
-  gap: 2px;
+  gap: 3px;
 }
 
 .luminex-nav__section-name {
   font-family: var(--font-sans);
-  font-weight: var(--font-bold);
-  font-size: var(--text-md);
-  letter-spacing: var(--tracking-tight);
+  font-size: 12px;
+  font-weight: 700;
   color: var(--color-text-primary);
-  line-height: 1.15;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.luminex-nav__hairline {
+  height: 1px;
+  background: var(--color-border-strong);
+  width: 100%;
 }
 
 .luminex-nav__product-name {
   font-family: var(--font-sans);
-  font-weight: var(--font-medium);
-  font-size: var(--text-xs);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1;
   letter-spacing: var(--tracking-wide);
-  color: var(--color-accent-aisl-highlight);
-  line-height: 1.15;
 }
 
 .luminex-nav__spacer { flex: 1; }
 
 .luminex-nav__meta {
-  align-self: center;
-  padding-right: var(--space-5);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
@@ -103,17 +73,14 @@
 }
 
 @media (max-width: 768px) {
-  .luminex-nav { min-height: 56px; }
-  .luminex-nav__brand,
-  .luminex-nav__product-block { padding: var(--space-2) var(--space-3); }
-  .luminex-nav__owl { width: 28px; height: 28px; }
+  .luminex-nav { min-height: 64px; padding: var(--space-2) var(--space-3); }
+  .luminex-nav__owl { height: 40px; }
   .luminex-nav__meta { display: none; }
 }
 
 /*
  * Hero subdued — the framework's <header class="hero"> becomes a section
- * sub-header below the master nav. Keep its content but tone it down so it
- * doesn't compete with the master brand.
+ * sub-header below the master nav.
  */
 .hero { padding-top: var(--space-6); padding-bottom: var(--space-5); }
 .hero__title { font-family: var(--font-sans); letter-spacing: var(--tracking-tight); }
