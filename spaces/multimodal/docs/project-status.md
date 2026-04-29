@@ -69,9 +69,10 @@ Phase 4b (frontend SPA shell) is next.
 | `GET /api/leaderboard` route | ✅ Complete (`54cfd01`) | Phase 4a |
 | `slowapi` 10/min rate limit on /api/attack | ✅ Complete (`54cfd01`) | Phase 4a |
 | Postman collection (8 endpoints + 2 negative probes) | ✅ Complete (`54cfd01`) | Phase 4a |
-| Frontend `app.js` + space modules | ⬜ Not started | Phase 4b |
+| Frontend `app.js` + space modules (4 tabs: Info / P1 / P5 / Defenses) | ⬜ Not started | Phase 4b |
 | Frontend full `index.html` (replaces Phase 1 placeholder) | ⬜ Not started | Phase 4b |
 | Defense matrix verification (12 attacks × {undefended, +defenses}) | ⬜ Not started | Phase 5 |
+| Canvas LMS integration (autograde + score submission via Canvas API) | ⬜ Not started | Phase 6 |
 
 ------------------------------------------------------------------------
 
@@ -356,6 +357,28 @@ Live `/` re-checked after redeploy — no `ZeroGPU` or `7B-Instruct` substring m
 
 **Pending follow-up:**
 
-- Phase 4b — frontend SPA shell (`templates/index.html` rewrite + `static/js/{app,image_gallery,image_upload,attack_runner}.js` + 5-tab UI + educational layer per `frontend_spec.md`)
+- Phase 4b — frontend SPA shell (`templates/index.html` rewrite + `static/js/{app,image_gallery,image_upload,attack_runner}.js` + **4-tab UI** + educational layer per `frontend_spec.md`)
 - Phase 3.1 / v1.1 — widen `ocr_prescan` patterns; replace `confidence_threshold` semantics; regenerate P1.4/P5.2/P5.5 images
 - Phase 5 — full 12×16 defense matrix verification
+- Phase 6 — Canvas LMS integration (autograde + score submission via Canvas API; foundation already exists in `POST /api/score`)
+
+### 2026-04-28 (cont.) — Pre-Phase-4b reframing: individual graduate assignments (no leaderboard)
+
+**Trigger:** User clarified during Phase 4b planning that this Lab will be used for **individual assignments in a graduate university course**, with eventual Canvas LMS integration to autograde and submit scores. The originally-specced "Leaderboard" tab (per `frontend_spec.md`) was a competitive-workshop pattern inherited from blue-team / red-team — wrong frame for this Lab.
+
+**What was decided:**
+
+- **No Leaderboard tab in Phase 4b.** Tab count drops from 5 to 4 (Info / Image Prompt Injection / OCR Poisoning / Defenses). Each student sees only their own running total, surfaced inline within each lab tab — not aggregated as a competitive ranking.
+- **Backend score endpoints stay alive.** `POST /api/score` and `GET /api/leaderboard` (already shipped Phase 4a) are preserved as the foundation for Phase 6. `GET /api/leaderboard` becomes useful for instructor inspection during sessions but is not surfaced in the student UI.
+- **Phase 6 added to roadmap:** Canvas LMS integration. Out of scope for v1; documented so the scoring API isn't ripped out prematurely.
+
+**Spec/doc edits:**
+
+- `specs/frontend_spec.md` — Tab Structure (5→4), Leaderboard Tab section reframed as "Per-Student Scoring" + Phase 6 forward reference, Reuse-from-Framework table strikes `renderLeaderboard`, Acceptance Checks (5 tabs → 4 tabs; "leaderboard shows aggregate" replaced with "per-student running total inline"; new check for Phase 6 tracked in project-status.md), Stack & Theme imports list drops `renderLeaderboard`.
+- `specs/overview_spec.md` — Audience updated to "graduate-level security students completing this Lab as an individual assignment"; new Grading Model paragraph notes Canvas LMS integration is the score destination (Phase 6) and the frontend shows only the student's own scores.
+- `CLAUDE.md` (space) — Current Status block notes the individual-assignment framing + Phase 6 placeholder.
+- This file — Implementation Status row added for Phase 6; Pending follow-up updated; this session entry appended.
+
+**No code changes** — the API shipped in Phase 4a continues to be correct (per-attempt scoring, in-memory leaderboard for the optional Phase 6 hand-off). Phase 4b will simply not render the leaderboard.
+
+**Pending follow-up unchanged:** Phase 4b (4-tab UI), Phase 3.1 defense improvements, Phase 5 full defense matrix, Phase 6 Canvas integration.
