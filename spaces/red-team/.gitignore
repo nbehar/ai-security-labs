@@ -2,3 +2,16 @@
 __pycache__/
 .env
 .env.op
+
+# --- Vendored Luminex brand asset ---
+# owl.svg is the master brand mark (~200KB, embedded base64 PNG). Lives
+# canonically at ~/luminex/owl.svg; copied into the HF Space at deploy time
+# via `hf upload --include="static/owl.svg"`. Not committed to GitHub.
+static/owl.svg
+
+# --- Framework files copied at deploy time ---
+# scripts/deploy.sh copies framework/static/* into spaces/{space}/static/
+# at deploy time. Ignore the destination copies so they don't drift from
+# the canonical framework/ source.
+static/css/styles.css
+static/js/core.js

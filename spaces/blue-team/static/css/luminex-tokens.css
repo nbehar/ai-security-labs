@@ -1,0 +1,172 @@
+/*
+ * Luminex Learning — Design Tokens (vendored 2026-04-28)
+ *
+ * Source of truth: ~/luminex/brand-system/design-tokens.json
+ * AI Security Labs is one of four Luminex Learning products
+ * (alongside Red Team Labs, GRC Labs, Blue Team Labs).
+ *
+ * AISL accent = violet. Master brand owl + wordmark always render in brand gold.
+ * Per token-guidelines.md: no value here may be overridden without a
+ * formal brand-system spec revision.
+ */
+
+:root {
+  /* --- Background --- */
+  --color-bg-base: #09090f;
+  --color-bg-elevated: #121218;
+
+  /* --- Surfaces --- */
+  --color-surface-1: #121218;
+  --color-surface-2: #1c1c26;
+  --color-surface-3: #242432;
+
+  /* --- Borders --- */
+  --color-border: #27272f;
+  --color-border-strong: #3a3a48;
+  --color-border-subtle: rgba(39, 39, 47, 0.6);
+
+  /* --- Text --- */
+  --color-text-primary: #fafaf0;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #737373;       /* placeholder/timestamp ONLY — not body */
+  --color-text-inverse: #09090f;
+  --color-text-link: #fbbf24;
+
+  /* --- Brand gold (master brand) --- */
+  --color-primary: #d97706;
+  --color-primary-light: #fbbf24;
+  --color-primary-subtle: rgba(217, 119, 6, 0.10);
+  --color-primary-border: rgba(217, 119, 6, 0.28);
+
+  /* --- Brand teal (secondary) --- */
+  --color-secondary: #0d9488;
+  --color-secondary-light: #2dd4bf;
+  --color-secondary-subtle: rgba(13, 148, 136, 0.10);
+
+  /* --- AI Security Labs accent (violet) --- */
+  --color-accent-aisl-interactive: #7c3aed;       /* button fills (with white text) */
+  --color-accent-aisl-highlight:   #a78bfa;       /* text, active labels, tab underlines */
+  --color-accent-aisl-subtle:      rgba(124, 58, 237, 0.10);
+  --color-accent-aisl-border:      rgba(124, 58, 237, 0.28);
+
+  /* --- Semantic states --- */
+  --color-success: #22c55e;
+  --color-success-light: #4ade80;
+  --color-success-subtle: rgba(34, 197, 94, 0.10);
+  --color-warning: #f59e0b;
+  --color-warning-light: #fbbf24;
+  --color-warning-subtle: rgba(245, 158, 11, 0.10);
+  --color-danger: #ef4444;
+  --color-danger-light: #f87171;
+  --color-danger-subtle: rgba(239, 68, 68, 0.10);
+  --color-info: #3b82f6;
+  --color-info-light: #60a5fa;
+  --color-info-subtle: rgba(59, 130, 246, 0.10);
+
+  /* --- Focus --- */
+  --color-focus-ring: #fbbf24;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* --- Fonts --- */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  --font-display: 'DM Serif Display', 'Georgia', serif;
+
+  /* --- Type scale --- */
+  --text-xs:      0.75rem;   /* 12 */
+  --text-sm:      0.8125rem; /* 13 */
+  --text-base:    0.875rem;  /* 14 */
+  --text-md:      1rem;      /* 16 */
+  --text-lg:      1.125rem;  /* 18 */
+  --text-xl:      1.25rem;   /* 20 */
+  --text-2xl:     1.5rem;    /* 24 */
+  --text-3xl:     1.875rem;  /* 30 */
+  --text-4xl:     2.25rem;   /* 36 */
+  --text-5xl:     3rem;      /* 48 */
+  --text-display: 3.5rem;    /* 56  marketing only */
+
+  /* --- Weights --- */
+  --font-normal:   400;
+  --font-medium:   500;
+  --font-semibold: 600;
+  --font-bold:     700;
+
+  /* --- Line height --- */
+  --leading-tight:   1.15;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  /* --- Letter spacing --- */
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-wider:  0.08em;
+  --tracking-widest: 0.12em;
+
+  /* --- Spacing (4px base) --- */
+  --space-0:  0;
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* --- Radius --- */
+  --radius-sm:   4px;    /* default */
+  --radius-md:   6px;    /* badges only */
+  --radius-lg:   8px;    /* cards, panels, dropdowns */
+  --radius-xl:   10px;   /* large modals */
+  --radius-full: 9999px; /* avatar circles, pill badges */
+
+  /* --- Shadows --- */
+  --shadow-sm:   0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md:   0 4px 6px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg:   0 10px 15px rgba(0, 0, 0, 0.5), 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-gold: 0 0 0 1px rgba(217, 119, 6, 0.3), 0 4px 12px rgba(217, 119, 6, 0.15);
+
+  /* --- Layout --- */
+  --nav-height: 40px;
+  --sidebar-width: 240px;
+  --content-max-width: 860px;
+
+  --bp-sm:  640px;
+  --bp-md:  768px;
+  --bp-lg:  1024px;
+  --bp-xl:  1280px;
+  --bp-2xl: 1536px;
+
+  /* --- Motion --- */
+  --duration-fast:   150ms;
+  --duration-base:   200ms;
+  --duration-slow:   300ms;
+  --duration-slower: 500ms;
+  --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:      cubic-bezier(0.4, 0, 1, 1);
+  --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+  --ease-spring:  cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* --- Owl mark filter (renders SVG in #fbbf24) --- */
+  --owl-filter-gold: brightness(0) saturate(100%) invert(50%) sepia(100%) saturate(700%) hue-rotate(4deg) brightness(98%);
+  --owl-filter-white: none;
+}
+
+/* --- Owl mark utility classes (per brand-architecture-spec §3) --- */
+.owl-gold  { filter: var(--owl-filter-gold); }
+.owl-white { filter: var(--owl-filter-white); }
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

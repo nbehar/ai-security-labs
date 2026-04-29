@@ -1,0 +1,100 @@
+/*
+ * luminex-nav.css — Master nav (Luminex Learning · AI Security Labs · <Section>).
+ *
+ * Per brand-identity-enforcer non-negotiables:
+ *   NR-1 — owl mark in every authenticated nav (.owl-gold filter, brand gold)
+ *   NR-2 — wordmark "Luminex Learning" in Inter 700
+ *   NR-10 — owl always brand gold, never product accent
+ *
+ * Sits ABOVE the existing framework hero (which becomes a section sub-header).
+ */
+
+.luminex-nav {
+  height: var(--nav-height);
+  background: var(--color-surface-1);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  gap: var(--space-4);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.luminex-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: var(--color-text-primary);
+}
+.luminex-nav__brand:hover { text-decoration: none; }
+
+.luminex-nav__brand img {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.luminex-nav__wordmark {
+  font-family: var(--font-sans);
+  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text-primary);
+}
+
+.luminex-nav__divider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-border-strong);
+}
+
+.luminex-nav__product {
+  font-family: var(--font-sans);
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  color: var(--color-accent-aisl-highlight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.luminex-nav__section {
+  font-family: var(--font-sans);
+  font-weight: var(--font-normal);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.luminex-nav__spacer { flex: 1; }
+
+.luminex-nav__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  letter-spacing: var(--tracking-wide);
+}
+
+@media (max-width: 768px) {
+  .luminex-nav { padding: 0 var(--space-3); gap: var(--space-2); }
+  .luminex-nav__section { display: none; }
+}
+
+/*
+ * Hero subdued — the framework's <header class="hero"> becomes a section
+ * sub-header below the master nav. Keep its content but tone it down so it
+ * doesn't compete with the master brand.
+ */
+.hero { padding-top: var(--space-6); padding-bottom: var(--space-5); }
+.hero__title { font-family: var(--font-sans); letter-spacing: var(--tracking-tight); }
+.hero__sub {
+  /* "NexaCore Technologies" is the in-product attack target, not a brand.
+     Demote visually to the muted secondary color. */
+  color: var(--color-text-secondary);
+  font-weight: var(--font-normal);
+}
+
+/*
+ * Active tab + primary CTA already pick up AISL violet via the bridge
+ * (--blue → --color-accent-aisl-highlight). No extra rules needed here.
+ */
