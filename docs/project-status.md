@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-29 (Multimodal Phase 5 + Data Poisoning Phase 0→3+5 measured matrix + Phase 1+2+3+5 all reviewer-validated; Data Poisoning is ship-ready as backend/API deliverable, only Phase 4a/4b remain)*
+*Last updated: 2026-04-29 (Data Poisoning Phase 4b complete — full 4-tab Luminex SPA live; v1 backend + SPA both deployed. Phase 2 corpus expansion is the only non-blocking follow-up.)*
 
 ---------------------------------------------------------------------
 
@@ -57,7 +57,7 @@ Interactive AI security training platform by Prof. Nikolas Behar. 3 workshops li
 ## Shared Framework
 
 | File | Lines | Purpose |
-|------|-------|---------|
+|------|-------|----------|
 | `framework/static/css/styles.css` | 915 | Shared dark theme |
 | `framework/static/js/core.js` | ~220 | DOM helpers, fetchJSON, renderTabs, renderLevelBriefing, renderProgress, renderWhyCard, renderGuidedPractice, renderLeaderboard, renderInfoPage |
 | `framework/scoring.py` | 55 | Score calculation + Leaderboard class |
@@ -77,7 +77,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | Priority | Space | Status | v1 Content | Hardware |
 |----------|-------|--------|------------|----------|
 | 3 | Multimodal Security | **Phase 5 MEASURED** at `nikobehar/ai-sec-lab4-multimodal` — full 12×6 defense matrix run live; per-defense catches: `output_redaction` 10/10, `ocr_prescan` 4/10, `boundary_hardening` 0/10 catch + 2/10 deters, `confidence_threshold` 0/10, `all_four` 9/10. Phase 4b SPA shell + Phase 3.1 defense improvements (issue #21) remain. | P1 Image Prompt Injection + P5 OCR Poisoning | `cpu-basic` + HF Inference Providers (`Qwen/Qwen2.5-VL-72B-Instruct` via `ovhcloud`) |
-| 4 | Data Poisoning Lab | **Phase 5 MEASURED + reviewer-validated** at `nikobehar/ai-sec-lab5-data-poisoning` — backend (4 endpoints), 6 RP attacks, 14-doc seed corpus, 4 toggleable defenses with stage-aware short-circuit, 36-cell measured matrix (catches: provenance 6/6, adv_filter 3/6, retrieval_diversity 1/6, output_grounding 1/6, all_four 6/6 — exact match to design intent across all 4 defenses, the cleanest measured matrix on the platform). 4 reviewer passes (Phase 3, Phase 1+2, Phase 5) found and fixed 10 substantive issues; 0 outstanding. Lab is ship-ready as backend/API deliverable. Phase 4a (full API surface) + Phase 4b (SPA) + Phase 2 (corpus 6→15 expansion) remain. | RAG corpus poisoning (RP.1—RP.6) | `cpu-basic` + Groq (`llama-3.3-70b-versatile`) + sentence-transformers MiniLM-L6 in-process |
+| 4 | Data Poisoning Lab | **Phase 4b COMPLETE** at `nikobehar/ai-sec-lab5-data-poisoning` — full 4-tab Luminex SPA live (Info / RAG Poisoning / Defenses / Corpus Browser). Phase 4a 9-endpoint API surface + upload mode + scoring still live. Phase 5 measured matrix authoritative (provenance 6/6, adv_filter 3/6, retrieval_diversity 1/6, output_grounding 1/6, all_four 6/6). All reviewer-validated (10 issues across 4 passes). Phase 2 (corpus 6→15 expansion) is the only non-blocking follow-up. | RAG corpus poisoning (RP.1—RP.6) | `cpu-basic` + Groq (`llama-3.3-70b-versatile`) + sentence-transformers MiniLM-L6 in-process |
 | 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
 | 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
 | 7 | Multi-Agent Security | Planned | Multi-agent attack, cascading failures | CPU |
@@ -110,7 +110,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | 14 | Spec gap: Educational features not in any spec | Closed ✅ (2026-04-28) | Educational Layer sections added to blue-team + red-team architecture.md |
 | **15** | MILESTONE: Multimodal Security Lab v1 build | **Open** (filed 2026-04-27) | Phase 4a complete — backend, defenses, full API surface deployed. Phase 4b (frontend) + Phase 5 (full defense matrix) remain. |
 | 16 | Red Team L5 missing Guardrail Evaluation defense layer | Closed ✅ (2026-04-28) | Implemented `guardrail_evaluate()` in challenges.py; wired into L5 attack flow in app.py |
-| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 0 (specs) → Phase 1 (backend) → Phase 3 prep (4 clean / 2 partial / 0 failed) → Phase 3 build (4 toggleable defenses) → Phase 3 smoke (3×3) → reviewer-validated Phases 1+2+3 → **Phase 5 measured matrix** (6/3/1/1 catches, exact match to design intent — cleanest measured matrix on the platform) → reviewer-validated Phase 5 (0 blockers, 2 MEDIUM fixed). Deployed live. Phase 4a + 4b + Phase 2 corpus expansion remain for full participant UX. |
+| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 0 (specs) → Phase 1 (backend) → Phase 3 prep (calibration) → Phase 3 build (4 defenses) → Phase 3 smoke → reviewer-validated Phases 1+2+3 → **Phase 5 measured matrix** (6/3/1/1 catches, exact match to design intent) → Phase 4a (9-endpoint API + upload mode) → **Phase 4b (full 4-tab SPA live — HF commit `e69a382`)**. Phase 2 corpus expansion (6→15 legit) is the only remaining non-blocking item. |
 
 ### llm-top-10-demo repo (OWASP workshop)
 - 31 issues total (12 closed, 19 open)

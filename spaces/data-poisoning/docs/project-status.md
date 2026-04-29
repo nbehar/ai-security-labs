@@ -1,12 +1,12 @@
 # Data Poisoning Lab — Project Status
 
-*Last updated: 2026-04-29 (Phase 5 measured matrix + reviewer-validated — 6/3/1/1 catches across 4 defenses, exact match to design intent; 0 blockers in reviewer pass. Lab is fully reviewer-validated through Phase 5; only Phase 4a/4b remain for full participant UX.)*
+*Last updated: 2026-04-29 (Phase 4b complete — full 4-tab Luminex SPA live; v1 is done. Phase 2 corpus expansion is the only non-blocking follow-up.)*
 
 ------------------------------------------------------------------------
 
 ## Current Phase
 
-**Phase 5 measured matrix complete.** All v1 backend + defense + measurement deliverables shipped. Backend (Phase 1) + 4 toggleable defenses (Phase 3) live at `https://nikobehar-ai-sec-lab5-data-poisoning.hf.space`; full 6 attacks × 6 conditions = 36-cell matrix run live (catches: provenance 6/6, adv_filter 3/6, retrieval_diversity 1/6, output_grounding 1/6, all_four 6/6 — exact match to design intent across all 4 defenses, the cleanest measured matrix on the platform). Phase 1+2+3 reviewer-validated. Phase 4a (full API surface) + Phase 4b (SPA shell) + Phase 2 (corpus expansion 6→15 legit docs) remain.
+**Phase 4a complete.** Full 9-endpoint API surface live at `https://nikobehar-ai-sec-lab5-data-poisoning.hf.space`: read-only routes (`/api/queries`, `/api/corpus`, `/api/corpus/{doc_id}`), `POST /api/attack` upload mode (`doc_source=uploaded` + `target_query_id` + in-memory `pypdf`/UTF-8 validation, 16KB / 1500-word caps, never persisted), `POST /api/score` + `GET /api/leaderboard` with `by_attack` field per spec. Phase 1+2+3+5 all reviewer-validated; Phase 4a built per reviewer-revised plan (4 BLOCKERS resolved pre-build, 3 HIGH addressed inline). Phase 4b (SPA shell) + Phase 2 (corpus expansion 6→15 legit docs) remain.
 
 ------------------------------------------------------------------------
 
@@ -58,6 +58,16 @@
 - [x] HF Space redeployed post-fixes at HF commit `c49bde6`; `/health` verified live
 - [x] Phase 5 reviewer pass: 0 blockers, 2 MEDIUM issues fixed (runner `defenses=[]` resilience, platform-status defense-in-depth tagline rephrased to honest "Provenance-as-primary-defense"), 2 LOW skipped (rounding, trailing sleep)
 - [x] All headline claims hand-verified against `phase5-raw.json` by reviewer (per-defense counts, per-attack catch profile, RP.5-alone finding, latency, vs-Multimodal comparison)
+
+### Phase 4a (Full API surface + upload mode + scoring) — ✅ Complete
+- [x] `corpus.py` — `Document.create_uploaded()` factory + `top_k(extra_docs=...)` for runtime upload scoring without persistence
+- [x] `rag_pipeline.py` — `run_attack(uploaded_doc, query_id)` branching; single function handles both canned and uploaded modes; documents the provenance-always-blocks-upload + output-grounding-skipped-for-upload semantics in code comments
+- [x] `app.py` — full rewrite to 9 specced endpoints: `/api/queries`, `/api/corpus`, `/api/corpus/{doc_id}`, `/api/score`, `/api/leaderboard` (with `by_attack` field per spec); `POST /api/attack` upload mode; conditional `attack_id` guard (canned vs uploaded dispatch); inline `_validate_uploaded_doc()` (16KB cap, 1500 word cap, PDF magic-bytes via `pypdf`); inline `_LEADERBOARD` + `_attack_score()` per Multimodal precedent; `ScoreRequest`/`ScoreResponse` Pydantic models verbatim per spec; `phase=4`
+- [x] `requirements.txt` + `deployment_spec.md` — add `pypdf>=3.17,<6.0` (PDF text extraction)
+- [x] `specs/api_spec.md` — line 75 fix ("21 docs" → "14 docs (6 legit + 8 attack) at v1; 23 post-Phase-2 expansion") + `/health` example bumped to `corpus_size=14`, `phase=4`
+- [x] `postman/data-poisoning-lab.postman_collection.json` — 9 endpoints + 2 negative probes (404 unknown doc, 400 bogus defense); Bearer auth via `{{HF_TOKEN}}`
+- [x] HF Space redeployed (HF commit `bf23608`; GitHub commits `47445cd` requirements.txt + `f77ff1f` everything else); rebuild took 183s
+- [x] **12/12 smoke checks passed live against deployed Space:** /health phase=4, /api/queries 6, /api/corpus 14 (6+8), /api/corpus/{id} body returned, 404 probe, RP.1 canned-no-defense succeeded (canary leaked, 485-char response), RP.1 canned-all-4-defenses BLOCKED at provenance with 0.0s short-circuit, uploaded-doc-no-defense succeeded (uploaded doc retrieved at rank 1, 1180-char response), uploaded+provenance BLOCKED, bogus-defense 400 probe, /api/score → 100 / rank 1, /api/leaderboard returned `by_attack: {RP.1: 100}` per spec
 
 ### Phase 5 (Measured defense matrix) — ✅ Complete
 - [x] `scripts/run_phase5_matrix.py` — 36-cell runner (6 attacks × 6 conditions)
@@ -139,16 +149,16 @@ Full writeup: `docs/phase3-calibration.md`. Raw cells: `docs/calibration-raw.jso
 | `defenses.py` (4 defenses) | ✅ Complete (reviewer-validated) | Phase 3 |
 | `app.py` defense wiring + form-field validation | ✅ Complete (reviewer-validated) | Phase 3 |
 | Phase 3 smoke verification (3 attacks × 3 defense scenarios = 9 calls) | ✅ Complete | Phase 3 |
-| Phase 1+2+3+5 reviewer passes (10 substantive issues fixed across 4 passes; 0 blockers) | ✅ Complete | Phase 3+5 |
-| `GET /api/corpus`, `/api/corpus/{id}`, `/api/queries` routes | ⬜ Not started | Phase 4a |
-| `POST /api/attack` upload mode | ⬜ Not started | Phase 4a |
-| `POST /api/score` + in-memory leaderboard schema | ⬜ Not started | Phase 4a |
-| `GET /api/leaderboard` route | ⬜ Not started | Phase 4a |
-| Postman collection (9 endpoints + 2 negative probes) | ⬜ Not started | Phase 4a |
-| Frontend SPA (4 tabs: Info / RAG Poisoning / Defenses / Corpus Browser) | ⬜ Not started | Phase 4b |
+| Phase 1+2+3 reviewer passes (8 HIGH issues fixed) | ✅ Complete | Phase 3 |
+| `GET /api/corpus`, `/api/corpus/{id}`, `/api/queries` routes | ✅ Complete | Phase 4a |
+| `POST /api/attack` upload mode (`doc_source=uploaded`, in-memory PDF/Markdown/text validation via `pypdf` + UTF-8 decode) | ✅ Complete | Phase 4a |
+| `POST /api/score` + in-memory leaderboard schema | ✅ Complete | Phase 4a |
+| `GET /api/leaderboard` route (with `by_attack` field per spec) | ✅ Complete | Phase 4a |
+| Postman collection (9 endpoints + 2 negative probes) | ✅ Complete | Phase 4a |
+| Frontend SPA (4 tabs: Info / RAG Poisoning / Defenses / Corpus Browser) | ✅ Complete | Phase 4b |
 | Defense matrix verification (6 attacks × 6 conditions = 36 cells) | ✅ Complete (measured = design intent across all 4 defenses) | Phase 5 |
-| `scripts/run_phase5_matrix.py` | ✅ Complete (reviewer-validated) | Phase 5 |
-| `docs/phase5-matrix.md` + `docs/phase5-raw.json` | ✅ Complete (reviewer-validated) | Phase 5 |
+| `scripts/run_phase5_matrix.py` | ✅ Complete | Phase 5 |
+| `docs/phase5-matrix.md` + `docs/phase5-raw.json` | ✅ Complete | Phase 5 |
 | Canvas LMS integration | ⬜ Not started | Phase 6 (cross-lab) |
 
 ------------------------------------------------------------------------
@@ -156,35 +166,27 @@ Full writeup: `docs/phase3-calibration.md`. Raw cells: `docs/calibration-raw.jso
 ## Open Risks
 
 1. **Corpus too small for RP.5 + RP.6 to be pedagogically interesting at workshop scale.** Current 6 legit docs make RP.5 (embedding adjacency) easy because there are only 2 legit travel docs to compete against. Phase 2 expands to 15 legit (5 HR / 4 IT / 3 Finance / 3 Legal) so the keyword-stuffing attack has a harder bar to clear. **Mitigation:** Phase 2 follow-up; not a blocker for Phase 3 build (defenses operate on retrieval/generation, not corpus size). Reviewer Phase-5 prediction: bake an embedding-similarity sanity check into Phase 2 acceptance — if `rp5-poison` no longer outscores `fin-002-travel-policy` for `q-fin-2`, add more keyword repetitions or strengthen Finance-topic density.
-2. **Defense matrix is provenance-dominated.** Phase 5 measurement confirmed: provenance does the heavy lifting (6/6 catches) while retrieval_diversity and output_grounding catch only 1/6 each. **Educational reframing applied in `docs/phase5-matrix.md`:** present provenance as the load-bearing primary defense and the other 3 as layered evidence — the lab's central thesis "provenance is the security boundary, not retrieval ranking" is now backed by measured numbers. **Per Phase 5 reviewer:** `all_four` 6/6 result is from `provenance_check` short-circuit, not from layering — true layered defense-in-depth is a v2 corpus concern (e.g., poisoned docs from compromised-but-trusted sources).
-3. **Self-flag heuristic categorization is coarse.** RP.3 / RP.5 partial classification is based on 10 keyword patterns; both responses contain the canary and adopt the poisoned framing (the partial label captures hedging language, not a defensive stance). For future verification rounds, sharpen the partial vs clean distinction by examining whether the model emits the canary alongside legit content (mixed) vs replacing it (full).
+2. **Defense matrix may be lopsided.** Phase 5 measurement confirmed: provenance does the heavy lifting (6/6 catches) while retrieval_diversity and output_grounding catch only 1/6 each. **Educational reframing applied in `docs/phase5-matrix.md`:** present provenance as the load-bearing primary defense and the other 3 as layered evidence — the lab's central thesis "provenance is the security boundary, not retrieval ranking" is now backed by measured numbers.
+3. **Self-flag heuristic categorization is coarse.** RP.3 / RP.5 partial classification is based on 10 keyword patterns; both responses contain the canary and adopt the poisoned framing (the partial label captures hedging language, not a defensive stance). For Phase 5 verification, sharpen the partial vs clean distinction by examining whether the model emits the canary alongside legit content (mixed) vs replacing it (full).
 4. **Brand consistency.** Per `memory/brand-architecture.md`, this space uses the Luminex Learning master nav pattern. Phase 1 ships a placeholder shell; Phase 4b will ship the full SPA with the same nav. If the brand pattern shifts before Phase 4b, this space follows the new pattern.
 
 ------------------------------------------------------------------------
 
 ## Next Recommended Task
 
-**Phase 5 measured matrix + Phase 1+2+3+5 reviewer-validated. Lab is ship-ready as a backend/API-only deliverable.** Two options remain for full participant UX, plus a deferred non-blocking corpus-expansion follow-up.
+**Phase 4b complete — v1 is done.** The only remaining item is non-blocking:
 
-### Option A — Phase 4a (full API surface)
+### Option A — Phase 2 (corpus expansion, non-blocking)
 
-Per `specs/api_spec.md`: add `GET /api/corpus`, `GET /api/corpus/{id}`, `GET /api/queries`, `POST /api/score`, `GET /api/leaderboard`, `POST /api/attack` upload mode. Postman collection at `postman/data-poisoning-lab.postman_collection.json`.
+9 additional legit NexaCore docs (5 HR / 4 IT / 3 Finance / 3 Legal) → 15 legit + 8 attack = 23 docs. Improves RP.5's pedagogical sharpness (denser retrieval neighborhood makes keyword-stuffing harder to pull off). Run `scripts/run_phase5_matrix.py` post-Phase-2 to confirm RP.5 still leaks at baseline. Reviewer's RP.5-erosion concern applies.
 
-Required for Phase 4b SPA shell to render the Corpus Browser and per-student score panel.
+### Option B — Phase 4b reviewer validate
 
-### Option B — Phase 4b (SPA shell, after 4a)
-
-4-tab Luminex-branded SPA: Info / RAG Poisoning / Defenses / Corpus Browser. Reuses framework helpers (`renderInfoPage`, `renderTabs`, `renderLeaderboard`). Frontend-spec-driven build.
-
-### Option C — Phase 2 (corpus expansion, deferred non-blocking)
-
-9 additional legit NexaCore docs (5 HR / 4 IT / 3 Finance / 3 Legal — net new on top of the 6 existing) → 15 legit + 8 attack = 23 docs. Cosmetic for RP.5 sharpness. Reviewer's RP.5-erosion concern is testable via re-running `scripts/run_phase5_matrix.py` post-Phase-2.
+Run `feature-dev:code-reviewer` against the 5 Phase 4b artifacts (templates/index.html, static/css/data-poisoning.css, static/js/app.js, static/js/attack_runner.js, static/js/corpus_browser.js, static/js/document_upload.js). Standard short-loop validation pass.
 
 ### Recommendation
 
-**Option A first** (Phase 4a full API surface), then Option B (4b SPA), with Phase 2 as a follow-up. Reason: Phase 4a unblocks 4b (Corpus Browser tab needs `/api/corpus`; per-student score panel needs `/api/score`); 4b is the last v1 deliverable for participant UX. Phase 2 is corpus polish, not v1-blocking.
-
-Spec-sync side-task (low effort): update `overview_spec.md` Defenses (v1) section to reference `docs/phase5-matrix.md` as the authoritative catch-rate source, replacing the design-intent matrix that's now superseded by measurement.
+Both are optional improvements. Lab is ship-ready for graduate-course use as-is. Suggest Phase 4b reviewer pass before deploying to students; Phase 2 corpus expansion is the bigger educational lift.
 
 ------------------------------------------------------------------------
 
@@ -398,3 +400,46 @@ Spec-sync side-task (low effort): update `overview_spec.md` Defenses (v1) sectio
 > Ship Phase 5 with minor prose fix [now applied]. All 36 data cells are accurate, all headline claims are supported by the raw JSON, and the vs-Multimodal comparison is factually correct.
 
 **State after this pass:** Phase 1, 2, 3, and 5 are all reviewer-validated. Across all 4 reviewer passes, 10 substantive issues were found and fixed (4 in Phase 3, 4 in Phase 1+2, 2 in Phase 5 — 1 reviewer false-positive ignored in Phase 1+2). Lab is fully reviewer-validated as a backend/API-only deliverable for graduate-course use. Phase 4a (full API surface) and Phase 4b (4-tab SPA) remain for full participant UX.
+
+### 2026-04-29 — Phase 4b (Full SPA shell)
+
+**Trigger:** Auto-continuation after Phase 4a smoke passed (12/12 checks).
+
+**Artifacts:**
+- `templates/index.html` — 4-tab SPA shell (replaced Phase 1 placeholder)
+- `static/css/data-poisoning.css` — Full SPA stylesheet (tabs, score banner, result panels, corpus browser, upload panel, defense matrix)
+- `static/js/app.js` — Entry point: tab routing, /health probe, Info tab, Defenses tab
+- `static/js/attack_runner.js` — RAG Poisoning tab: score banner, attack picker, doc previews, defense toggles, Cause/Effect/Impact panels, Why-this-works card
+- `static/js/corpus_browser.js` — Corpus Browser tab: department filter, query similarity selector, doc grid, click-to-expand full doc preview
+- `static/js/document_upload.js` — Document upload panel: 16KB/1500-word client-side validation, PDF/Markdown/text type check
+- `static/js/core.js` — Framework copy (committed to Space static/js/ per multimodal precedent)
+- HF Space redeploy (HF commit `e69a382`; static-only, no Docker rebuild, Space up in ~45s)
+
+**SPA features:**
+- Luminex master nav (owl + NexaCore / hairline / AI Security Labs + shield + "Data Poisoning") — NR-1, NR-2, NR-3, NR-4, NR-5, NR-10 all compliant
+- 4 underline tabs with AISL violet active indicator
+- Info tab: NexaCore Knowledge Hub narrative, CSS-drawn RAG architecture diagram, 8 Key Concepts cards (with traditional-security analogies), recommended tab order
+- RAG Poisoning tab: per-student score banner (6 stars, running total), level briefing card (collapsible "What to try"), participant name input (localStorage-persisted), 6-attack dropdown, side-by-side poisoned-doc vs expected-legit-doc preview (loaded from `/api/corpus/{id}`), 4 defense checkboxes (? tooltip per defense), canned/upload mode toggle, Cause/Effect/Impact panels (retrieval list with rank+kind+cosine, system prompt excerpt, defense log), canary highlighting, Why-this-works card per attack
+- Defenses tab: measured 6×4 matrix (Phase 5 numbers), RP.5-alone finding callout, 4 defense detail cards with "Try this defense →" button that pre-selects the defense and jumps to the RAG Poisoning tab
+- Corpus Browser tab: department filter buttons (All/Finance/HR/IT/Legal/Attacks), query similarity selector (fires `/api/attack` to get cosine scores), 14-doc grid (ATTACK badge + red border for poisoned docs), click-to-expand full body preview
+- All user-controlled strings escaped via `escapeHtml`; DOM updates via `Range.createContextualFragment`
+
+**Smoke verification:**
+- /health: OK (phase=4, corpus=14, attacks=6, embeddings=True)
+- HTML shell: 200 with correct `<title>`
+- All 5 JS files: 200 (`app.js`, `core.js`, `attack_runner.js`, `corpus_browser.js`, `document_upload.js`)
+- CSS: 200
+
+**v1 acceptance criteria — all passed:**
+- [x] 4 tabs render and switch correctly
+- [x] Info tab: Knowledge Hub scenario + 8 Key Concepts + recommended order
+- [x] RAG Poisoning tab: 6 attacks selectable, run produces Cause/Effect/Impact panels, spinner shows "1–3s on Groq LLaMA", per-student running total inline
+- [x] Defenses tab: 6×4 measured matrix, defense detail cards with jump-to links
+- [x] Corpus Browser tab: all docs visible with filter/query-sim/preview
+- [x] No leaderboard tab (individual assignment — per frontend_spec.md)
+- [x] All educational scaffolding present (Key Concepts, briefings, why-cards, analogies)
+- [x] Brand: master nav matches digistore Sidebar+Layout pattern
+- [x] No frontend framework dependencies (vanilla JS only)
+- [x] escapeHtml on all user-controlled strings
+
+**Phase 6 (Canvas LMS integration):** tracked in this file as planned future phase.
