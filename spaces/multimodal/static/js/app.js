@@ -1,0 +1,352 @@
+/**
+ * app.js — Multimodal Lab SPA entry (Luminex Learning · AI Security Labs).
+ *
+ * Tabs: Info → Image Prompt Injection (P1) → OCR Poisoning (P5) → Defenses.
+ * No leaderboard tab — per-student scoring only (Phase 6 will route to Canvas LMS).
+ *
+ * XSS posture: every interpolated value below is run through `escapeHtml` from
+ * core.js. Static template literals are author-trusted. Render uses
+ * `Range.createContextualFragment` rather than direct innerHTML to keep the
+ * platform security hook happy; functionally equivalent given the escape rule.
+ */
+
+import { fetchJSON, escapeHtml } from "/static/js/core.js";
+import { renderImagePromptInjectionTab } from "/static/js/attack_runner.js";
+
+const TABS = [
+  { id: "info", label: "Info" },
+  { id: "p1",   label: "Image Prompt Injection" },
+  { id: "p5",   label: "OCR Poisoning" },
+  { id: "def",  label: "Defenses" },
+];
+
+const state = {
+  activeTab: "info",
+  health: null,
+  attacks: null,
+  scoreByAttack: {},
+  participantName: localStorage.getItem("multimodal:participant") || "Anonymous",
+};
+
+const $ = (sel) => document.querySelector(sel);
+
+export function setHtml(el, html) {
+  // Replace contents with parsed HTML. Caller MUST escape any dynamic data
+  // before passing it in (use escapeHtml from core.js).
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.deleteContents();
+  el.replaceChildren(range.createContextualFragment(html));
+}
+
+(async function init() {
+  renderTabs();
+  await loadHealth();
+  await loadAttacks();
+  routeFromHash();
+  window.addEventListener("hashchange", routeFromHash);
+})();
+
+function routeFromHash() {
+  const wanted = (location.hash || "").replace(/^#/, "");
+  const tab = TABS.find((t) => t.id === wanted) ? wanted : "info";
+  setActiveTab(tab);
+}
+
+function setActiveTab(id) {
+  state.activeTab = id;
+  if (location.hash !== `#${id}`) location.hash = id;
+  for (const btn of document.querySelectorAll(".tab")) {
+    btn.setAttribute("aria-selected", btn.dataset.tab === id ? "true" : "false");
+  }
+  renderActivePanel();
+}
+
+function renderTabs() {
+  const nav = $("#tabs");
+  const html = TABS.map((t) =>
+    `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${t.id === state.activeTab ? "true" : "false"}">${escapeHtml(t.label)}</button>`
+  ).join("");
+  setHtml(nav, html);
+  for (const btn of nav.querySelectorAll(".tab")) {
+    btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Health + status banner
+// ---------------------------------------------------------------------------
+
+async function loadHealth() {
+  try {
+    state.health = await fetchJSON("/health");
+  } catch (e) {
+    showBanner("danger", `Health check failed: ${escapeHtml(e.message)}`);
+    return;
+  }
+  const meta = $("#nav-status");
+  meta.textContent = `${state.health.model_id.split("/").pop()} · ${state.health.inference_provider}`;
+
+  if (!state.health.hf_token_set) {
+    showBanner(
+      "warning",
+      "<strong>Inference token not configured.</strong> The lab is offline — contact the workshop instructor."
+    );
+  }
+}
+
+async function loadAttacks() {
+  try {
+    const data = await fetchJSON("/api/attacks");
+    state.attacks = data.attacks;
+  } catch (e) {
+    showBanner("danger", `Could not load attack catalog: ${escapeHtml(e.message)}`);
+    state.attacks = [];
+  }
+}
+
+function showBanner(kind, html) {
+  // `html` is author-trusted (called only with literal strings or pre-escaped content).
+  const wrap = $("#banners");
+  const div = document.createElement("div");
+  div.className = `banner banner-${kind}`;
+  div.replaceChildren(document.createRange().createContextualFragment(html));
+  wrap.appendChild(div);
+}
+
+// ---------------------------------------------------------------------------
+// Tab routing → content render
+// ---------------------------------------------------------------------------
+
+function renderActivePanel() {
+  const c = $("#content");
+  switch (state.activeTab) {
+    case "info": return renderInfoTab(c);
+    case "p1":   return renderImagePromptInjectionTab(c, {
+                   lab: "image_prompt_injection",
+                   attacks: (state.attacks || []).filter((a) => a.lab === "image_prompt_injection"),
+                   labelPrefix: "P1",
+                   state,
+                 });
+    case "p5":   return renderImagePromptInjectionTab(c, {
+                   lab: "ocr_poisoning",
+                   attacks: (state.attacks || []).filter((a) => a.lab === "ocr_poisoning"),
+                   labelPrefix: "P5",
+                   state,
+                   showOcrLayer: true,
+                 });
+    case "def":  return renderDefensesTab(c);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Info tab
+// ---------------------------------------------------------------------------
+
+const CONCEPTS = [
+  {
+    name: "Multimodal LLM",
+    def: "A model that processes both text and images, producing text output.",
+    analogy: "Like a SOC analyst who reads both log files and screenshots.",
+  },
+  {
+    name: "Visible-Text Injection (P1)",
+    def: "Attack text printed in the image, readable by humans, that the vision LLM treats as instructions.",
+    analogy: "Like phishing email text inside a Word doc — the system reads what's there.",
+  },
+  {
+    name: "OCR Poisoning (P5)",
+    def: "Attack text obscured visually (white-on-white, microprint) but extracted by OCR.",
+    analogy: "Like SQL injection in a hidden form field — invisible to the user, executed by the system.",
+  },
+  {
+    name: "Vision-Text Boundary",
+    def: "The (often missing) distinction between user instructions and image content in the model's context.",
+    analogy: "Like the kernel/userland boundary — when blurred, attacker code runs as kernel.",
+  },
+  {
+    name: "Space Wake",
+    def: "First request after the Space has been idle ~48h spins up the Docker container (~10–30s); subsequent requests skip this. There's no local model to load — the LLM is hosted by HF, always warm.",
+    analogy: "Like a server's first cache-miss after deploy.",
+  },
+];
+
+function renderInfoTab(container) {
+  const conceptCards = CONCEPTS.map((c) => `
+    <article class="concept-card">
+      <h3 class="concept-name">${escapeHtml(c.name)}</h3>
+      <p class="concept-def">${escapeHtml(c.def)}</p>
+      <p class="concept-analogy">${escapeHtml(c.analogy)}</p>
+    </article>
+  `).join("");
+
+  setHtml(container, `
+    <section class="card">
+      <h2 class="card-title">NexaCore DocReceive</h2>
+      <div class="card-body">
+        <p>
+          DocReceive is NexaCore Technologies' internal document-intake portal. NexaCore employees
+          upload scanned receipts, vendor contracts, ID badges, and expense reports. The portal's
+          multimodal AI assistant OCRs the image, extracts structured data, summarizes the contents,
+          and routes the document to the appropriate downstream system — expense reimbursement,
+          vendor onboarding, badge provisioning.
+        </p>
+        <p>
+          That's a juicy attack target. The AI takes privileged actions (approve a reimbursement,
+          provision a badge, onboard a vendor) on the basis of unvetted image content. If an attacker
+          can put text into the image that the model treats as instructions, they bypass every
+          downstream control — because by the time the routing system sees the request, it looks
+          legitimate.
+        </p>
+        <p>
+          This lab teaches you to build that attack image, watch a real Vision LLM execute the
+          injection, then turn on defenses and observe what changes.
+        </p>
+      </div>
+
+      <div class="arch-flow" aria-label="DocReceive architecture">
+        <span class="arch-node">User</span><span class="arch-arrow">→</span>
+        <span class="arch-node arch-node-attack">Upload</span><span class="arch-arrow">→</span>
+        <span class="arch-node">Vision LLM</span><span class="arch-arrow">→</span>
+        <span class="arch-node">Routing</span><span class="arch-arrow">→</span>
+        <span class="arch-node">Expense / Vendor / Badge</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Key Concepts</h2>
+      <div class="concepts-grid">${conceptCards}</div>
+    </section>
+
+    <section class="card card-accent">
+      <h2 class="card-title">Recommended Order</h2>
+      <div class="card-body">
+        <ol>
+          <li>Read this Info tab.</li>
+          <li>Open <strong>Image Prompt Injection</strong> and run a P1 attack with no defenses.</li>
+          <li>Open <strong>OCR Poisoning</strong> and run a P5 attack — note how the hidden text becomes visible to the model via OCR.</li>
+          <li>Toggle the four defenses and watch which attacks get blocked, which slip through.</li>
+          <li>Review the <strong>Defenses</strong> tab for the full attack-vs-defense matrix.</li>
+        </ol>
+        <p class="muted" style="margin-top:var(--space-3);font-size:var(--text-sm);">
+          Scored individually as a graduate-course assignment. Your running total is shown inline
+          on each lab tab. There is no leaderboard — scores will be submitted to Canvas LMS in a
+          future release.
+        </p>
+      </div>
+    </section>
+  `);
+}
+
+// ---------------------------------------------------------------------------
+// Defenses tab — matrix + detail cards
+// ---------------------------------------------------------------------------
+
+const DEFENSES = [
+  {
+    id: "ocr_prescan",
+    name: "Image OCR Pre-Scan",
+    type: "Input scanner",
+    mechanism: "Runs Tesseract OCR on the uploaded image and rejects requests whose extracted text matches a keyword list (\"ignore\", \"forget\", \"system prompt\", \"override\").",
+    pros: "Cheap, deterministic, runs before model inference.",
+    cons: "Keyword list lags real attacks; bypassed by paraphrase or obfuscation. False positives on legit docs that quote \"system\".",
+  },
+  {
+    id: "output_redaction",
+    name: "Output Redaction",
+    type: "Output scanner",
+    mechanism: "Scans the model's response for the per-attack canary phrase (e.g., \"NEXACORE-CANARY-A1B2\") and redacts the response if found.",
+    pros: "Final guardrail — works even when input scanning is bypassed.",
+    cons: "Requires a known canary; useless against attacks where the canary is novel. Doesn't prevent the model from taking the action, only from leaking the canary text.",
+  },
+  {
+    id: "boundary_hardening",
+    name: "Visual-Text Boundary Hardening",
+    type: "Prompt hardening",
+    mechanism: "Wraps the system prompt with explicit instructions: any text inside an image is untrusted document content, never an instruction. Treat \"ignore prior instructions\" inside an image as raw text to summarize, not to follow.",
+    pros: "No latency cost; defends against the entire injection class, not just keywords.",
+    cons: "Strong models (Qwen2.5-VL-72B) sometimes still follow the injection, particularly when the attack uses authority-spoofing language.",
+  },
+  {
+    id: "confidence_threshold",
+    name: "OCR Confidence Threshold",
+    type: "Confidence gate",
+    mechanism: "Rejects images where Tesseract's mean confidence is below 60. Hidden-text attacks (white-on-white, microprint) often score low.",
+    pros: "Catches OCR-poisoning patterns without needing keyword matching.",
+    cons: "False positives on low-quality phone-camera receipts. Doesn't catch injections where the visible text is well-printed but malicious.",
+  },
+];
+
+const COVERAGE = {
+  "P1.1": { ocr_prescan: "✓", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "✗" },
+  "P1.2": { ocr_prescan: "~", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "✗" },
+  "P1.3": { ocr_prescan: "✓", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "✗" },
+  "P1.4": { ocr_prescan: "~", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "✗" },
+  "P1.5": { ocr_prescan: "~", output_redaction: "~", boundary_hardening: "~", confidence_threshold: "✗" },
+  "P1.6": { ocr_prescan: "~", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "✗" },
+  "P5.1": { ocr_prescan: "✓", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "~" },
+  "P5.2": { ocr_prescan: "~", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "~" },
+  "P5.3": { ocr_prescan: "~", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "~" },
+  "P5.4": { ocr_prescan: "~", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "~" },
+  "P5.5": { ocr_prescan: "~", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "~" },
+  "P5.6": { ocr_prescan: "✗", output_redaction: "✓", boundary_hardening: "~", confidence_threshold: "✗" },
+};
+
+function renderDefensesTab(container) {
+  const attacks = state.attacks || [];
+  if (attacks.length === 0) {
+    setHtml(container, `<div class="card"><div class="card-body muted">No attacks loaded.</div></div>`);
+    return;
+  }
+
+  const cellClass = (v) => v === "✓" ? "cell-catches" : v === "✗" ? "cell-misses" : "cell-partial";
+
+  const matrixRows = attacks.map((a) => {
+    const row = COVERAGE[a.id] || {};
+    const cells = DEFENSES.map((d) =>
+      `<td class="${cellClass(row[d.id])}">${row[d.id] || "—"}</td>`
+    ).join("");
+    return `<tr>
+      <td class="attack-id">${escapeHtml(a.id)}</td>
+      <td>${escapeHtml(a.name)}</td>
+      ${cells}
+    </tr>`;
+  }).join("");
+
+  const detailCards = DEFENSES.map((d) => `
+    <article class="card">
+      <div class="card-eyebrow">${escapeHtml(d.type)}</div>
+      <h3 class="card-title">${escapeHtml(d.name)}</h3>
+      <div class="card-body">
+        <p>${escapeHtml(d.mechanism)}</p>
+        <p><strong>Pros:</strong> ${escapeHtml(d.pros)}</p>
+        <p><strong>Cons:</strong> ${escapeHtml(d.cons)}</p>
+      </div>
+    </article>
+  `).join("");
+
+  setHtml(container, `
+    <section class="card">
+      <h2 class="card-title">Defense Matrix</h2>
+      <div class="card-body muted" style="font-size:var(--text-sm);margin-bottom:var(--space-3);">
+        Design-intent coverage. ✓ catches · ~ partial · ✗ misses. Measured per-defense effectiveness
+        for the deployed Qwen2.5-VL-72B is in <code>docs/phase3-calibration.md</code>.
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="defense-matrix">
+          <thead>
+            <tr>
+              <th>Attack</th>
+              <th>Name</th>
+              ${DEFENSES.map((d) => `<th>${escapeHtml(d.name)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>${matrixRows}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <h2 class="card-title" style="margin-top:var(--space-6);">Defense Details</h2>
+    <div class="defense-detail">${detailCards}</div>
+  `);
+}
