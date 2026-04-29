@@ -1,14 +1,13 @@
 """Corpus loader + embedding precompute for the NexaCore Knowledge Hub.
 
-Phase 1 ships a small starter corpus to enable end-to-end smoke testing:
-6 legitimate NexaCore policy documents + 8 poisoned attack documents (one per
-RP.1-RP.5 plus 3 sibling docs for RP.6 multi-doc consensus). Phase 2 expands
-the legitimate set to 15 (5 HR / 4 IT / 3 Finance / 3 Legal) per
-`specs/overview_spec.md`.
+Ships a starter corpus of NexaCore policy documents (6 at Phase 1, expanding
+to 15 at Phase 2) + 8 poisoned attack documents (one per RP.1-RP.5 plus 3
+sibling docs for RP.6 multi-doc consensus). Phase 2 grows the legit set to
+15 (5 HR / 4 IT / 3 Finance / 3 Legal) per `specs/overview_spec.md`.
 
 Embeddings are computed at startup using sentence-transformers MiniLM-L6.
 Vector store is in-memory numpy. Retrieval is brute-force cosine similarity —
-trivial at corpus size ≤30.
+trivial at corpus size <=30.
 """
 
 from __future__ import annotations
