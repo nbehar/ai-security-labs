@@ -1,12 +1,18 @@
 /*
- * luminex-nav.css — Master nav matching digistore-mock-client Sidebar.tsx pattern.
+ * luminex-nav.css — Master nav matching digistore-mock-client header pattern.
  *
- * Layout (single composite block; no vertical divider between owl and text):
+ * Layout:
  *
- *   [owl 48px gold]    Red Team       <- 12px bold primary
- *                      ─────────      <- 1px horizontal hairline
- *                      AI Security    <- 10px medium secondary
- *                      Labs
+ *   [owl 48px gold]  NexaCore         │   [shield] Red Team
+ *                    ─────────        │
+ *                    AI Security Labs │
+ *
+ * Reference: ~/digistore/digistore-mock-client/frontend-v2/src/components/
+ *   - Sidebar.tsx — brand block (owl + DigiStore / GRC Labs)
+ *   - Layout.tsx — page label "DigiStore Security Assessment" with Shield icon
+ *
+ * Brand block contains the fictional customer (NexaCore) over the Luminex
+ * product (AI Security Labs). The page label on the right names the lab/section.
  *
  * Per brand-identity-enforcer non-negotiables:
  *   NR-1  — owl mark in every authenticated nav (.owl-gold filter, brand gold)
@@ -39,7 +45,7 @@
   gap: 3px;
 }
 
-.luminex-nav__section-name {
+.luminex-nav__customer-name {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 700;
@@ -65,16 +71,44 @@
 
 .luminex-nav__spacer { flex: 1; }
 
+/* Page label — the right-side context indicator (parallels "DigiStore
+ * Security Assessment" in digistore Layout.tsx). Shield icon + section name. */
+.luminex-nav__page-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+}
+
+.luminex-nav__page-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent-aisl-highlight);
+  flex-shrink: 0;
+}
+
+.luminex-nav__page-name {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+  letter-spacing: var(--tracking-tight);
+}
+
 .luminex-nav__meta {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   letter-spacing: var(--tracking-wide);
+  padding-left: var(--space-3);
 }
 
 @media (max-width: 768px) {
   .luminex-nav { min-height: 64px; padding: var(--space-2) var(--space-3); }
   .luminex-nav__owl { height: 40px; }
+  .luminex-nav__page-name { font-size: var(--text-base); }
+  .luminex-nav__page-icon { width: 16px; height: 16px; }
   .luminex-nav__meta { display: none; }
 }
 
