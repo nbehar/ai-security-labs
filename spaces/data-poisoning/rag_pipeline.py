@@ -1,4 +1,4 @@
-"""RAG pipeline orchestration: embed query -> retrieve top-k -> LLM compose.
+"""RAG pipeline orchestration: embed query → retrieve top-k → LLM compose.
 
 Phase 3 wires the 4 toggleable defenses (`defenses.py`) at their correct
 stages — provenance + adversarial_filter run before retrieval (low-latency
@@ -68,6 +68,10 @@ def _attack_active_doc_ids(attack: AttackDef) -> list[str]:
     return legit_ids + attack_ids
 
 
+def _legit_doc_ids() -> list[str]:
+    return [d.id for d in CORPUS.all_documents() if d.kind == "legitimate"]
+
+
 def _empty_retrieval(top_k: int) -> dict:
     return {"top_k": top_k, "results": []}
 
@@ -86,8 +90,24 @@ def run_attack(
     attack_id: str,
     groq_client,
     defenses: Optional[list[str]] = None,
+    uploaded_doc: Optional[Document] = None,
+    query_id: Optional[str] = None,
 ) -> dict:
-    """Execute a single canned RAG attack and return the response shape per api_spec.
+    """Execute a single RAG attack and return the response shape per api_spec.
+
+    Two modes:
+    - **Canned mode** (default): `attack_id` is one of RP.1—RP.6; `uploaded_doc`
+      is None. The pre-canned poisoned doc(s) for that attack get included in
+      the active set; the canned attack's target query drives retrieval.
+    - **Upload mode** (Phase 4a): `attack_id="custom"`, `uploaded_doc` is a
+      runtime-built `Document` (via `Document.create_uploaded`), and `query_id`
+      points at one of the 6 employee queries. The uploaded doc is encoded
+      on-the-fly and passed to `top_k(extra_docs=...)` alongside the legit
+      corpus — no persistence. With `provenance_check` enabled, every uploaded
+      attack is BLOCKED at ingestion (uploaded source `(user upload)` fails the
+      `internal-policies/` allowlist). `output_grounding` is effectively
+      SKIPPED for upload mode — the model won't naturally cite the synthetic
+      `uploaded-doc` ID.
 
     Defense order (per `specs/api_spec.md`):
       provenance_check -> adversarial_filter -> retrieve -> retrieval_diversity ->
@@ -98,18 +118,38 @@ def run_attack(
     at output. `blocked_by` carries the name of the defense that fired.
     """
     started = time.monotonic()
-    if attack_id not in ATTACKS:
-        raise ValueError(f"Unknown attack: {attack_id}")
-    attack = ATTACKS[attack_id]
-    query_id = attack["target_query_id"]
-    query = QUERIES[query_id]["text"]
+
+    is_uploaded = uploaded_doc is not None
+    if is_uploaded:
+        if attack_id != "custom":
+            raise ValueError(f"Upload mode requires attack_id='custom', got {attack_id!r}")
+        if not query_id or query_id not in QUERIES:
+            raise ValueError(f"Upload mode requires a valid query_id; got {query_id!r}")
+        attack: dict = {
+            "id": "custom",
+            "poisoned_doc_id": uploaded_doc.id,
+            "target_query_id": query_id,
+            "canary": "",
+        }
+        query = QUERIES[query_id]["text"]
+    else:
+        if attack_id not in ATTACKS:
+            raise ValueError(f"Unknown attack: {attack_id}")
+        attack = ATTACKS[attack_id]
+        query_id = attack["target_query_id"]
+        query = QUERIES[query_id]["text"]
 
     defenses = defenses or []
     defense_log: list[dict] = []
     blocked_by: Optional[str] = None
 
-    active_ids = _attack_active_doc_ids(attack)
-    active_docs = [CORPUS.get(i) for i in active_ids if CORPUS.get(i) is not None]
+    if is_uploaded:
+        active_ids = _legit_doc_ids()
+        active_docs = [CORPUS.get(i) for i in active_ids if CORPUS.get(i) is not None]
+        active_docs.append(uploaded_doc)
+    else:
+        active_ids = _attack_active_doc_ids(attack)
+        active_docs = [CORPUS.get(i) for i in active_ids if CORPUS.get(i) is not None]
 
     # Stage 1 — ingestion-side: provenance_check
     if "provenance_check" in defenses:
@@ -127,12 +167,17 @@ def run_attack(
             if entry["verdict"] == "BLOCKED":
                 blocked_by = "adversarial_filter"
 
+    doc_used = {
+        "source": "uploaded" if is_uploaded else "canned",
+        "doc_id": attack["poisoned_doc_id"],
+    }
+
     # Short-circuit: ingestion-side blocks return before retrieval / LLM
     if blocked_by is not None:
         elapsed = round(time.monotonic() - started, 1)
         return {
             "attack_id": attack_id,
-            "doc_used": {"source": "canned", "doc_id": attack["poisoned_doc_id"]},
+            "doc_used": doc_used,
             "query": query,
             "system_prompt": SYSTEM_PROMPT,
             "retrieval": _empty_retrieval(TOP_K),
@@ -145,9 +190,19 @@ def run_attack(
             "elapsed_seconds": elapsed,
         }
 
-    # Embed query + retrieve top-k from (legit corpus + this attack's poisoned doc(s))
+    # Embed query + retrieve top-k. Upload mode passes the uploaded doc as an
+    # extra_docs entry so it competes for the top-k slot without persisting.
     query_emb = CORPUS.encode(query)
-    top = CORPUS.top_k(query_emb, k=TOP_K, active_doc_ids=active_ids)
+    if is_uploaded:
+        upload_emb = CORPUS.encode(uploaded_doc.body_markdown)
+        top = CORPUS.top_k(
+            query_emb,
+            k=TOP_K,
+            active_doc_ids=active_ids,
+            extra_docs=[(uploaded_doc, upload_emb)],
+        )
+    else:
+        top = CORPUS.top_k(query_emb, k=TOP_K, active_doc_ids=active_ids)
     retrieval = _format_retrieval(top)
 
     # Stage 3 — retrieval-side: retrieval_diversity
@@ -162,7 +217,7 @@ def run_attack(
         elapsed = round(time.monotonic() - started, 1)
         return {
             "attack_id": attack_id,
-            "doc_used": {"source": "canned", "doc_id": attack["poisoned_doc_id"]},
+            "doc_used": doc_used,
             "query": query,
             "system_prompt": SYSTEM_PROMPT,
             "retrieval": retrieval,
@@ -209,12 +264,21 @@ def run_attack(
                 response_text = ""  # spec: blocked response returns empty model_response
 
     canary = attack["canary"]
-    succeeded = bool(response_text) and canary.lower() in response_text.lower() and blocked_by is None
+    if is_uploaded:
+        # No canary in upload mode — success means the uploaded doc made it
+        # into the top-k AND the model produced a response (not blocked).
+        succeeded = (
+            bool(response_text)
+            and any(d.id == uploaded_doc.id for d, _ in top)
+            and blocked_by is None
+        )
+    else:
+        succeeded = bool(response_text) and canary.lower() in response_text.lower() and blocked_by is None
     elapsed = round(time.monotonic() - started, 1)
 
     return {
         "attack_id": attack_id,
-        "doc_used": {"source": "canned", "doc_id": attack["poisoned_doc_id"]},
+        "doc_used": doc_used,
         "query": query,
         "system_prompt": SYSTEM_PROMPT,
         "retrieval": retrieval,

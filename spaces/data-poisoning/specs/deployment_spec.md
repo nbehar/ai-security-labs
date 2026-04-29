@@ -29,7 +29,7 @@ Define the runtime: hardware tier, model + embedding choices, Dockerfile, enviro
 
 ### Embeddings — sentence-transformers MiniLM-L6
 
-- **Library:** `sentence-transformers>=2.5.0,<5.0.0`
+- **Library:** `sentence-transformers>=2.5.0`
 - **Model:** `sentence-transformers/all-MiniLM-L6-v2` (384-dim)
 - **Why this model:** Standard educational embedding choice. Small (90MB download, instant load on CPU). Fast (10-30ms per encode on cpu-basic). Differentiates well between semantically distinct docs at corpus scale ≤30.
 - **Env-overridable:** `EMBEDDING_MODEL` env var — operator can swap to `all-mpnet-base-v2` (768-dim, 5× larger, more accurate) if MiniLM-L6 turns out insufficient during defense matrix verification.
@@ -58,6 +58,7 @@ sentence-transformers>=2.5.0,<5.0.0
 numpy>=1.24.0,<3.0.0
 groq>=0.4.0,<1.0.0               # the Groq Python SDK
 slowapi>=0.1.9,<1.0.0
+pypdf>=3.17,<6.0                 # PDF text extraction for upload mode (Phase 4a)
 ```
 
 Note: `sentence-transformers` pulls in `torch` (CPU wheel ~200MB). Total Docker image size ≈ 1.2 GB. Comparable to Multimodal Lab post-Tesseract.
@@ -136,7 +137,7 @@ Same pattern Multimodal Lab uses post-Phase 4. Faster than full `deploy.sh` for 
 ## Cold-Start Behavior
 
 - **Space-wake from 48h idle:** ~10-30s for HF to spin up the Docker container.
-- **Embedding model first-encode:** model is pre-downloaded into the image (Dockerfile RUN line above) but lazy-loads on first encode → ~1-2s on first `POST /api/attack` after container start. The Multimodal-Lab-style "warm at startup" pattern: encode the seed docs at app init so the first user request is hot.
+- **Embedding model first-encode:** model is pre-downloaded into the image (Dockerfile RUN line above) but lazy-loads on first encode → ~1-2s on first `POST /api/attack` after container start. The Multimodal-Lab-style "warm at startup" pattern: encode the 15 seed docs at app init so the first user request is hot.
 - **Per `/api/attack`:** ~1-3s for Groq LLaMA + ~10-30ms embed. Well under the deployment_spec.md "10-20s typical" budget.
 
 The frontend MUST display "Composing answer… (1-3s)" rather than the Multimodal Lab's "10-20s on the 72B model" — the latency profile is different here.

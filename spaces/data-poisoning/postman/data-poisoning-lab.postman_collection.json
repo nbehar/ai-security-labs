@@ -1,0 +1,33 @@
+{
+  "info": {
+    "_postman_id": "ai-sec-lab5-data-poisoning-v1",
+    "name": "Data Poisoning Lab",
+    "description": "Phase 4a API contract for the AI Security Labs Data Poisoning workshop. All 9 specced endpoints + 2 negative probes. Set the {{base_url}} and {{HF_TOKEN}} collection variables before running. The Space is private — every request requires the Bearer token.\n\nSmoke test order:\n1. GET /health\n2. GET /api/attacks\n3. GET /api/queries\n4. GET /api/corpus\n5. GET /api/corpus/{doc_id}\n6. POST /api/attack (canned, no defenses)\n7. POST /api/attack (canned, all 4 defenses)\n8. POST /api/attack (uploaded — attach a local .md or .pdf to doc_file before sending)\n9. POST /api/score\n10. GET /api/leaderboard\n11. Negative probes (404 + 400)\n\nRate-limit probe: fire request #6 eleven times within 60s; the 11th should return 429.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{"key": "token", "value": "{{HF_TOKEN}}", "type": "string"}]
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://nikobehar-ai-sec-lab5-data-poisoning.hf.space", "type": "string"},
+    {"key": "HF_TOKEN", "value": "", "type": "string", "description": "Set in your Postman environment, never commit"},
+    {"key": "attack_id", "value": "RP.1", "type": "string"},
+    {"key": "doc_id", "value": "fin-001-reimbursement-2025", "type": "string"},
+    {"key": "query_id", "value": "q-fin-1", "type": "string"}
+  ],
+  "item": [
+    {"name": "GET /health", "request": {"method": "GET", "url": {"raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"]}}, "response": []},
+    {"name": "GET /api/attacks", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/attacks", "host": ["{{base_url}}"], "path": ["api", "attacks"]}}, "response": []},
+    {"name": "GET /api/queries", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/queries", "host": ["{{base_url}}"], "path": ["api", "queries"]}}, "response": []},
+    {"name": "GET /api/corpus", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/corpus", "host": ["{{base_url}}"], "path": ["api", "corpus"]}}, "response": []},
+    {"name": "GET /api/corpus/{doc_id}", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/corpus/{{doc_id}}", "host": ["{{base_url}}"], "path": ["api", "corpus", "{{doc_id}}"]}}, "response": []},
+    {"name": "POST /api/attack (canned, no defenses)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "{{attack_id}}", "type": "text"}, {"key": "doc_source", "value": "canned", "type": "text"}, {"key": "defenses", "value": "[]", "type": "text"}, {"key": "participant_name", "value": "PostmanSmoke", "type": "text"}]}}, "response": []},
+    {"name": "POST /api/attack (canned, all 4 defenses)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "{{attack_id}}", "type": "text"}, {"key": "doc_source", "value": "canned", "type": "text"}, {"key": "defenses", "value": "[\"provenance_check\",\"adversarial_filter\",\"retrieval_diversity\",\"output_grounding\"]", "type": "text"}, {"key": "participant_name", "value": "PostmanSmoke", "type": "text"}]}}, "response": []},
+    {"name": "POST /api/attack (uploaded)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "custom", "type": "text"}, {"key": "doc_source", "value": "uploaded", "type": "text"}, {"key": "target_query_id", "value": "{{query_id}}", "type": "text"}, {"key": "doc_file", "type": "file", "src": [], "description": "Attach a local .md / .txt / .pdf ≤16KB, ≤1500 words"}, {"key": "defenses", "value": "[]", "type": "text"}, {"key": "participant_name", "value": "PostmanSmoke", "type": "text"}]}, "description": "Manually attach a local .md/.txt/.pdf to the doc_file field before sending. Backend validates size + magic-bytes (PDFs); never writes to disk. With provenance_check enabled this WILL block at ingestion (by design)."}, "response": []},
+    {"name": "POST /api/score", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/score", "host": ["{{base_url}}"], "path": ["api", "score"]}, "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"participant_name\": \"PostmanSmoke\",\n  \"attack_id\": \"{{attack_id}}\",\n  \"succeeded\": true,\n  \"defenses_applied\": [],\n  \"attempts\": 1\n}"}}, "response": []},
+    {"name": "GET /api/leaderboard", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/leaderboard", "host": ["{{base_url}}"], "path": ["api", "leaderboard"]}}, "response": []},
+    {"name": "GET /api/corpus/UNKNOWN (404 probe)", "request": {"method": "GET", "url": {"raw": "{{base_url}}/api/corpus/bogus-doc-id", "host": ["{{base_url}}"], "path": ["api", "corpus", "bogus-doc-id"]}, "description": "Should return 404 with 'Unknown document' detail."}, "response": []},
+    {"name": "POST /api/attack (bogus defense, 400 probe)", "request": {"method": "POST", "url": {"raw": "{{base_url}}/api/attack", "host": ["{{base_url}}"], "path": ["api", "attack"]}, "body": {"mode": "formdata", "formdata": [{"key": "attack_id", "value": "{{attack_id}}", "type": "text"}, {"key": "doc_source", "value": "canned", "type": "text"}, {"key": "defenses", "value": "[\"bogus_defense\"]", "type": "text"}]}, "description": "Should return 400 with the list of known defense IDs."}, "response": []}
+  ]
+}

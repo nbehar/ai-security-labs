@@ -20,9 +20,9 @@ Used by the frontend init to detect missing config and by smoke tests.
   "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
   "llm_model": "llama-3.3-70b-versatile",
   "attack_count": 6,
-  "corpus_size": 21,
+  "corpus_size": 14,
   "embeddings_loaded": true,
-  "phase": 1
+  "phase": 4
 }
 ```
 
@@ -72,7 +72,7 @@ Returns the 6 employee queries that the attacks target. Used by the Corpus Brows
 
 ### `GET /api/corpus` — list corpus
 
-Returns metadata for all 21 documents (15 legitimate + 6 attack). Used by the Corpus Browser tab.
+Returns metadata for all corpus documents (6 legitimate + 8 attack = 14 docs at v1; 23 post-Phase-2 expansion). Used by the Corpus Browser tab.
 
 **Response:**
 ```json

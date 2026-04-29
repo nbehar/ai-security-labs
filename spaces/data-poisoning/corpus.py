@@ -7,7 +7,7 @@ sibling docs for RP.6 multi-doc consensus). Phase 2 grows the legit set to
 
 Embeddings are computed at startup using sentence-transformers MiniLM-L6.
 Vector store is in-memory numpy. Retrieval is brute-force cosine similarity —
-trivial at corpus size <=30.
+trivial at corpus size ≤30.
 """
 
 from __future__ import annotations
@@ -62,6 +62,25 @@ class Document:
         if self.attack_id:
             d["attack_id"] = self.attack_id
         return d
+
+    @classmethod
+    def create_uploaded(cls, body_markdown: str, title: str = "(user upload)") -> "Document":
+        """Factory for the runtime-uploaded poisoned doc.
+
+        Never persisted to the corpus; passed to `run_attack` as an in-memory
+        Document so retrieval can score it alongside the legit corpus. Source is
+        `(user upload)` which fails the `provenance_check` allowlist by design —
+        with provenance enabled, every uploaded attack is BLOCKED at ingestion.
+        """
+        return cls(
+            id="uploaded-doc",
+            title=title,
+            department="Custom",
+            source="(user upload)",
+            kind="attack",
+            body_markdown=body_markdown,
+            attack_id="custom",
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -394,12 +413,17 @@ class CorpusStore:
         query_embedding: np.ndarray,
         k: int = 3,
         active_doc_ids: list[str] | None = None,
+        extra_docs: list[tuple["Document", np.ndarray]] | None = None,
     ) -> list[tuple[Document, float]]:
         """Return (Document, score) for the top-k docs by cosine similarity.
 
         `active_doc_ids` filters which corpus subset participates — used at
         attack time to inject the poisoned doc(s) and exclude the trusted-corpus
         docs the attack isn't testing against. If None, the full corpus is used.
+
+        `extra_docs` is a list of (Document, embedding) pairs that aren't in the
+        persistent corpus — used by Phase 4a upload mode to score a runtime
+        uploaded doc against the legit corpus without persisting it.
         """
         candidates = active_doc_ids if active_doc_ids is not None else list(self._docs_by_id.keys())
         scores: list[tuple[Document, float]] = []
@@ -409,6 +433,10 @@ class CorpusStore:
                 continue
             score = float(np.dot(query_embedding, emb))
             scores.append((self._docs_by_id[doc_id], score))
+        if extra_docs:
+            for doc, emb in extra_docs:
+                score = float(np.dot(query_embedding, emb))
+                scores.append((doc, score))
         scores.sort(key=lambda pair: (-pair[1], pair[0].id))  # deterministic tie-break
         return scores[:k]
 
