@@ -48,7 +48,7 @@ export function renderDocUploadPanel(host, { onSelect, onError }) {
     const ext = ("." + file.name.split(".").pop()).toLowerCase();
     const mime = file.type.toLowerCase();
 
-    if (!ALLOWED_EXTS.has(ext) && !ALLOWED_TYPES.has(mime)) {
+    if (!ALLOWED_EXTS.has(ext) || !ALLOWED_TYPES.has(mime)) {
       onError(`File type not allowed. Use .md, .txt, or .pdf.`);
       setHtml(previewArea, "");
       return;
