@@ -30,42 +30,20 @@
     </div>
   </header>
 
-  <main class="page">
-    <div class="page-eyebrow">Phase 1 · Backend skeleton</div>
-    <h1 class="page-title">Data Poisoning Lab</h1>
-    <p class="page-subtitle">RAG corpus poisoning attacks against the NexaCore Knowledge Hub. The full 4-tab SPA ships in Phase 4b.</p>
+  <div id="banners" class="banners-container"></div>
 
-    <section class="card card-accent">
-      <h2 class="card-title">Backend-only deploy</h2>
-      <div class="card-body">
-        <p>
-          The frontend SPA (Info / RAG Poisoning / Defenses / Corpus Browser tabs) is
-          authored in Phase 4b. For Phase 1, the API surface is live at:
-        </p>
-        <ul>
-          <li><code>GET /health</code> — token state, embedding/LLM model IDs, attack count, corpus size</li>
-          <li><code>GET /api/attacks</code> — list of 6 RP attack definitions</li>
-          <li><code>POST /api/attack</code> — run a canned RAG poisoning attack (canned mode only at v1; <code>defenses</code> form field accepted but not yet enforced)</li>
-          <li>OpenAPI docs at <a href="/docs"><code>/docs</code></a></li>
-        </ul>
-      </div>
-    </section>
+  <div class="page">
+    <div class="page-header">
+      <div class="page-eyebrow">AI Security Labs · Lab 5</div>
+      <h1 class="page-title">Data Poisoning</h1>
+      <p class="page-subtitle">RAG corpus poisoning attacks against the NexaCore Knowledge Hub.</p>
+    </div>
 
-    <section class="card">
-      <h2 class="card-title">v1 scope</h2>
-      <div class="card-body">
-        <p>
-          6 RAG poisoning attacks (RP.1 — RP.6) anchored in the NexaCore Knowledge Hub
-          scenario. Stack: Groq <code>llama-3.3-70b-versatile</code> + sentence-transformers
-          MiniLM-L6 embeddings + in-memory cosine retrieval. Hardware: HF Spaces
-          <code>cpu-basic</code>.
-        </p>
-        <p class="muted">
-          Tracking: <a href="https://github.com/nbehar/ai-security-labs/issues/22">issue #22</a>.
-          Specs: <code>spaces/data-poisoning/specs/</code> in the monorepo.
-        </p>
-      </div>
-    </section>
-  </main>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Lab sections"></nav>
+
+    <main id="content" role="tabpanel" aria-live="polite"></main>
+  </div>
+
+  <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>
