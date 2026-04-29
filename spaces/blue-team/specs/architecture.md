@@ -54,9 +54,9 @@ The Blue Team Workshop reuses attack definitions and defense tools from the shar
 The app uses a horizontal tab bar at the top (not a sidebar — this distinguishes it from the OWASP workshop).
 
 ```
-┌──────────────────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────┐
 │  Blue Team Workshop                          [EN] [ES]   │
-├──────────┬────────────┬──────────────┬─────────────────────┤
+├──────────┬────────────┬──────────────┬─────────────────────┐
 │   Info   │ Challenges │ Free Defense │   Leaderboard     │
 └──────────┴────────────┴──────────────┴─────────────────────┘
 ```
@@ -381,6 +381,67 @@ Any new Blue Team educational feature MUST either reuse one of these helpers or 
 - Removing the Info-tab Key Concepts card without replacing it constitutes a regression — CC-level students rely on it for terminology grounding.
 - Adding a new attack/defense without an analogous educational scaffolding entry (briefing, WHY card, hint) is incomplete per CLAUDE.md spec-first rules.
 - Per-level WHY card content MUST come from the backend response, not be hardcoded in JS — this lets attack-specific explanations evolve with the attack list.
+
+---
+
+## Brand & Identity
+
+This space ships under the **Luminex Learning** master brand as a section within the **AI Security Labs** product. It is NOT a standalone "Blue Team Labs" Luminex product — that would be a separate general-blue-team product at the Luminex Learning company level. In this monorepo, every space (`blue-team`, `red-team`, `multimodal`, `owasp-top-10`, plus the planned ones) is one section within the single AI Security Labs product. Brand compliance is enforced by the `brand-identity-enforcer` skill (rule references below).
+
+### Master Nav (NR-1, NR-2, NR-10)
+
+The page header is a two-block stacked-text nav at the top of every authenticated page:
+
+```
+[owl 32px gold]   │   Blue Team
+LUMINEX           │   AI Security Labs
+LEARNING          │
+```
+
+- **Block 1 (master brand):** owl mark from `static/owl.svg` rendered with `.owl-gold` class (`--owl-filter-gold` filter, brand gold `#fbbf24`). Two-line wordmark "Luminex Learning" in 11px small caps, widest letter-spacing. The owl is ALWAYS brand gold (NR-10) — never product accent, never white except on gold backgrounds.
+- **Vertical divider:** full-height (`align-self: stretch`).
+- **Block 2 (product/section):** "Blue Team" (text-md bold, primary text color) over "AI Security Labs" (text-xs medium, AISL violet `--color-accent-aisl-highlight #a78bfa`).
+- **Sub-header:** the existing `<header class="hero">` is retained as the section sub-header (page title, descriptor) — the master nav does not replace it.
+
+### Tokens & Colors (NR-3, NR-8)
+
+- Page background MUST be `#09090f` / `--color-bg-base` (NR-3). Enforced via `static/css/luminex-bridge.css` which overrides the framework's `--bg` variable.
+- No hardcoded color primitives in product code (NR-8). Framework legacy variables (`--bg`, `--surface`, `--blue`, `--red`, etc.) are repointed at Luminex tokens by the bridge; the framework's `styles.css` is unmodified.
+- AISL violet `--color-accent-aisl-interactive #7c3aed` for product-scoped CTA fills, `--color-accent-aisl-highlight #a78bfa` for active tabs (Prompt Hardening / WAF Rules / Pipeline Builder / Behavioral Testing / Leaderboard) and accent text. Brand gold `#fbbf24` is reserved for the master nav owl + wordmark.
+- The BTL cyan `#22d3ee` is NOT used in this space — that accent is for the standalone "Blue Team Labs" Luminex product, not for AI Security Labs sections.
+
+### Typography (NR-5)
+
+- Inter for body, headings, UI; JetBrains Mono for code, mono indicators (the WAF rules editor uses mono; the F1 score badges use mono). DM Serif Display is marketing-only and never appears in this space's UI.
+- Loaded via Google Fonts preconnect in `templates/index.html`.
+
+### Naming (NR-2, NR-4)
+
+- Brand name in nav: "Luminex Learning" (two words, both capitalized) — never "Luminex Lab", "Luminex", or any abbreviation as a brand name.
+- Product label in nav: "AI Security Labs" — not "AI Security Lab" (singular).
+- Section label in nav: "Blue Team" — not "Blue Team Workshop", "Blue Team Lab", "Blue Team Labs".
+- "NexaCore Technologies" is the in-product fictional context (employees defending the NexaCore portal), NOT a brand. The previous `<span class="hero__sub">NexaCore Technologies</span>` was a NR-4 risk (read as a sub-brand); has been demoted to "NexaCore scenario" in the hero.
+
+### Vendored Assets
+
+| Asset | Source of truth | Committed to GitHub? |
+|-------|-----------------|----------------------|
+| `static/owl.svg` | `~/luminex/owl.svg` (~200KB) | **No** (gitignored). Copied to the HF Space at deploy time via `hf upload --include="static/owl.svg"`. |
+| `static/css/luminex-tokens.css` | `~/luminex/brand-system/design-tokens.json` (full :root block) | **Yes** (5.5KB text). Re-vendor only on formal brand-system spec revision. |
+| `static/css/luminex-bridge.css` | This space (authored 2026-04-29) | **Yes**. Maps framework `--bg/--surface/--blue/...` → Luminex tokens. |
+| `static/css/luminex-nav.css` | This space (authored 2026-04-29) | **Yes**. Master nav + hero-subdue styling. |
+| `static/css/styles.css` | `framework/static/css/styles.css` | **No** (gitignored as a deploy-time copy). |
+| `static/js/core.js` | `framework/static/js/core.js` | **No** (gitignored as a deploy-time copy). |
+
+CSS load order (in `templates/index.html`): `styles.css` → `luminex-bridge.css` → `luminex-nav.css`. The bridge runs after styles.css so the `:root` cascade overrides framework defaults; the nav stylesheet runs last so its hero-subdue rules win.
+
+### Constraints (Don't Regress)
+
+- The master nav MUST appear at the top of every authenticated page. Removing or omitting the owl mark, the wordmark, or the section/product block constitutes a brand regression (NR-1 + NR-2).
+- Page background MUST remain `#09090f`; do not introduce light-mode.
+- The owl filter MUST remain brand gold; do not switch it to AISL violet for "consistency with the rest of the page" (NR-10).
+- "Blue Team" (the section label) is NOT a Luminex product name. Do not promote it to product status in nav copy.
+- The Leaderboard tab stays in this space (this is a competitive workshop). Don't confuse with the Multimodal Lab pattern, which omits the leaderboard tab because it's a graduate-individual assignment.
 
 ---
 
