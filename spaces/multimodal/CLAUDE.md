@@ -176,7 +176,9 @@ Claude MUST NOT:
 
 # Current Status
 
-**Phase 4a complete** as of 2026-04-28. Live at `nikobehar/ai-sec-lab4-multimodal` with all 8 specced endpoints, 4 toggleable defenses, image upload mode, scoring + leaderboard, and 10/min rate limit. Phase 4b (frontend SPA shell — `templates/index.html` rewrite + 4 JS modules) is next.
+**Phase 4a complete** as of 2026-04-28. Live at `nikobehar/ai-sec-lab4-multimodal` with all 8 specced endpoints, 4 toggleable defenses, image upload mode, scoring API, and 10/min rate limit. Phase 4b (frontend SPA shell — `templates/index.html` rewrite + 4 JS modules) is next.
+
+**Workshop usage:** Individual graduate-course assignments (not competitive). Phase 4b ships 4 tabs (Info / P1 / P5 / Defenses) — no leaderboard tab. The `POST /api/score` and `GET /api/leaderboard` backend endpoints stay alive for the eventual **Phase 6: Canvas LMS integration** (autograde + score submission via Canvas API).
 
 See `docs/project-status.md` for active task and next steps; calibration baseline lives at `docs/phase3-calibration.md`.
 
