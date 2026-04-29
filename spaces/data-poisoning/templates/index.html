@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Poisoning · AI Security Labs · Luminex Learning</title>
+  <link rel="icon" type="image/svg+xml" href="/static/owl.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/luminex-tokens.css">
+  <link rel="stylesheet" href="/static/css/data-poisoning.css">
+</head>
+<body>
+  <header class="nav" role="banner">
+    <img src="/static/owl.svg" alt="Luminex Learning" class="owl-gold nav-owl">
+    <div class="nav-brand-text">
+      <span class="nav-customer-name">NexaCore</span>
+      <div class="nav-hairline" aria-hidden="true"></div>
+      <span class="nav-product-name">AI Security Labs</span>
+    </div>
+    <span class="nav-spacer"></span>
+    <div class="nav-page-label">
+      <svg class="nav-page-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+      </svg>
+      <span class="nav-page-name">Data Poisoning</span>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-eyebrow">Phase 1 · Backend skeleton</div>
+    <h1 class="page-title">Data Poisoning Lab</h1>
+    <p class="page-subtitle">RAG corpus poisoning attacks against the NexaCore Knowledge Hub. The full 4-tab SPA ships in Phase 4b.</p>
+
+    <section class="card card-accent">
+      <h2 class="card-title">Backend-only deploy</h2>
+      <div class="card-body">
+        <p>
+          The frontend SPA (Info / RAG Poisoning / Defenses / Corpus Browser tabs) is
+          authored in Phase 4b. For Phase 1, the API surface is live at:
+        </p>
+        <ul>
+          <li><code>GET /health</code> — token state, embedding/LLM model IDs, attack count, corpus size</li>
+          <li><code>GET /api/attacks</code> — list of 6 RP attack definitions</li>
+          <li><code>POST /api/attack</code> — run a canned RAG poisoning attack (canned mode only at v1; <code>defenses</code> form field accepted but not yet enforced)</li>
+          <li>OpenAPI docs at <a href="/docs"><code>/docs</code></a></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">v1 scope</h2>
+      <div class="card-body">
+        <p>
+          6 RAG poisoning attacks (RP.1 — RP.6) anchored in the NexaCore Knowledge Hub
+          scenario. Stack: Groq <code>llama-3.3-70b-versatile</code> + sentence-transformers
+          MiniLM-L6 embeddings + in-memory cosine retrieval. Hardware: HF Spaces
+          <code>cpu-basic</code>.
+        </p>
+        <p class="muted">
+          Tracking: <a href="https://github.com/nbehar/ai-security-labs/issues/22">issue #22</a>.
+          Specs: <code>spaces/data-poisoning/specs/</code> in the monorepo.
+        </p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
