@@ -1,22 +1,36 @@
 // admin.js — exam-admin instructor verification and grading tool
 
 const API = {
-  verify:      '/api/verify',
-  batchVerify: '/api/batch-verify',
-  rubric:      (lab) => `/api/rubric/${lab}`,
-  ltiGrade:    '/api/lti/grade',
-  health:      '/health',
+  verify:       '/api/verify',
+  batchVerify:  '/api/batch-verify',
+  rubric:       (lab) => `/api/rubric/${lab}`,
+  ltiGrade:     '/api/lti/grade',
+  health:       '/health',
+  adminProxy:   '/api/admin/proxy',
+  generateTokens: '/api/admin/generate-tokens',
+};
+
+// Known lab space URLs (auto-populated by lab_id from receipt)
+const LAB_URLS = {
+  'red-team':             'https://nikobehar-red-team-workshop.hf.space',
+  'detection-monitoring': 'https://nikobehar-ai-sec-lab6-detection.hf.space',
+  'blue-team':            'https://nikobehar-blue-team-workshop.hf.space',
+  'owasp-top-10':         'https://nikobehar-llm-top-10.hf.space',
 };
 
 // =========================================================================
 // Init
 // =========================================================================
 
+let _rosterTimer = null;
+
 async function init() {
   try {
     const h = await fetchJSON(API.health);
     if (!h.exam_secret_configured) {
       document.getElementById('config-warning').classList.remove('hidden');
+      const gw = document.getElementById('generate-warning');
+      if (gw) gw.classList.remove('hidden');
     }
     const navStatus = document.getElementById('nav-status');
     if (navStatus) navStatus.textContent = h.lti_configured ? 'LTI enabled' : 'LTI disabled';
@@ -25,6 +39,8 @@ async function init() {
   setupViewNav();
   setupDropZone('drop-zone', 'file-input', false);
   setupDropZone('batch-drop-zone', 'batch-file-input', true);
+  setupRosterView();
+  setupGenerateView();
 }
 
 async function fetchJSON(url, opts = {}) {
@@ -41,20 +57,32 @@ async function fetchJSON(url, opts = {}) {
 // View nav
 // =========================================================================
 
+const VIEWS = ['verify', 'batch', 'roster', 'generate'];
+
 function setupViewNav() {
   document.querySelectorAll('.view-nav__btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.view-nav__btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-nav__btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
       const active = btn.dataset.view;
-      document.getElementById('view-verify').classList.toggle('hidden', active !== 'verify');
-      document.getElementById('view-batch').classList.toggle('hidden', active !== 'batch');
+      VIEWS.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.toggle('hidden', v !== active);
+      });
+      if (active !== 'roster' && _rosterTimer) {
+        clearInterval(_rosterTimer);
+        _rosterTimer = null;
+      }
     });
   });
 }
 
 // =========================================================================
-// Drop zones
+// Drop zones (shared helper)
 // =========================================================================
 
 function setupDropZone(zoneId, inputId, multiple) {
@@ -62,8 +90,10 @@ function setupDropZone(zoneId, inputId, multiple) {
   const input = document.getElementById(inputId);
   if (!zone || !input) return;
 
-  zone.addEventListener('click', () => input.click());
-  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+  const trigger = () => input.click();
+  zone.addEventListener('click', e => { if (!e.target.matches('button')) trigger(); });
+  zone.querySelector('button')?.addEventListener('click', e => { e.stopPropagation(); trigger(); });
+  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') trigger(); });
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', e => {
@@ -147,6 +177,13 @@ function renderVerifyResult(result) {
   const saBtn = t.submitted !== false
     ? '<button class="expand-btn" id="sa-toggle-btn">▼ Short Answers &amp; Rubric</button>' : '';
 
+  const accomBtn = result.hmac_valid
+    ? '<button class="expand-btn" id="accom-toggle-btn">⚙ Accommodation Controls</button>' : '';
+
+  const exIds = (p.exercises || []).map(ex => ex.exercise_id);
+  const exSelOpts = exIds.map(id => `<option value="${esc(id)}">${esc(id)}</option>`).join('');
+  const defaultLabUrl = LAB_URLS[result.lab_id] || '';
+
   return `
     <div class="result-card">
       <div class="result-card__header">
@@ -179,8 +216,44 @@ function renderVerifyResult(result) {
         ${saBtn}
         <button class="expand-btn" id="csv-export-btn">↓ Export CSV Row</button>
         <button class="expand-btn" id="lti-grade-btn" style="display:none">Submit Grade to Canvas</button>
+        ${accomBtn}
       </div>
       <div id="sa-panel" class="sa-panel hidden"></div>
+      <div id="accom-panel" class="accom-panel hidden">
+        <div class="accom-panel__title">⚙ Accommodation Controls</div>
+        <p class="accom-note">These controls reach the live exam session on the lab server.
+           The student token comes from your roster CSV.</p>
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label" for="accom-lab-url">Lab Space URL</label>
+            <input type="url" id="accom-lab-url" class="form-input" value="${esc(defaultLabUrl)}">
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="accom-token">Student Token</label>
+            <input type="text" id="accom-token" class="form-input" placeholder="Paste from roster CSV">
+          </div>
+        </div>
+        <div class="accom-actions">
+          <div class="accom-action-row">
+            <span class="accom-label">Extend time</span>
+            <input type="number" id="accom-minutes" class="form-input form-input--narrow" value="60" min="1">
+            <span style="font-size:var(--text-sm);color:var(--color-text-secondary)">min</span>
+            <button class="expand-btn" id="accom-extend-btn">Add Time</button>
+          </div>
+          <div class="accom-action-row">
+            <span class="accom-label">Reset exercise</span>
+            <select id="accom-exercise-sel" class="form-input form-input--narrow">${exSelOpts}</select>
+            <input type="text" id="accom-reason" class="form-input" placeholder="reason">
+            <button class="expand-btn" id="accom-reset-btn">Reset</button>
+          </div>
+          <div class="accom-action-row">
+            <button class="expand-btn" id="accom-pause-btn">Pause Exam</button>
+            <button class="expand-btn" id="accom-resume-btn">Resume Exam</button>
+          </div>
+        </div>
+        <div id="accom-log" class="accom-log hidden"></div>
+        <div id="accom-error" class="error-msg hidden" role="alert" style="margin-top:var(--space-3)"></div>
+      </div>
     </div>`;
 }
 
@@ -189,6 +262,8 @@ function bindVerifyActions(result) {
   const saPanel  = document.getElementById('sa-panel');
   const csvBtn   = document.getElementById('csv-export-btn');
   const ltiBtn   = document.getElementById('lti-grade-btn');
+  const accomBtn = document.getElementById('accom-toggle-btn');
+  const accomPanel = document.getElementById('accom-panel');
 
   if (saToggle && saPanel) {
     saToggle.addEventListener('click', async () => {
@@ -210,6 +285,69 @@ function bindVerifyActions(result) {
     ltiBtn.style.display = '';
     ltiBtn.addEventListener('click', () => submitLTIGrade(result, ltiBtn));
   }
+
+  if (accomBtn && accomPanel) {
+    accomBtn.addEventListener('click', () => {
+      const hidden = accomPanel.classList.toggle('hidden');
+      accomBtn.textContent = hidden ? '⚙ Accommodation Controls' : '✕ Close Accommodations';
+    });
+    bindAccomActions(result);
+  }
+}
+
+// =========================================================================
+// Accommodation controls
+// =========================================================================
+
+function bindAccomActions(result) {
+  const getToken  = () => (document.getElementById('accom-token')?.value || '').trim();
+  const getLabUrl = () => (document.getElementById('accom-lab-url')?.value || '').trim();
+  const errEl     = document.getElementById('accom-error');
+  const logEl     = document.getElementById('accom-log');
+
+  function logAction(msg) {
+    if (!logEl) return;
+    logEl.classList.remove('hidden');
+    const ts = new Date().toLocaleTimeString();
+    logEl.innerHTML += `<div class="accom-log__entry">[${ts}] ${esc(msg)}</div>`;
+  }
+
+  async function proxyCmd(endpoint, payload = {}) {
+    const token  = getToken();
+    const labUrl = getLabUrl();
+    if (!token)  { showError(errEl, 'Student token required'); return null; }
+    if (!labUrl) { showError(errEl, 'Lab Space URL required'); return null; }
+    errEl?.classList.add('hidden');
+    return fetchJSON(API.adminProxy, {
+      method: 'POST',
+      body: JSON.stringify({ lab_url: labUrl, endpoint, payload: { token, ...payload } }),
+    });
+  }
+
+  document.getElementById('accom-extend-btn')?.addEventListener('click', async () => {
+    const mins = parseInt(document.getElementById('accom-minutes')?.value || '60');
+    const res  = await proxyCmd('/api/admin/extend-time', { additional_seconds: mins * 60 });
+    if (res) logAction(`Added ${mins}min. New limit: ${Math.round(res.new_time_limit_seconds/60)}min, remaining: ${Math.round(res.remaining_seconds/60)}min`);
+  });
+
+  document.getElementById('accom-reset-btn')?.addEventListener('click', async () => {
+    const exId   = document.getElementById('accom-exercise-sel')?.value;
+    const reason = (document.getElementById('accom-reason')?.value || '').trim();
+    if (!exId) { showError(errEl, 'Select an exercise'); return; }
+    const res = await proxyCmd('/api/admin/reset-attempts', { exercise_id: exId, reason });
+    if (res) logAction(`Reset ${res.attempts_cleared} attempt(s) for ${exId}${reason ? ` (${reason})` : ''}`);
+  });
+
+  document.getElementById('accom-pause-btn')?.addEventListener('click', async () => {
+    const res = await proxyCmd('/api/admin/pause-exam');
+    if (res) logAction(res.already_paused ? 'Exam already paused' : `Exam paused at ${new Date(res.paused_at*1000).toLocaleTimeString()}`);
+  });
+
+  document.getElementById('accom-resume-btn')?.addEventListener('click', async () => {
+    const res = await proxyCmd('/api/admin/resume-exam');
+    if (res?.not_paused) { logAction('Exam was not paused'); return; }
+    if (res) logAction(`Exam resumed. Pause duration: ${res.pause_duration_seconds}s added back. Remaining: ${Math.round(res.remaining_seconds/60)}min`);
+  });
 }
 
 // =========================================================================
@@ -376,6 +514,7 @@ function renderBatchResult(resp) {
       <button class="expand-btn" id="batch-csv-btn">↓ Export CSV</button>
     </div>
     <table class="batch-table">
+      <caption class="sr-only">Batch verification results</caption>
       <thead><tr>
         <th>HMAC</th><th>Student</th><th>Exam ID</th><th>Lab</th>
         <th>Practical</th><th>MCQ</th><th>SA</th>
@@ -393,10 +532,244 @@ function bindBatchActions(resp, receipts) {
       const idx     = parseInt(row.dataset.index);
       const result  = resp.results[idx];
       if (!result) return;
-      // Switch to verify view and render that receipt's result
       document.querySelector('[data-view="verify"]').click();
       document.getElementById('verify-result').innerHTML = renderVerifyResult(result);
       bindVerifyActions(result);
+    });
+  });
+}
+
+// =========================================================================
+// Roster view
+// =========================================================================
+
+function setupRosterView() {
+  const btn = document.getElementById('roster-load-btn');
+  const autoEl = document.getElementById('roster-auto-refresh');
+  if (!btn) return;
+
+  btn.addEventListener('click', () => loadRoster());
+
+  autoEl?.addEventListener('change', () => {
+    if (_rosterTimer) clearInterval(_rosterTimer);
+    if (autoEl.checked) _rosterTimer = setInterval(loadRoster, 30000);
+  });
+  // Start auto-refresh when roster tab becomes active
+  document.querySelector('[data-view="roster"]')?.addEventListener('click', () => {
+    if (document.getElementById('roster-auto-refresh')?.checked) {
+      _rosterTimer = setInterval(loadRoster, 30000);
+    }
+  });
+}
+
+async function loadRoster() {
+  const labUrl = (document.getElementById('lab-url-input')?.value || '').trim();
+  const errEl  = document.getElementById('roster-error');
+  const resEl  = document.getElementById('roster-result');
+  if (!labUrl) { showError(errEl, 'Enter a Lab Space URL first'); return; }
+  errEl?.classList.add('hidden');
+
+  try {
+    const data = await fetchJSON(API.adminProxy, {
+      method: 'POST',
+      body: JSON.stringify({
+        lab_url: labUrl,
+        endpoint: '/api/admin/roster',
+        method: 'GET',
+        payload: {},
+      }),
+    });
+    if (resEl) resEl.innerHTML = renderRoster(data);
+  } catch (e) {
+    showError(errEl, `Could not load roster: ${e.message}`);
+  }
+}
+
+function renderRoster(data) {
+  const students = data.students || [];
+  const avgs     = data.class_averages || {};
+  const notStarted = data.not_started || [];
+
+  if (!students.length && !notStarted.length) {
+    return '<p style="color:var(--color-text-muted);padding:16px 0">No active sessions found.</p>';
+  }
+
+  function statusIcon(ex) {
+    if (ex.cap_exhausted && ex.best_score < 50) return '<span title="Cap exhausted, low score" style="color:var(--color-danger)">⚠</span>';
+    if (ex.cap_exhausted) return '<span title="Complete" style="color:var(--color-success)">✅</span>';
+    if (ex.attempts > 0)  return '<span title="In progress" style="color:var(--color-warning)">⏳</span>';
+    return '<span title="Not started">—</span>';
+  }
+
+  const headers = ['Student', 'Time Left', ...(students[0]?.exercises||[]).map(e => e.exercise_id), 'Theory', 'Total'];
+  const hRow = headers.map(h => `<th>${esc(h)}</th>`).join('');
+
+  const rows = students.map(s => {
+    const paused = s.paused ? ' ⏸' : '';
+    const expired = s.expired ? ' ⏱' : '';
+    const exCells = (s.exercises||[]).map(ex =>
+      `<td class="roster-cell">${statusIcon(ex)}<span class="roster-score">${ex.best_score}</span></td>`
+    ).join('');
+    return `<tr>
+      <td class="mono">${esc(s.student_id)}${paused}${expired}</td>
+      <td class="mono">${s.remaining_minutes}m</td>
+      ${exCells}
+      <td>${s.theory_submitted ? '✅' : '—'}</td>
+      <td class="mono">${s.total_so_far}</td>
+    </tr>`;
+  }).join('');
+
+  const avgCells = (students[0]?.exercises||[]).map(ex =>
+    `<td class="mono">${avgs[ex.exercise_id]??'—'}</td>`
+  ).join('');
+  const avgRow = `<tr style="font-weight:600;border-top:2px solid var(--color-border)">
+    <td>Class avg</td><td>—</td>${avgCells}<td>—</td><td>—</td></tr>`;
+
+  const notStartedHtml = notStarted.length
+    ? `<p style="margin-top:var(--space-4);font-size:var(--text-sm);color:var(--color-text-muted)">
+        Not started (${notStarted.length}): ${notStarted.map(s => esc(s)).join(', ')}</p>`
+    : '';
+
+  return `
+    <div style="font-size:var(--text-sm);color:var(--color-text-secondary);margin-bottom:var(--space-3)">
+      ${esc(data.lab_id||'')} · ${students.length} active
+    </div>
+    <div style="overflow-x:auto">
+      <table class="batch-table roster-table">
+        <caption class="sr-only">Live exam roster</caption>
+        <thead><tr>${hRow}</tr></thead>
+        <tbody>${rows}${avgRow}</tbody>
+      </table>
+    </div>
+    ${notStartedHtml}`;
+}
+
+// =========================================================================
+// Generate tokens
+// =========================================================================
+
+let _rosterStudentIds = [];
+
+function setupGenerateView() {
+  const zone  = document.getElementById('gen-drop-zone');
+  const input = document.getElementById('gen-file-input');
+  const btn   = document.getElementById('gen-generate-btn');
+  if (!zone || !input || !btn) return;
+
+  const trigger = () => input.click();
+  zone.addEventListener('click', e => { if (!e.target.matches('button')) trigger(); });
+  zone.querySelector('button')?.addEventListener('click', e => { e.stopPropagation(); trigger(); });
+  zone.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') trigger(); });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) parseRosterCSV(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', () => {
+    if (input.files[0]) parseRosterCSV(input.files[0]);
+    input.value = '';
+  });
+
+  btn.addEventListener('click', runGenerate);
+}
+
+async function parseRosterCSV(file) {
+  const text = await file.text();
+  const lines = text.trim().split('\n');
+  if (!lines.length) return;
+
+  const header = lines[0].split(',').map(s => s.trim().replace(/"/g,'').toLowerCase());
+  const sidCol = header.indexOf('student_id') >= 0 ? header.indexOf('student_id') : 0;
+
+  _rosterStudentIds = lines.slice(1).map(l => {
+    const parts = l.split(',');
+    return (parts[sidCol] || '').trim().replace(/"/g,'');
+  }).filter(Boolean);
+
+  const preview = document.getElementById('gen-roster-preview');
+  if (preview) {
+    const sample = _rosterStudentIds.slice(0, 5);
+    preview.innerHTML = `<p class="roster-preview__count">${_rosterStudentIds.length} students loaded</p>
+      <p class="roster-preview__sample">Preview: ${sample.map(esc).join(', ')}${_rosterStudentIds.length > 5 ? '…' : ''}</p>`;
+    preview.classList.remove('hidden');
+  }
+}
+
+async function runGenerate() {
+  const errEl  = document.getElementById('generate-error');
+  const resEl  = document.getElementById('gen-result');
+  const btn    = document.getElementById('gen-generate-btn');
+  errEl?.classList.add('hidden');
+  resEl?.classList.add('hidden');
+
+  const examId   = (document.getElementById('gen-exam-id')?.value || '').trim();
+  const section  = document.querySelector('input[name="gen-section"]:checked')?.value || 'A';
+  const duration = parseInt(document.getElementById('gen-duration')?.value || '3');
+  const opensStr = document.getElementById('gen-opens-at')?.value;
+  const expStr   = document.getElementById('gen-expires-at')?.value;
+
+  if (!examId)  { showError(errEl, 'Exam ID is required'); return; }
+  if (!_rosterStudentIds.length) { showError(errEl, 'Upload a roster CSV first'); return; }
+  if (!expStr)  { showError(errEl, 'Closes-at date/time is required'); return; }
+
+  const opensAt  = opensStr ? Math.floor(new Date(opensStr).getTime() / 1000) : Math.floor(Date.now() / 1000);
+  const expiresAt = Math.floor(new Date(expStr).getTime() / 1000);
+
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  try {
+    const resp = await fetchJSON(API.generateTokens, {
+      method: 'POST',
+      body: JSON.stringify({
+        exam_id: examId,
+        student_ids: _rosterStudentIds,
+        lab_ids: ['red-team', 'detection-monitoring'],
+        section,
+        duration_hours: duration,
+        opens_at: opensAt,
+        expires_at: expiresAt,
+      }),
+    });
+    if (resEl) {
+      resEl.innerHTML = renderGenerateResult(resp, examId);
+      resEl.classList.remove('hidden');
+      bindGenerateActions(resp, examId);
+    }
+  } catch (e) {
+    showError(errEl, `Generation failed: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Tokens';
+  }
+}
+
+function renderGenerateResult(resp, examId) {
+  return `
+    <div class="gen-result-summary">
+      <strong>✓ ${resp.count} tokens generated</strong> for ${esc(examId)}
+    </div>
+    <div class="action-bar" style="margin-top:var(--space-4)">
+      <button class="expand-btn" id="gen-dl-csv-btn">↓ Download Token CSV</button>
+      <button class="expand-btn" id="gen-copy-announce-btn">📋 Copy Canvas Announcement</button>
+    </div>`;
+}
+
+function bindGenerateActions(resp, examId) {
+  document.getElementById('gen-dl-csv-btn')?.addEventListener('click', () => {
+    const hdr = 'student_id,token,primary_exam_url';
+    const rows = resp.tokens.map(t =>
+      [csvQ(t.student_id), csvQ(t.token), csvQ(t.primary_exam_url)].join(','));
+    dlText(`${examId}_tokens.csv`, [hdr, ...rows].join('\n'));
+  });
+
+  document.getElementById('gen-copy-announce-btn')?.addEventListener('click', () => {
+    const msg = `Your exam token for ${examId} is in the Feedback column of the assignment. ` +
+      `Open the exam URL included with your token to begin. Tokens expire at the exam close time.`;
+    navigator.clipboard.writeText(msg).then(() => {
+      const btn = document.getElementById('gen-copy-announce-btn');
+      if (btn) { btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = '📋 Copy Canvas Announcement'; }, 2000); }
     });
   });
 }
@@ -450,7 +823,7 @@ function dlText(name, content) {
 
 function showError(el, msg) {
   if (!el) return;
-  el.textContent = msg;
+  el.textContent = `✕ ${msg}`;
   el.classList.remove('hidden');
 }
 
