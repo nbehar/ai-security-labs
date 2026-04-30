@@ -109,7 +109,7 @@ Attacks are already in progress in the logs. The participant's mission: detect t
 ## OWASP Mappings
 
 | Challenge | OWASP LLM Risk |
-|-----------|---------------|
+|-----------|----------------|
 | D1, D3 | LLM01: Prompt Injection |
 | D1, D3 | LLM06: Sensitive Information Disclosure |
 | D3 | LLM02: Insecure Output Handling |

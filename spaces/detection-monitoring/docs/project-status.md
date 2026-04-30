@@ -4,9 +4,9 @@ Last updated: 2026-04-30
 
 ---
 
-## Current Phase: Phase 1 — Core Implementation Complete
+## Current Phase: Phase 2 — Exam Mode Complete
 
-All 16 Phase 1 source files written and pushed to GitHub (commits `cf4042b`, `a41a1fa`). Ready for Phase 2 (pedagogical pass) or direct deploy.
+All Phase 1 + Phase 2 source files written. Phase 2 adds exam infrastructure: 4 new API routes, 2 exam dataset files (v1 and v2), and optional `exam_token` field on all 3 practical endpoints.
 
 ---
 
@@ -44,7 +44,7 @@ All 16 Phase 1 source files written and pushed to GitHub (commits `cf4042b`, `a4
 | File | Status |
 |------|--------|
 | `detection_data.py` | ✅ Written 2026-04-30 — 20 logs (8A/12L), 24 windows (3A), 15 outputs (8D/7L) |
-| `app.py` | ✅ Written 2026-04-30 — 9 endpoints, F1/D2/D3 scoring, leaderboard |
+| `app.py` | ✅ Written 2026-04-30 — 9 workshop endpoints, F1/D2/D3 scoring, leaderboard |
 | `waf_parser.py` | ✅ Written 2026-04-30 — BLOCK/ALLOW DSL, 30-rule limit |
 | `requirements.txt` | ✅ Written 2026-04-30 |
 | `Dockerfile` | ✅ Written 2026-04-30 — python:3.11-slim, no ML deps |
@@ -60,10 +60,35 @@ All 16 Phase 1 source files written and pushed to GitHub (commits `cf4042b`, `a4
 
 ---
 
+## Phase 2: Exam Mode ✅ Complete
+
+| File | Status |
+|------|--------|
+| `app.py` | ✅ Updated 2026-04-30 — added 4 exam routes + optional `exam_token` on D1/D2/D3 endpoints |
+| `exam_data_v1.py` | ✅ Written 2026-04-30 — Section A dataset: IT/Procurement/Compliance, attack hours 6/13/21 |
+| `exam_data_v2.py` | ✅ Written 2026-04-30 — Section B dataset: Executive/Engineering/Sales, attack hours 3/11/18 |
+
+**New exam routes:**
+- `POST /api/exam/validate` — validates HMAC token, creates ExamSession, returns attempt caps + timer
+- `POST /api/exam/theory` — accepts MCQ + short-answer submissions (scored in Phase 4 when exam_questions.py added)
+- `GET /api/exam/receipt` — builds practical receipt, signs with HMAC-SHA256, returns JSON artifact
+- `GET /api/exam/status` — returns per-exercise attempt counts, best scores, remaining time
+
+**Exam dataset design decisions:**
+- Section A (exam_v1): IT Service Desk, Procurement Portal, Compliance Bot. D2 attack hours: 6, 13, 21.
+- Section B (exam_v2): Executive Support, Engineering Help Desk, Sales Operations. D2 attack hours: 3, 11, 18.
+- D3 patterns deliberately differ from workshop (e.g., `db_password:` vs `password=`, `[EXEC:` vs `[SYSTEM:`, `gs://` vs `s3://`) so students must generalize their rules.
+- All three variants have 20 D1 logs (8 attacks), 24 D2 windows (3 attacks), 15 D3 outputs (8 dangerous) — same counts, different content.
+
+**Integration test coverage:**
+- Token generate → validate → session create → attempt cap enforcement → receipt sign/verify → tamper detection ✅
+
+---
+
 ## Open Risks
 
 | Risk | Mitigation |
-|------|----------|
+|------|-----------|
 | D2 sparkline charts require SVG/CSS without external chart library | Keep to simple polyline SVG — 24 points is well within manual rendering scope |
 | D3 WAF parser reuse depends on blue-team waf_parser.py staying stable | Pin to current blue-team version; any changes go to blue-team first |
 | D2 scoring formula (TP/3 × 100 − FP × 10) can go negative | Spec says min 0 — clamp in backend scoring logic |
@@ -104,3 +129,4 @@ From `specs/frontend_spec.md`:
 |------|------|
 | 2026-04-29 | Phase 0 bootstrap: all 4 specs, CLAUDE.md, project-status.md written |
 | 2026-04-30 | Phase 1 complete: all 16 source files written + pushed (commits `cf4042b`, `a41a1fa`, refs #27). D1=20, D2=24, D3=15. NR-8 compliant. Knowledge Check + learning objectives + cross-lab nav in Info tab. |
+| 2026-04-30 | Phase 2 complete (refs #27): exam mode wired into app.py (4 new routes), exam_data_v1.py (IT/Procurement/Compliance, attack hours 6/13/21), exam_data_v2.py (Executive/Engineering/Sales, attack hours 3/11/18). Integration test: token → session → cap → receipt → HMAC verify all pass. |
