@@ -1,10 +1,12 @@
 """
 app.py — Detection & Monitoring Lab (Space 6)
-FastAPI application with 9 endpoints for D1/D2/D3 labs.
-Model-free v1: all data served from detection_data.py.
+FastAPI application with 9 workshop endpoints + 4 exam endpoints for D1/D2/D3 labs.
+Model-free: all data served from detection_data.py (workshop) or exam_data_v*.py (exam mode).
 """
 
 import math
+import os
+import time
 from typing import Literal
 
 from fastapi import FastAPI, Request
@@ -18,6 +20,16 @@ from slowapi.errors import RateLimitExceeded
 
 import detection_data as data
 import waf_parser
+
+try:
+    from exam_token import validate_token, InvalidTokenError, sign_receipt
+    from exam_session import get_or_create_session, get_session, AttemptCapError
+    EXAM_ENABLED = True
+except ImportError:
+    EXAM_ENABLED = False
+
+EXAM_SECRET = os.environ.get("EXAM_SECRET", "")
+LAB_ID = "detection-monitoring"
 
 app = FastAPI(title="Detection & Monitoring Lab", version="1.0.0")
 
@@ -39,6 +51,7 @@ class LogClassification(BaseModel):
 class ClassifyRequest(BaseModel):
     classifications: list[LogClassification]
     session_id: str | None = None
+    exam_token: str | None = None
 
 class ThresholdValue(BaseModel):
     high: float | None = None
@@ -47,10 +60,12 @@ class ThresholdValue(BaseModel):
 class AnomalyRequest(BaseModel):
     thresholds: dict[str, ThresholdValue]
     session_id: str | None = None
+    exam_token: str | None = None
 
 class OutputEvalRequest(BaseModel):
     rules: str = Field(max_length=4096)
     session_id: str | None = None
+    exam_token: str | None = None
 
 class ScoreSubmit(BaseModel):
     session_id: str
@@ -59,16 +74,38 @@ class ScoreSubmit(BaseModel):
     d3_score: float = Field(ge=0, le=100)
     nickname: str | None = None
 
+class ExamValidateRequest(BaseModel):
+    token: str
+
+class MCQAnswer(BaseModel):
+    question_id: str
+    answer: str
+
+class ShortAnswer(BaseModel):
+    question_id: str
+    response: str
+
+class TheorySubmitRequest(BaseModel):
+    exam_token: str
+    mcq_answers: list[MCQAnswer] = []
+    short_answers: list[ShortAnswer] = []
+
 # ─────────────────────────────────────────────────────────────────────────────
-# In-memory leaderboard
+# In-memory leaderboard + constants
 # ─────────────────────────────────────────────────────────────────────────────
 
 _leaderboard: list[dict] = []
 
 VALID_METRICS = {"response_length", "refusal_rate", "query_rate", "confidence"}
 
+EXERCISE_DEFINITIONS = [
+    {"exercise_id": "D1", "display_name": "D1: Log Analysis",          "max_score": 100},
+    {"exercise_id": "D2", "display_name": "D2: Anomaly Detection",     "max_score": 100},
+    {"exercise_id": "D3", "display_name": "D3: Output Sanitization",   "max_score": 100},
+]
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Routes
+# Routes — workshop
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -82,6 +119,7 @@ async def health():
         "status": "ok",
         "lab": "detection-monitoring",
         "version": "1.0.0",
+        "exam_enabled": EXAM_ENABLED and bool(EXAM_SECRET),
         "d1_log_count": data.D1_LOG_COUNT,
         "d2_window_count": data.D2_WINDOW_COUNT,
         "d3_output_count": data.D3_OUTPUT_COUNT,
@@ -107,6 +145,14 @@ async def get_logs():
 @limiter.limit("10/minute")
 async def classify_logs(request: Request, body: ClassifyRequest):
     classifications = body.classifications
+    active_data = data
+    session = None
+
+    if body.exam_token:
+        result = _resolve_exam_session(body.exam_token, "D1")
+        if isinstance(result, JSONResponse):
+            return result
+        session, active_data = result
 
     if len(classifications) != 20:
         return JSONResponse(
@@ -114,7 +160,7 @@ async def classify_logs(request: Request, body: ClassifyRequest):
             content={"detail": f"Expected exactly 20 classifications, got {len(classifications)}"}
         )
 
-    log_lookup = {entry["id"]: entry for entry in data.D1_LOGS}
+    log_lookup = {entry["id"]: entry for entry in active_data.D1_LOGS}
     valid_ids = set(log_lookup.keys())
 
     submitted_ids = [c.id for c in classifications]
@@ -167,6 +213,10 @@ async def classify_logs(request: Request, body: ClassifyRequest):
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
     score = round(f1 * 100, 1)
 
+    if session is not None:
+        elapsed = float(int(time.time()) - session.started_at)
+        session.record_attempt("D1", success=score > 0, score=int(score), elapsed_seconds=elapsed)
+
     return {
         "score": score,
         "f1": round(f1, 4),
@@ -177,6 +227,9 @@ async def classify_logs(request: Request, body: ClassifyRequest):
         "fn": fn,
         "tn": tn,
         "entries": entries,
+        **({
+            "exam": {"remaining_attempts": session.remaining_attempts("D1")}
+        } if session else {}),
     }
 
 
@@ -202,6 +255,14 @@ async def get_anomaly_data():
 @limiter.limit("10/minute")
 async def evaluate_anomaly(request: Request, body: AnomalyRequest):
     thresholds = body.thresholds
+    active_data = data
+    session = None
+
+    if body.exam_token:
+        result = _resolve_exam_session(body.exam_token, "D2")
+        if isinstance(result, JSONResponse):
+            return result
+        session, active_data = result
 
     invalid_metrics = [k for k in thresholds if k not in VALID_METRICS]
     if invalid_metrics:
@@ -210,14 +271,14 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
             content={"detail": f"Invalid metric names: {invalid_metrics}. Valid: {sorted(VALID_METRICS)}"}
         )
 
-    attack_hour_map = {v["hour"]: (k, v) for k, v in data.D2_ATTACK_WINDOWS.items()}
+    attack_hour_map = {v["hour"]: (k, v) for k, v in active_data.D2_ATTACK_WINDOWS.items()}
 
     tp_windows = []
     fp_count = 0
     missed_windows = []
     window_results = []
 
-    for w in data.D2_WINDOWS:
+    for w in active_data.D2_WINDOWS:
         is_attack = w["hour"] in attack_hour_map
         attack_id = attack_hour_map[w["hour"]][0] if is_attack else None
 
@@ -234,11 +295,11 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
         if alerted and is_attack:
             verdict = "TP"
             tp_windows.append(attack_id)
-            why = _build_window_why(w, thresholds, attack_id, caught=True)
+            why = _build_window_why(w, thresholds, attack_id, active_data, caught=True)
         elif alerted and not is_attack:
             verdict = "FP"
             fp_count += 1
-            why = _build_window_why(w, thresholds, None, caught=False, is_fp=True)
+            why = _build_window_why(w, thresholds, None, active_data, caught=False, is_fp=True)
         elif not alerted and is_attack:
             verdict = "FN"
             missed_windows.append(attack_id)
@@ -264,7 +325,11 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
     raw_score = (tp_count / 3) * 100 - fp_count * 10
     score = max(0, round(raw_score, 1))
 
-    missed_why = {wid: data.D2_MISSED_WHY[wid] for wid in missed_windows}
+    missed_why = {wid: active_data.D2_MISSED_WHY[wid] for wid in missed_windows}
+
+    if session is not None:
+        elapsed = float(int(time.time()) - session.started_at)
+        session.record_attempt("D2", success=score > 0, score=int(score), elapsed_seconds=elapsed)
 
     return {
         "score": score,
@@ -274,6 +339,9 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
         "attack_windows_missed": missed_windows,
         "windows": window_results,
         "missed_why": missed_why,
+        **({
+            "exam": {"remaining_attempts": session.remaining_attempts("D2")}
+        } if session else {}),
     }
 
 
@@ -293,6 +361,14 @@ async def get_outputs():
 @limiter.limit("10/minute")
 async def evaluate_outputs(request: Request, body: OutputEvalRequest):
     rules_text = body.rules.strip()
+    active_data = data
+    session = None
+
+    if body.exam_token:
+        result = _resolve_exam_session(body.exam_token, "D3")
+        if isinstance(result, JSONResponse):
+            return result
+        session, active_data = result
 
     if not rules_text:
         return JSONResponse(
@@ -311,7 +387,7 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
     tp = fp = fn = tn = 0
     output_results = []
 
-    for o in data.D3_OUTPUTS:
+    for o in active_data.D3_OUTPUTS:
         blocked, matched_rule = waf_parser.evaluate_rules(rules, o["text"])
         should_block = o["should_block"]
 
@@ -350,6 +426,10 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
     baseline_recall = 1.0
     baseline_f1 = 2 * baseline_prec * baseline_recall / (baseline_prec + baseline_recall)
 
+    if session is not None:
+        elapsed = float(int(time.time()) - session.started_at)
+        session.record_attempt("D3", success=score > 0, score=int(score), elapsed_seconds=elapsed)
+
     return {
         "score": score,
         "f1": round(f1, 4),
@@ -362,6 +442,9 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
         "baseline_f1": round(baseline_f1, 4),
         "beat_baseline": f1 > baseline_f1,
         "outputs": output_results,
+        **({
+            "exam": {"remaining_attempts": session.remaining_attempts("D3")}
+        } if session else {}),
     }
 
 
@@ -408,6 +491,145 @@ async def get_leaderboard():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Routes — exam mode
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/exam/validate")
+@limiter.limit("20/minute")
+async def exam_validate(request: Request, body: ExamValidateRequest):
+    if not EXAM_ENABLED:
+        return JSONResponse(status_code=503, content={"detail": "Exam infrastructure not available on this server."})
+    if not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured (EXAM_SECRET missing)."})
+
+    try:
+        payload = validate_token(body.token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+
+    session = get_or_create_session(body.token, payload)
+
+    if session.is_expired():
+        return JSONResponse(status_code=403, content={"detail": "Exam time limit has expired."})
+
+    return {
+        "valid": True,
+        "exam_id": session.exam_id,
+        "student_id": session.student_id,
+        "lab_id": LAB_ID,
+        "dataset_variant": session.dataset_variant,
+        "time_limit_seconds": session.time_limit_seconds,
+        "remaining_seconds": session.remaining_seconds(),
+        "attempt_caps": session.attempt_caps,
+        "attempts": {
+            ex["exercise_id"]: {
+                "used": session.attempt_count(ex["exercise_id"]),
+                "remaining": session.remaining_attempts(ex["exercise_id"]),
+            }
+            for ex in EXERCISE_DEFINITIONS
+        },
+    }
+
+
+@app.post("/api/exam/theory")
+@limiter.limit("10/minute")
+async def exam_theory(request: Request, body: TheorySubmitRequest):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+
+    try:
+        validate_token(body.exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+
+    session = get_session(body.exam_token)
+    if not session:
+        return JSONResponse(status_code=404, content={"detail": "Exam session not found. Call /api/exam/validate first."})
+
+    if session.is_expired():
+        return JSONResponse(status_code=403, content={"detail": "Exam time limit has expired."})
+
+    if session.theory_submitted():
+        return JSONResponse(status_code=409, content={"detail": "Theory answers already submitted for this session."})
+
+    mcq = [{"question_id": a.question_id, "answer": a.answer} for a in body.mcq_answers]
+    sa = [{"question_id": a.question_id, "response": a.response} for a in body.short_answers]
+    session.record_theory(mcq_answers=mcq, short_answers=sa)
+
+    return {
+        "submitted": True,
+        "mcq_count": len(mcq),
+        "short_answer_count": len(sa),
+        "note": "MCQ auto-scoring available after exam_questions.py is deployed (Phase 4).",
+    }
+
+
+@app.get("/api/exam/receipt")
+async def exam_receipt(exam_token: str):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+
+    try:
+        validate_token(exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+
+    session = get_session(exam_token)
+    if not session:
+        return JSONResponse(status_code=404, content={"detail": "Exam session not found. Call /api/exam/validate first."})
+
+    session.finalize()
+
+    receipt_payload = {
+        "receipt_version": "1",
+        "exam_id": session.exam_id,
+        "student_id": session.student_id,
+        "lab_id": LAB_ID,
+        "practical": session.to_practical_receipt(EXERCISE_DEFINITIONS),
+        "theory": {"submitted": session.theory_submitted()},
+        "timing": {
+            "total_elapsed_seconds": session.elapsed_seconds(),
+            "time_limit_seconds": session.time_limit_seconds,
+        },
+    }
+    receipt_payload["hmac_sha256"] = sign_receipt(receipt_payload, EXAM_SECRET)
+    return receipt_payload
+
+
+@app.get("/api/exam/status")
+async def exam_status(exam_token: str):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+
+    try:
+        validate_token(exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+
+    session = get_session(exam_token)
+    if not session:
+        return JSONResponse(status_code=404, content={"detail": "Exam session not found. Call /api/exam/validate first."})
+
+    return {
+        "exam_id": session.exam_id,
+        "student_id": session.student_id,
+        "remaining_seconds": session.remaining_seconds(),
+        "elapsed_seconds": session.elapsed_seconds(),
+        "expired": session.is_expired(),
+        "theory_submitted": session.theory_submitted(),
+        "attempts": {
+            ex["exercise_id"]: {
+                "used": session.attempt_count(ex["exercise_id"]),
+                "cap": session.attempt_caps.get(ex["exercise_id"]),
+                "remaining": session.remaining_attempts(ex["exercise_id"]),
+                "best_score": session._scores.get(ex["exercise_id"], 0),
+            }
+            for ex in EXERCISE_DEFINITIONS
+        },
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -427,10 +649,58 @@ def _attack_type_name(code: str | None) -> str:
     return _ATTACK_TYPE_NAMES.get(code, code or "Unknown")
 
 
+def _get_exam_data(dataset_variant: str):
+    """Return the exam data module for the given variant, falling back to workshop data."""
+    if dataset_variant == "exam_v1":
+        try:
+            import exam_data_v1
+            return exam_data_v1
+        except ImportError:
+            pass
+    elif dataset_variant == "exam_v2":
+        try:
+            import exam_data_v2
+            return exam_data_v2
+        except ImportError:
+            pass
+    return data
+
+
+def _resolve_exam_session(exam_token: str, exercise_id: str):
+    """
+    Validate an exam token, get/create the session, check attempt cap,
+    and return (session, active_data) or a JSONResponse on failure.
+    """
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+
+    try:
+        payload = validate_token(exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+
+    session = get_or_create_session(exam_token, payload)
+
+    if session.is_expired():
+        return JSONResponse(status_code=403, content={"detail": "Exam time limit has expired."})
+
+    try:
+        session.check_attempt_cap(exercise_id)
+    except AttemptCapError as e:
+        return JSONResponse(status_code=429, content={
+            "detail": str(e),
+            "exercise_id": e.exercise_id,
+            "cap": e.cap,
+        })
+
+    active_data = _get_exam_data(session.dataset_variant)
+    return session, active_data
+
+
 def _build_window_why(window: dict, thresholds: dict, attack_id: str | None,
-                      caught: bool, is_fp: bool = False) -> str:
+                      active_data, caught: bool, is_fp: bool = False) -> str:
     if caught and attack_id:
-        aw = data.D2_ATTACK_WINDOWS[attack_id]
+        aw = active_data.D2_ATTACK_WINDOWS[attack_id]
         return f"{aw['name']} ({attack_id}) — {aw['description']} Signature: {aw['signature']}."
     if is_fp:
         triggered = []
