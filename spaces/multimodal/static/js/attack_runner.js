@@ -72,7 +72,7 @@ export function renderImagePromptInjectionTab(container, opts) {
   };
 
   const attackOptions = attacks.map((a) =>
-    `<option value="${escapeHtml(a.id)}">${escapeHtml(a.id)} — ${escapeHtml(a.name)} ${"★".repeat(a.difficulty || 1)}</option>`
+    `<option value="${escapeHtml(a.id)}"${a.known_limitation ? ' data-limited="1"' : ""}>${escapeHtml(a.id)} — ${escapeHtml(a.name)} ${"★".repeat(a.difficulty || 1)}${a.known_limitation ? " ⚠" : ""}</option>`
   ).join("");
 
   const defenseRow = Object.entries(DEFENSE_LABELS).map(([id, { name, help }]) => `
@@ -114,6 +114,8 @@ export function renderImagePromptInjectionTab(container, opts) {
           ${attackOptions}
         </select>
 
+        <div id="limitation-banner-${escapeHtml(labelPrefix)}" style="display:none;margin-top:var(--space-3);padding:10px 14px;background:rgba(245,158,11,0.08);border-left:3px solid var(--color-amber,#f59e0b);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:13px;"></div>
+
         <div class="gallery-mode-toggle" style="margin-top:var(--space-4);">
           <label><input type="radio" name="mode-${escapeHtml(labelPrefix)}" value="canned" checked> Pre-canned image</label>
           <label><input type="radio" name="mode-${escapeHtml(labelPrefix)}" value="uploaded"> Upload my own</label>
@@ -148,9 +150,21 @@ export function renderImagePromptInjectionTab(container, opts) {
   const statusLine = container.querySelector(`#status-${labelPrefix}`);
   const attackSelect = container.querySelector(`#attack-select-${labelPrefix}`);
   const resultsHost = container.querySelector(`#results-${labelPrefix}`);
+  const limitationBanner = container.querySelector(`#limitation-banner-${labelPrefix}`);
 
   function showStatus(html) { setHtml(statusLine, html); }
   function clearStatus() { setHtml(statusLine, ""); }
+
+  function updateLimitationBanner(attackId) {
+    const atk = attacks.find((a) => a.id === attackId);
+    if (atk && atk.known_limitation) {
+      limitationBanner.style.display = "block";
+      limitationBanner.textContent = `⚠ Known limitation — ${atk.known_limitation}`;
+    } else {
+      limitationBanner.style.display = "none";
+      limitationBanner.textContent = "";
+    }
+  }
 
   function setSelectedImage(item) {
     localState.selectedImage = item;
@@ -176,8 +190,11 @@ export function renderImagePromptInjectionTab(container, opts) {
     }
   }
 
+  updateLimitationBanner(localState.selectedAttackId);
+
   attackSelect.addEventListener("change", () => {
     localState.selectedAttackId = attackSelect.value;
+    updateLimitationBanner(localState.selectedAttackId);
     if (localState.mode === "canned") refreshGallery();
   });
 

@@ -374,8 +374,19 @@ function renderResult(host, r, atk) {
 
   const whyText = whyExplanation(r, succeeded, blockedBy, atk);
 
+  const rp5CalloutHtml = (r.attack_id === "RP.5" && succeeded) ? `
+    <div class="result-panel" style="border-left:3px solid var(--color-accent-aisl-highlight,#a78bfa);background:rgba(139,92,246,0.07);padding:14px 18px;margin-bottom:var(--space-4);">
+      <div class="result-header" style="color:var(--color-accent-aisl-highlight,#a78bfa);">🔬 Sharpest insight in this lab</div>
+      <div class="card-body">
+        <p><strong>RP.5 (Embedding Adjacency) has no injection text, no fake citations, no authority spoofing.</strong> The poisoned document contains nothing overtly malicious — it just has keywords that push its embedding vector close to the query vector.</p>
+        <p>Content-based defenses (Adversarial Filter, Output Grounding) are completely blind to this. They scan for suspicious patterns — there are none. <strong>Only Provenance Check catches it</strong>, because it doesn't care what the document says — only where it came from.</p>
+        <p>This is why source-based filtering is the primary defense in any RAG system. Semantics are easy to manipulate; provenance is not.</p>
+      </div>
+    </div>` : "";
+
   setHtml(host, `
     <div class="results">
+      ${rp5CalloutHtml}
       <div class="result-panel" data-kind="cause">
         <div class="result-header">Cause — what was sent to the model</div>
         <div class="result-section">

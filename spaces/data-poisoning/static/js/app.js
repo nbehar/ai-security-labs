@@ -76,12 +76,29 @@ function renderTabs() {
 // ---------------------------------------------------------------------------
 
 async function loadHealth() {
-  try {
-    state.health = await fetchJSON("/health");
-  } catch (e) {
-    showBanner("danger", `Health check failed: ${escapeHtml(e.message)}`);
+  let lastErr;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt === 1) {
+      showBanner(
+        "info",
+        "<strong>Lab is waking up (~15 seconds)</strong> — this is normal after ~48h idle on HuggingFace Spaces. <span class='spinner' style='margin-left:6px;'></span>",
+        "cold-start-banner"
+      );
+    }
+    try {
+      state.health = await fetchJSON("/health");
+      document.getElementById("cold-start-banner")?.remove();
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  if (!state.health) {
+    showBanner("danger", `Health check failed after retries: ${escapeHtml(lastErr?.message || "unknown error")}`);
     return;
   }
+
   if (!state.health.groq_api_key_set) {
     showBanner(
       "warning",
@@ -115,10 +132,11 @@ async function loadQueries() {
   }
 }
 
-function showBanner(kind, html) {
+function showBanner(kind, html, id = "") {
   const wrap = document.getElementById("banners");
   const div = document.createElement("div");
   div.className = `banner banner-${kind}`;
+  if (id) div.id = id;
   div.replaceChildren(document.createRange().createContextualFragment(html));
   wrap.appendChild(div);
 }

@@ -434,6 +434,26 @@ function renderWAF(main) {
         tryThis: 'Start with: <strong>BLOCK if contains "ignore previous instructions"</strong><br>Then add: <strong>BLOCK if regex "(?i)system\\s+prompt"</strong><br>Then: <strong>ALLOW if contains "PTO"</strong>',
       }, "var(--blue)")}
 
+      <details style="margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <summary style="padding:10px 14px;font-size:13px;font-weight:600;color:var(--blue);cursor:pointer;background:rgba(59,130,246,0.06);list-style:none;display:flex;align-items:center;gap:6px;user-select:none;">
+          📖 Regex Primer (unfamiliar with regex? start here)
+        </summary>
+        <div style="padding:14px 16px;font-size:13px;color:var(--text-sec);line-height:1.8;">
+          <p>A WAF rule has this shape: <code>BLOCK regex "pattern"</code>. The pattern is a regular expression — a text-matching formula. You don't need to be an expert; the basics cover most attacks:</p>
+          <table style="border-collapse:collapse;margin:8px 0;font-family:var(--mono);font-size:12px;width:100%;">
+            <thead><tr style="border-bottom:1px solid var(--border);"><th style="text-align:left;padding:4px 8px;">Pattern</th><th style="text-align:left;padding:4px 8px;font-family:var(--sans,sans-serif);">Meaning</th><th style="text-align:left;padding:4px 8px;font-family:var(--sans,sans-serif);">Example match</th></tr></thead>
+            <tbody>
+              <tr><td style="padding:4px 8px;">\\b</td><td style="padding:4px 8px;font-family:var(--sans,sans-serif);">word boundary (don't match inside a word)</td><td style="padding:4px 8px;">\\bignore\\b matches "ignore" but not "ignorant"</td></tr>
+              <tr><td style="padding:4px 8px;">|</td><td style="padding:4px 8px;font-family:var(--sans,sans-serif);">OR — either this or that</td><td style="padding:4px 8px;">ignore|forget</td></tr>
+              <tr><td style="padding:4px 8px;">(?i)</td><td style="padding:4px 8px;font-family:var(--sans,sans-serif);">case-insensitive (match IGNORE, Ignore, ignore)</td><td style="padding:4px 8px;">(?i)\\bignore\\b</td></tr>
+              <tr><td style="padding:4px 8px;">.*</td><td style="padding:4px 8px;font-family:var(--sans,sans-serif);">any characters in between</td><td style="padding:4px 8px;">ignore.*instructions matches "ignore the prior instructions"</td></tr>
+              <tr><td style="padding:4px 8px;">\\s+</td><td style="padding:4px 8px;font-family:var(--sans,sans-serif);">one or more whitespace characters</td><td style="padding:4px 8px;">system\\s+prompt matches "system prompt" or "system  prompt"</td></tr>
+            </tbody>
+          </table>
+          <p style="margin-top:8px;"><strong>Quick starter:</strong> <code>BLOCK regex "(?i)\\bignore\\b"</code> — blocks any prompt containing the word "ignore" (case-insensitive, whole-word only).</p>
+        </div>
+      </details>
+
       <div class="form-group">
         <label for="waf-rules">Your Rules (max 30)</label>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">
