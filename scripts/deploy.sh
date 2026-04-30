@@ -24,7 +24,7 @@ fi
 
 echo "=== Building $SPACE ==="
 
-# 1. Copy shared CSS (always overwrite - framework is source of truth)
+# 1. Copy shared CSS (always overwrite — framework is source of truth)
 if [ -f "framework/static/css/styles.css" ]; then
   mkdir -p "$SPACE_DIR/static/css"
   cp framework/static/css/styles.css "$SPACE_DIR/static/css/styles.css"
@@ -68,7 +68,7 @@ fi
 
 git add -A
 git commit -m "Deploy from ai-security-labs monorepo ($(date +%Y-%m-%d))" 2>/dev/null || echo "No changes to commit"
-git push hf main 2>/dev/null || echo "Push failed - check HF remote is configured"
+git push hf main 2>/dev/null || echo "Push failed — check HF remote is configured"
 
 echo ""
 echo "Done: $SPACE deployed."
