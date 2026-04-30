@@ -53,6 +53,7 @@ def parse_rules(text: str) -> tuple[list[dict], list[str]]:
 
 def evaluate_rules(rules: list[dict], text: str) -> tuple[bool, Optional[dict]]:
     """Evaluate text against rules. Returns (blocked, matched_rule | None)."""
+    # ALLOW takes precedence
     for rule in rules:
         if rule["action"] == "ALLOW":
             if _matches(rule["pattern"], text):
