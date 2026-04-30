@@ -242,6 +242,7 @@ D1_LOGS = [
 # D2: ANOMALY DETECTION
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Baseline statistics (sent to client as reference)
 D2_BASELINE = {
     "response_length": {"mean": 312, "std": 45},
     "refusal_rate":    {"mean": 0.08, "std": 0.03},
@@ -249,11 +250,12 @@ D2_BASELINE = {
     "confidence":      {"mean": 0.82, "std": 0.06},
 }
 
+# 3 attack windows
 D2_ATTACK_WINDOWS = {
     "W1": {
         "hour": 9,
         "name": "Prompt Flooding (DoS)",
-        "description": "Automated prompt flooding at 5x normal query rate. Response length spiked as the model processed large context windows.",
+        "description": "Automated prompt flooding at 5× normal query rate. Response length spiked as the model processed large context windows.",
         "signature": "Query rate spike (94 req/min) + response length spike (581 tokens)",
     },
     "W2": {
@@ -270,6 +272,9 @@ D2_ATTACK_WINDOWS = {
     },
 }
 
+# 24 hourly windows (hours 0-23)
+# Each window: hour, response_length, refusal_rate, query_rate, confidence
+# Attack hours: 9 (W1), 14 (W2), 19 (W3)
 D2_WINDOWS = [
     {"hour": 0,  "response_length": 284, "refusal_rate": 0.07, "query_rate":  4,  "confidence": 0.85},
     {"hour": 1,  "response_length": 301, "refusal_rate": 0.06, "query_rate":  3,  "confidence": 0.84},
@@ -297,6 +302,7 @@ D2_WINDOWS = [
     {"hour": 23, "response_length": 302, "refusal_rate": 0.07, "query_rate":  5,  "confidence": 0.87},
 ]
 
+# WHY explanations for missed attack windows
 D2_MISSED_WHY = {
     "W1": "Prompt flooding (W1, hour 9) spiked query_rate to 94 req/min and response_length to 581 tokens. Set query_rate high-threshold below 94 and/or response_length high-threshold below 581 to catch this.",
     "W2": "Data exfiltration (W2, hour 14) caused response_length to spike to 897 tokens and confidence to drop to 0.53. Set response_length high-threshold below 897 and/or confidence low-threshold above 0.53 to catch this.",
