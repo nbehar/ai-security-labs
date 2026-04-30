@@ -321,7 +321,7 @@ Ties broken by: total time taken (less time = higher rank).
 ## Stack
 
 | Component | Technology |
-|-----------|-----------|
+|-----------|----------|
 | Backend | FastAPI + Uvicorn (Python 3.11+) |
 | Frontend | Vanilla HTML/CSS/JS (no framework) |
 | LLM | LLaMA 3.3 70B via Groq API |
@@ -337,18 +337,24 @@ This space ships under the **Luminex Learning** master brand as a section within
 
 ### Master Nav (NR-1, NR-2, NR-10)
 
-The page header is a two-block stacked-text nav at the top of every authenticated page:
+The page header uses the digistore split-layout nav (`.luminex-nav`) at the top of every page. Structure (left to right):
 
 ```
-[owl 32px gold]   │   Red Team
-LUMINEX           │   AI Security Labs
-LEARNING          │
+[owl 48px gold]  NexaCore            ←── flex spacer ──→   🛡  Red Team
+                 ─────────────────────────────────
+                 AI Security Labs
 ```
 
-- **Block 1 (master brand):** owl mark from `static/owl.svg` rendered with `.owl-gold` class (`--owl-filter-gold` filter, brand gold `#fbbf24`). Two-line wordmark "Luminex Learning" in 11px small caps, widest letter-spacing. The owl is ALWAYS brand gold (NR-10) — never product accent, never white except on gold backgrounds.
-- **Vertical divider:** full-height (`align-self: stretch`).
-- **Block 2 (product/section):** "Red Team" (text-md bold, primary text color) over "AI Security Labs" (text-xs medium, AISL violet `--color-accent-aisl-highlight #a78bfa`).
-- **Sub-header:** the existing `<header class="hero">` is retained as the section sub-header (page title, descriptor) — the master nav does not replace it.
+- **Owl (`.luminex-nav__owl`, 48px):** `static/owl.svg` rendered with `.owl-gold` class (`--owl-filter-gold` filter, brand gold `#fbbf24`). The `alt` attribute is `"Luminex Learning"` (satisfies NR-2 for screen readers; whether a visible wordmark is also required is an open decision tracked in #18). The owl is ALWAYS brand gold (NR-10) — never product accent, never white except on gold backgrounds.
+- **Brand text block (`.luminex-nav__brand-text`, flex column):**
+  - `.luminex-nav__customer-name` — "NexaCore" (12px bold, tight tracking). This is the fictional customer/attack-target name in the DigiStore-pattern "customer slot", NOT a Luminex brand name (see Naming + NR-4 below).
+  - `.luminex-nav__hairline` — 1px divider.
+  - `.luminex-nav__product-name` — "AI Security Labs" (10px medium, wide tracking, secondary text color).
+- **Spacer (`.luminex-nav__spacer`, `flex: 1`):** pushes the page label to the right edge.
+- **Page label (`.luminex-nav__page-label`, flex row):**
+  - `.luminex-nav__page-icon` — shield SVG icon, 20px, AISL highlight color (`--color-accent-aisl-highlight`).
+  - `.luminex-nav__page-name` — "Red Team" (text-lg 600, primary text color).
+- **Sub-header:** the existing `<header class="hero">` is retained below the nav as the section sub-header (page title, descriptor).
 
 ### Tokens & Colors (NR-3, NR-8, NR-9)
 
@@ -384,10 +390,12 @@ CSS load order (in `templates/index.html`): `styles.css` → `luminex-bridge.css
 
 ### Constraints (Don't Regress)
 
-- The master nav MUST appear at the top of every authenticated page. Removing or omitting the owl mark, the wordmark, or the section/product block constitutes a brand regression (NR-1 + NR-2).
+- The master nav MUST appear at the top of every page. Removing or omitting the owl mark or the NexaCore/AI Security Labs brand text block constitutes a brand regression (NR-1).
 - Page background MUST remain `#09090f`; do not introduce light-mode (Brand Architecture §6.2).
 - The owl filter MUST remain brand gold; do not switch it to AISL violet for "consistency with the rest of the page" (NR-10).
-- "Red Team" (the section label) is NOT a Luminex product name. Do not promote it to product status in nav copy.
+- "Red Team" (`.luminex-nav__page-name`) is NOT a Luminex product name. Do not promote it to product status in nav copy (NR-2).
+- "NexaCore" (`.luminex-nav__customer-name`) is the fictional attack target in the DigiStore-pattern customer slot — it is NOT the brand name. Never render it as the primary brand identity; "AI Security Labs" (`.luminex-nav__product-name`) is the product identifier (NR-4).
+- The open question of whether `alt="Luminex Learning"` fully satisfies NR-2 (visible wordmark requirement) is tracked in issue #18. Do not add or remove the wordmark unilaterally — resolve via #18 first.
 
 ---------------------------------------------------------------------
 
@@ -434,7 +442,7 @@ The Key Concepts card also includes a **visual diagram** of how prompt injection
 **What:** A collapsible briefing card at the top of each Red Team level (5 levels) explaining: which defenses are active, a traditional-security analogy, and a collapsible "Show technique suggestion" with a specific attack approach to try.
 
 | Level | Analogy |
-|-------|---------|
+|-------|-------|
 | 1 | Access Control List (ACL) — minimal access control, easy to defeat |
 | 2 | Web Application Firewall (WAF) — pattern-based filtering |
 | 3 | Input sanitization at the boundary |
@@ -509,6 +517,61 @@ For Level 5, the log shows four entries (Hardening / Input Scanner / Output Reda
 **Content source:** Derived from the first defense layer in `defense_log` with verdict `BLOCKED`.
 **Authoring history:** Added in `63e6f55`. Extended in `90bc522` to include "Blocked by: Prompt Hardening" when the model itself refuses (no scanner caught it).
 
+### 9. "What You'll Learn" Card (Phase A)
+
+**What:** A "What You'll Learn" card rendered as the *first* card in the Info tab, before Key Concepts. Contains 3–5 Bloom's-level bullets that name concrete skills the participant gains from this lab.
+
+Red Team bullets:
+- Identify the system prompt as an attack surface that persists across all user turns
+- Craft a prompt injection payload that extracts a canary from an undefended LLM target
+- Recognize when a defense layer blocks an attack vs. when the model itself refuses
+- Distinguish input-layer from output-layer defenses and explain when each is effective
+- Explain why defense-in-depth is required for a hardened LLM target
+
+**Trigger location:** Always visible at the top of the Info tab, before Key Concepts.
+**Content source:** `spaces/red-team/static/js/app.js` — `renderInfo()` function, first card added to the HTML template string.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S2 learning objectives).
+
+### 10. "Check Your Understanding" Knowledge Check (Phase A)
+
+**What:** A collapsible `<details class="kc-block">` section at the bottom of the Info tab with 3 MCQ questions. Rendered client-side (no backend). Correct answer is revealed on click with a 1-sentence explanation. Sibling buttons are disabled after selection.
+
+Red Team questions:
+1. "A canary token in a system prompt is..." → (a) A phrase only in the system prompt that signals a leak if repeated ✅
+2. "At Level 4, the Input Scanner fires before..." → (c) The model ever sees the user's prompt ✅
+3. "Why does a single hardening rule rarely stop all attacks?" → (b) Attackers only need one path through; defenders must block all paths ✅
+
+Rendered via `renderKnowledgeCheck(KC_QUESTIONS_RED, "var(--red)")` from `framework/static/js/core.js`. Click handlers attached via `wireKnowledgeCheck(container)` (DOM-only, no innerHTML).
+
+**Trigger location:** Bottom of the Info tab, after Guided Practice card, before Start button.
+**Content source:** `spaces/red-team/static/js/app.js` — `KC_QUESTIONS_RED` constant + insertion point in `renderInfo()`.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S3 pre-assessment).
+
+### 11. Assumed Knowledge (Phase A)
+
+**What:** A 2–3 bullet "Assumed Knowledge" section inside the Info tab Key Concepts area:
+- Familiarity with HTTP requests and web concepts (no security expertise required)
+- Awareness of what a system prompt is (defined in Key Concepts below)
+- No prior AI/ML experience needed
+
+**Trigger location:** Within the Info tab Key Concepts card, above the term table.
+**Content source:** `spaces/red-team/static/js/app.js` — embedded in the Key Concepts card body.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S1 prerequisite disclosure).
+
+### 12. "Where This Lab Fits" Cross-Lab Navigation (Phase A)
+
+**What:** A "Where This Lab Fits" card at the bottom of the Info tab showing the recommended cross-lab learning path:
+
+```
+OWASP → Red Team (you are here) → Blue Team → Multimodal → Data Poisoning
+```
+
+One-line description per lab: what concept each adds.
+
+**Trigger location:** Last card on the Info tab, below the Knowledge Check.
+**Content source:** `spaces/red-team/static/js/app.js` — `renderInfo()` function, final card in HTML template.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S1 course overview + cross-lab navigation).
+
 ### Framework Reuse
 
 | Helper | File | Used For |
@@ -517,6 +580,8 @@ For Level 5, the log shows four entries (Hardening / Input Scanner / Output Reda
 | `renderLevelBriefing` | `framework/static/js/core.js` | Per-level briefing cards |
 | `renderGuidedPractice` | `framework/static/js/core.js` | Guided Practice walkthrough |
 | `renderProgress` | `framework/static/js/core.js` | Star progress visualization |
+| `renderKnowledgeCheck` | `framework/static/js/core.js` | MCQ knowledge check block (Phase A) |
+| `wireKnowledgeCheck` | `framework/static/js/core.js` | Click-handler wiring for knowledge check (Phase A) |
 
 Any new Red Team educational feature MUST either reuse one of these helpers or add a new helper to `framework/static/js/core.js` (since both Blue Team and Red Team consume the framework).
 
