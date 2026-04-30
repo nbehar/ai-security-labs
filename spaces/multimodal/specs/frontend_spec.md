@@ -30,6 +30,21 @@ Order matters — Info → P1 → P5 → Defenses mirrors the recommended worksh
 
 Sections (top-to-bottom):
 
+### "What You'll Learn" Card (Phase A — first card, always visible)
+
+3–5 Bloom's-level bullets rendered as the *first* card before all other Info content:
+- Identify the visual-text boundary gap as the root cause of image prompt injection
+- Distinguish P1 (visible-text, human-readable) from P5 (hidden-text, OCR-extracted) attacks
+- Explain why `boundary_hardening` catches 0/10 attacks (measured) while `output_redaction` catches 10/10
+- Predict which defense will and won't catch a given attack before running it
+- Apply the OCR poisoning mental model to any vision pipeline that extracts text before LLM inference
+
+### Assumed Knowledge (inside "What You'll Learn" card)
+
+- Awareness of what OCR is — scanning a document image to extract text (defined further in Key Concepts below)
+- Familiarity with HTTP requests and web APIs (no security or ML expertise required)
+- No prior AI/ML experience needed
+
 ### NexaCore DocReceive Scenario
 
 Brief narrative (3-5 paragraphs):
@@ -51,6 +66,23 @@ Card-style definitions with traditional-security analogies:
 | **OCR Poisoning (P5)** | Attack text obscured visually (white-on-white, microprint) but extracted by OCR | "Like SQL injection inside a hidden form field — invisible to the user, executed by the system" |
 | **Vision-Text Boundary** | The (often missing) distinction between "user instructions" and "image content" in the model's context | "Like the kernel/userland boundary — when blurred, attacker code runs as kernel" |
 | **Space Wake** | First request after the Space has been idle ~48h spins up the Docker container (~10–30s); subsequent requests skip this. There's no local model to load — the LLM is hosted by HF, always warm. | "Like a server's first cache-miss after deploy" |
+
+### "Check Your Understanding" Knowledge Check (Phase A — bottom of Info tab)
+
+Collapsible `<details class="kc-block">` with 3 MCQ questions rendered client-side. Correct answer revealed on click with a 1-sentence explanation. Rendered via `renderKnowledgeCheck(KC_QUESTIONS_MULTIMODAL, "#8b5cf6")` + `wireKnowledgeCheck(container)`.
+
+Questions:
+1. "P1 and P5 attacks differ in..." → (b) P1 text is visible to humans; P5 text is hidden but extracted by the pipeline ✅
+2. "Why does boundary_hardening catch 0/10 attacks (measured)?" → (b) The 72B model follows image-embedded instructions even when explicitly told not to ✅
+3. "The vision-text boundary is analogous to..." → (a) The kernel/userland boundary — when blurred, untrusted input runs with elevated privileges ✅
+
+### "Where This Lab Fits" Cross-Lab Navigation (Phase A — after Knowledge Check)
+
+Card showing cross-lab learning path:
+```
+OWASP → Red Team → Blue Team → Multimodal (you are here) → Data Poisoning
+```
+One-line description per lab.
 
 ### Recommended Tab Order
 
@@ -185,6 +217,8 @@ Out of scope for v1 — English only. (OWASP space has EN/ES; that pattern can b
 | Level briefing card | `core.js` `renderLevelBriefing` | Reuse |
 | Progress stars | `core.js` `renderProgress` | Reuse |
 | Why-this-works card | `core.js` `renderWhyCard` | Reuse |
+| MCQ knowledge check | `core.js` `renderKnowledgeCheck` | Phase A — renders `<details>` block with MCQ buttons |
+| Knowledge check wiring | `core.js` `wireKnowledgeCheck` | Phase A — attaches click handlers (DOM-only, no innerHTML) |
 | ~~Leaderboard~~ | `core.js` `renderLeaderboard` | **NOT used** — no leaderboard UI in this space (individual graduate assignments; Phase 6 will route scores to Canvas LMS) |
 | API calls | `core.js` `fetchJSON` | Reuse |
 | HTML escaping | `core.js` `escapeHtml` | Reuse |

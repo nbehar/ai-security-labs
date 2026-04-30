@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-29 (Data Poisoning Phase 4b complete — full 4-tab Luminex SPA live; v1 backend + SPA both deployed. Phase 2 corpus expansion is the only non-blocking follow-up.)*
+*Last updated: 2026-04-29 (Phase A pedagogical improvements deployed to all 4 live labs — learning objectives, knowledge checks, cross-lab navigation, assumed knowledge. Specs updated for all 4 spaces.)*
 
 ---------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ Interactive AI security training platform by Prof. Nikolas Behar. 3 workshops li
 | File | Lines | Purpose |
 |------|-------|----------|
 | `framework/static/css/styles.css` | 915 | Shared dark theme |
-| `framework/static/js/core.js` | ~220 | DOM helpers, fetchJSON, renderTabs, renderLevelBriefing, renderProgress, renderWhyCard, renderGuidedPractice, renderLeaderboard, renderInfoPage |
+| `framework/static/js/core.js` | ~337 | DOM helpers, fetchJSON, renderTabs, renderLevelBriefing, renderProgress, renderWhyCard, renderGuidedPractice, renderLeaderboard, renderInfoPage, renderKnowledgeCheck, wireKnowledgeCheck |
 | `framework/scoring.py` | 55 | Score calculation + Leaderboard class |
 | `framework/groq_client.py` | 25 | Groq API wrapper |
 | `framework/templates/base.html` | 30 | Jinja2 HTML shell |
@@ -666,3 +666,60 @@ Ran the full 6 attacks × 6 defense conditions = 36-cell measured matrix live ag
 | **Total** | **10 substantive** | **10** | **1** |
 
 **State:** Phases 1, 2, 3, and 5 are all reviewer-validated. Lab is fully reviewer-validated as a backend/API-only deliverable for graduate-course use. Phase 4a (full API surface) + Phase 4b (4-tab SPA shell) are the only remaining v1 deliverables for full participant UX. No defense improvements needed — every defense performs at its design-intent level.
+
+------------------------------------------------------------------------
+
+### 2026-04-29 (cont.) — Phase A: Pedagogical Improvements (All 4 Live Labs)
+
+**Trigger:** Graduate-student + Quality Matters (QM) framework walkthrough surfaced that all 4 labs lack: (1) explicit learning objectives (QM S2), (2) pre-assessment / knowledge checks (QM S3), (3) prerequisite disclosure (QM S1), and (4) cross-lab curriculum navigation (QM S1).
+
+**What was done:**
+
+Added 4 Phase A features to the Info tab of all 4 live labs (`red-team`, `blue-team`, `multimodal`, `data-poisoning`) in a single commit:
+
+| Feature | What | QM Standard |
+|---------|------|-------------|
+| "What You'll Learn" card | First card on Info tab; 3-5 Bloom's-level bullets (identify, explain, predict, apply, evaluate) | S2 — Learning Objectives |
+| "Check Your Understanding" | Collapsible `<details>` with 3 MCQs; correct answer + explanation on click; no backend | S3 — Pre-assessment |
+| Assumed Knowledge | 2-3 bullet prerequisites inside the "What You'll Learn" card | S1 — Overview & Intro |
+| "Where This Lab Fits" | Cross-lab breadcrumb (OWASP → Red Team → Blue Team → Multimodal → Data Poisoning) | S1 — Course Overview |
+
+**Files changed:**
+
+| File | Change |
+|------|--------|
+| `framework/static/js/core.js` | Added `renderKnowledgeCheck(questions, accentColor)` and `wireKnowledgeCheck(container)` as named exports. KC uses `<details class="kc-block">` with `<button class="kc-option">` elements; wireKC uses DOM methods only (no innerHTML). |
+| `spaces/red-team/static/js/app.js` | `KC_QUESTIONS_RED` (3 Qs); `renderInfo()` updated: "What You'll Learn" first, KC + "Where This Lab Fits" at bottom |
+| `spaces/blue-team/static/js/app.js` | `KC_QUESTIONS_BLUE` (3 Qs); `renderInfo()` updated; Key Concepts body also updated with "broken product" statement |
+| `spaces/multimodal/static/js/app.js` | `KC_QUESTIONS_MULTIMODAL` (3 Qs); `renderInfoTab()` updated with setHtml template + wireKnowledgeCheck post-render |
+| `spaces/data-poisoning/static/js/app.js` | `KC_QUESTIONS_DATA_POISONING` (3 Qs); `renderInfoTab()` updated with same pattern as multimodal |
+
+**Commit:** `49ed2b0` (GitHub main branch)
+
+**Deployed to all 4 HF Spaces:**
+
+| Space | File | HF commit |
+|-------|------|-----------|
+| `nikobehar/red-team-workshop` | `static/js/core.js` | `96ffe93` |
+| `nikobehar/red-team-workshop` | `static/js/app.js` | `5be74a1` |
+| `nikobehar/blue-team-workshop` | `static/js/core.js` | `1009230` |
+| `nikobehar/blue-team-workshop` | `static/js/app.js` | `c774975` |
+| `nikobehar/ai-sec-lab4-multimodal` | `static/js/core.js` | `189c75c` |
+| `nikobehar/ai-sec-lab4-multimodal` | `static/js/app.js` | `eadcea2` |
+| `nikobehar/ai-sec-lab5-data-poisoning` | `static/js/core.js` | `754b94b` |
+| `nikobehar/ai-sec-lab5-data-poisoning` | `static/js/app.js` | `d4f8d2d` |
+
+**Spec updates (this session entry):** All 4 space-level specs updated with Phase A additions:
+- `spaces/red-team/specs/architecture.md` — items 9–12 added to Educational Layer; Framework Reuse table updated
+- `spaces/blue-team/specs/architecture.md` — items 8–11 added to Educational Layer; Framework Reuse table + Constraints updated
+- `spaces/multimodal/specs/frontend_spec.md` — "What You'll Learn", Assumed Knowledge, KC, "Where This Lab Fits" added to Info Tab section; Reuse table updated
+- `spaces/data-poisoning/specs/frontend_spec.md` — same additions; Reuse table updated
+
+**Pending follow-up (Phase B):**
+
+| Item | Description | Files |
+|------|-------------|-------|
+| B3 | Add `⚠ Known limitation` badge to Multimodal P1.4 + P5.5 in attack picker | `spaces/multimodal/static/js/app.js` + `attacks.py` |
+| B4 | RP.5 "semantic attack" headline callout after result renders | `spaces/data-poisoning/static/js/attack_runner.js` |
+| B7 | Cold-start banner in `/health` probe | `framework/static/js/core.js` + each `app.js` |
+| B8 | WAF regex primer card in Blue Team WAF tab | `spaces/blue-team/static/js/app.js` |

@@ -364,6 +364,59 @@ This section documents the workshop's pedagogical scaffolding — the on-page fe
 **Content source:** `spaces/blue-team/static/js/app.js` — embedded in tab-render functions.
 **Authoring history:** Added in `7d157bb`.
 
+### 8. "What You'll Learn" Card (Phase A)
+
+**What:** A "What You'll Learn" card rendered as the *first* card in the Info tab, before Key Concepts. Contains 3–5 Bloom's-level bullets.
+
+Blue Team bullets:
+- Explain why a defense that blocks 100% of attacks AND 100% of legitimate queries is still a broken product
+- Construct a system prompt that blocks attack payloads while passing at least 80% of legitimate queries
+- Apply F1-score thinking (precision × recall) to evaluate a WAF rule set
+- Evaluate defense pipeline tradeoffs: coverage vs. latency vs. API cost
+- Predict which attack class a given pipeline configuration will miss
+
+**Trigger location:** Always visible at the top of the Info tab, before Key Concepts.
+**Content source:** `spaces/blue-team/static/js/app.js` — `renderInfo()` function, first card.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S2 learning objectives).
+
+### 9. "Check Your Understanding" Knowledge Check (Phase A)
+
+**What:** A collapsible `<details class="kc-block">` section at the bottom of the Info tab with 3 MCQ questions. Rendered client-side (no backend). Correct answer is revealed on click with a 1-sentence explanation.
+
+Blue Team questions:
+1. "A false positive in a security defense is..." → (a) A legitimate request incorrectly blocked ✅
+2. "If a defense blocks 10/10 attacks and 10/10 legit queries, its F1 score is..." → (b) 0 — blocking legit queries makes recall undefined ✅ (educationally: a defense that blocks everything is broken)
+3. "Which defense stops an attack that uses RAG-style context injection?" → (c) Retrieval-layer filtering or output grounding ✅
+
+Rendered via `renderKnowledgeCheck(KC_QUESTIONS_BLUE, "var(--blue)")`. Click handlers via `wireKnowledgeCheck(container)`.
+
+**Trigger location:** Bottom of the Info tab.
+**Content source:** `spaces/blue-team/static/js/app.js` — `KC_QUESTIONS_BLUE` + `renderInfo()`.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S3 pre-assessment).
+
+### 10. Assumed Knowledge (Phase A)
+
+**What:** A 2–3 bullet "Assumed Knowledge" section in the Info tab:
+- Familiarity with HTTP requests and web concepts (no security expertise required)
+- Awareness of what a firewall rule or regex pattern is (no need to be expert)
+- No prior AI/ML experience needed
+
+**Trigger location:** Within the Info tab.
+**Content source:** `spaces/blue-team/static/js/app.js` — embedded in Key Concepts card body.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S1 prerequisite disclosure).
+
+### 11. "Where This Lab Fits" Cross-Lab Navigation (Phase A)
+
+**What:** A card at the bottom of the Info tab showing the cross-lab learning path:
+
+```
+OWASP → Red Team → Blue Team (you are here) → Multimodal → Data Poisoning
+```
+
+**Trigger location:** Last card on the Info tab.
+**Content source:** `spaces/blue-team/static/js/app.js` — `renderInfo()`, final card.
+**Authoring history:** Added in `49ed2b0` (Phase A — QM S1 course overview).
+
 ### Framework Reuse
 
 | Helper | File | Used For |
@@ -373,6 +426,8 @@ This section documents the workshop's pedagogical scaffolding — the on-page fe
 | `renderGuidedPractice` | `framework/static/js/core.js` | Guided Practice walkthrough |
 | `renderProgress` | `framework/static/js/core.js` | Star progress visualization |
 | `renderWhyCard` | `framework/static/js/core.js` | WHY card after attempts |
+| `renderKnowledgeCheck` | `framework/static/js/core.js` | MCQ knowledge check block (Phase A) |
+| `wireKnowledgeCheck` | `framework/static/js/core.js` | Click-handler wiring for knowledge check (Phase A) |
 
 Any new Blue Team educational feature MUST either reuse one of these helpers or add a new helper to `framework/static/js/core.js` (since both Blue Team and Red Team consume the framework).
 
@@ -381,6 +436,7 @@ Any new Blue Team educational feature MUST either reuse one of these helpers or 
 - Removing the Info-tab Key Concepts card without replacing it constitutes a regression — CC-level students rely on it for terminology grounding.
 - Adding a new attack/defense without an analogous educational scaffolding entry (briefing, WHY card, hint) is incomplete per CLAUDE.md spec-first rules.
 - Per-level WHY card content MUST come from the backend response, not be hardcoded in JS — this lets attack-specific explanations evolve with the attack list.
+- The "broken product" concept (a defense blocking all legit queries is not a working security system) MUST appear in both the "What You'll Learn" card AND the Key Concepts body text — it is the lab's core insight.
 
 ---
 

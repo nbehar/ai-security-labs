@@ -44,6 +44,21 @@ Order matters — Info → RAG Poisoning → Defenses → Corpus mirrors the rec
 
 ## Info Tab
 
+### "What You'll Learn" Card (Phase A — first card, always visible)
+
+3–5 Bloom's-level bullets rendered as the *first* card before all other Info content:
+- Explain how a single poisoned document in a RAG corpus influences all future answers on that topic
+- Identify which attack mechanisms (explicit injection, authority spoofing, embedding adjacency) require different defense classes
+- Predict whether an adversarial filter, provenance check, or output grounding will catch a given attack before running it
+- Apply cosine similarity intuition to understand why keyword-stuffing makes a poisoned doc look semantically close to a query
+- Evaluate the tradeoff between provenance-as-primary-defense (strong, blocks all 6) vs. content-filtering (partial, misses semantic attacks)
+
+### Assumed Knowledge (inside "What You'll Learn" card)
+
+- Basic understanding of what a database index or search engine does (no ML expertise required)
+- Familiarity with the concept of a policy document or knowledge base
+- No prior AI/ML or vector-DB experience needed — all technical concepts are defined in Key Concepts below
+
 ### NexaCore Knowledge Hub Scenario
 
 Brief narrative (3-5 paragraphs):
@@ -68,6 +83,23 @@ Card-style definitions with traditional-security analogies:
 | **Provenance** | The verifiable history of where a document came from | Like Git commit signing for a knowledge base |
 | **Grounding** | Constraining the LLM to cite specific documents in its answer | Like requiring footnotes in a research paper — every claim must trace to a source |
 | **Canary phrase** | Sentinel value placed in poisoned documents to detect successful retrieval + model compliance | Like a honeytoken in DLP — invisible to legit users, audible if exfiltrated |
+
+### "Check Your Understanding" Knowledge Check (Phase A — bottom of Info tab)
+
+Collapsible `<details class="kc-block">` with 3 MCQ questions rendered client-side. Rendered via `renderKnowledgeCheck(KC_QUESTIONS_DATA_POISONING, "#a78bfa")` + `wireKnowledgeCheck(container)`.
+
+Questions:
+1. "RP.5 (Embedding Adjacency) works because..." → (c) The poisoned doc's embedding is close to the query embedding — it retrieves over legitimate docs ✅
+2. "Which single defense catches RP.5 (Embedding Adjacency)?" → (a) Provenance check — content-based defenses can't see the manipulation ✅
+3. "Provenance check is analogous to..." → (b) Git commit signing — verifies the document came from a trusted source, not its content ✅
+
+### "Where This Lab Fits" Cross-Lab Navigation (Phase A — after Knowledge Check)
+
+Card showing cross-lab learning path:
+```
+OWASP → Red Team → Blue Team → Multimodal → Data Poisoning (you are here)
+```
+Note: "You've now covered all four major LLM attack surfaces."
 
 ### Recommended Tab Order
 
@@ -179,6 +211,8 @@ Out of scope for v1 — English only. (OWASP space has EN/ES; that pattern can b
 |------|--------|-------|
 | HTML escaping | `core.js` `escapeHtml` | Reuse |
 | API calls | `core.js` `fetchJSON` | Reuse |
+| MCQ knowledge check | `core.js` `renderKnowledgeCheck` | Phase A — renders `<details>` block with MCQ buttons |
+| Knowledge check wiring | `core.js` `wireKnowledgeCheck` | Phase A — attaches click handlers (DOM-only, no innerHTML) |
 | ~~Tab rendering~~ | `core.js` `renderTabs` | NOT used — this space authors its own underline-tabs pattern using Luminex tokens (matches Multimodal Lab) |
 | ~~Info-page render~~ | `core.js` `renderInfoPage` | NOT used — author the Info tab inline using Luminex card components |
 | ~~Level briefing card~~ | `core.js` `renderLevelBriefing` | NOT used — render briefing inline (consistency with Multimodal pattern) |
