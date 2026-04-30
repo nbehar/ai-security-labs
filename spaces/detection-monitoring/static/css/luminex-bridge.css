@@ -1,0 +1,61 @@
+/*
+ * luminex-bridge.css — Maps framework styles.css variables to Luminex tokens.
+ *
+ * Loaded AFTER styles.css so the :root cascade overrides the framework defaults.
+ * Per the brand-identity-enforcer skill non-negotiables:
+ *   NR-3 — page background must be #09090f / --color-bg-base
+ *   NR-8 — no hardcoded color primitives in product code
+ *   AISL violet is the product accent (this monorepo is one product:
+ *           AI Security Labs; spaces are sections within it).
+ *
+ * The framework's --blue / --purple / --red / --green / --amber legacy names
+ * are repointed at AISL/semantic Luminex tokens. Existing framework code that
+ * references var(--blue) etc. continues to work; the colors shift to brand.
+ */
+
+@import url("/static/css/luminex-tokens.css");
+
+:root {
+  --bg:             var(--color-bg-base);             /* #09090f */
+  --surface:        var(--color-surface-1);           /* #121218 */
+  --surface-el:     var(--color-surface-2);           /* #1c1c26 */
+  --border:         var(--color-border);              /* #27272f */
+  --border-active:  var(--color-border-strong);       /* #3a3a48 */
+
+  --text:           var(--color-text-primary);        /* #fafaf0 */
+  --text-sec:       var(--color-text-secondary);      /* #a3a3a3 */
+  --text-muted:     var(--color-text-muted);          /* #737373 — disabled/placeholder only */
+
+  /* Legacy --blue is the platform's universal "active/primary" accent.
+     Repointed to AISL violet highlight (text-safe contrast).
+     For interactive fills, use --color-accent-aisl-interactive directly. */
+  --blue:           var(--color-accent-aisl-highlight);     /* #a78bfa */
+  --purple:         var(--color-accent-aisl-interactive);   /* #7c3aed */
+
+  --green:          var(--color-success-light);
+  --red:            var(--color-danger-light);              /* not #e11d48 — text-safe */
+  --amber:          var(--color-warning-light);
+
+  --font:           var(--font-sans);
+  --mono:           var(--font-mono);
+
+  --radius:         var(--radius-lg);
+  --radius-sm:      var(--radius-md);
+  --radius-xs:      var(--radius-sm);
+}
+
+html, body {
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+/* NR-8: override framework hardcoded #2563eb hover on Luminex-branded spaces */
+.btn--primary:hover:not(:disabled),
+.workshop-btn--active:hover {
+  background: var(--color-accent-aisl-interactive-hover);
+}
+
+/* NR-8: override framework hardcoded rgba(59,130,246,0.06) tint on Luminex-branded spaces */
+.defense-found--applied {
+  background: var(--color-accent-aisl-subtle);
+}

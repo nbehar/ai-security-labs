@@ -1,9 +1,35 @@
-# Detection & Monitoring Lab
-**Status:** Planned | **Hardware:** CPU
+---
+title: AI Security Labs — Detection & Monitoring
+emoji: 📊
+colorFrom: purple
+colorTo: violet
+sdk: docker
+app_port: 7860
+pinned: false
+---
 
-Practice detecting AI attacks in production telemetry.
+# Detection & Monitoring Lab
+
+**Space:** `nikobehar/ai-sec-lab6-detection` | **Hardware:** cpu-basic | **Status:** In Development
+
+Practice detecting AI attacks in realistic production telemetry across three detection surfaces.
 
 ## Labs
-- **Log Analysis Lab** — Identify injection attempts in model interaction logs
-- **Anomaly Detection** — Set alert thresholds on model behavior dashboards
-- **Output Sanitization Lab** — Write sanitization code for model outputs
+
+- **D1: Log Analysis** — Classify 20 log entries from NexaCore's AI tools as ATTACK or LEGITIMATE
+- **D2: Anomaly Detection** — Configure behavioral alerting thresholds to catch 3 attack windows in 24-hour telemetry
+- **D3: Output Sanitization** — Write `BLOCK regex` rules to catch dangerous model outputs (same DSL as Blue Team WAF)
+
+## Scoring
+
+- D1: F1 × 100 (max 100 pts) — false positives reduce score via precision
+- D2: (attacks detected / 3) × 100 − (false alarms × 10) — max 100 pts
+- D3: F1 × 100 (max 100 pts) — beat the server-side baseline
+- Total: max 300 pts
+
+## Stack
+
+- FastAPI + Uvicorn (Python 3.11)
+- Vanilla ES6+ frontend — no framework, no build step
+- Model-free v1: all datasets are pre-labeled (no API key required)
+- Part of [AI Security Labs](https://github.com/nbehar/ai-security-labs) by Prof. Nikolas Behar
