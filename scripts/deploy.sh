@@ -24,7 +24,7 @@ fi
 
 echo "=== Building $SPACE ==="
 
-# 1. Copy shared CSS (always overwrite — framework is source of truth)
+# 1. Copy shared CSS (always overwrite - framework is source of truth)
 if [ -f "framework/static/css/styles.css" ]; then
   mkdir -p "$SPACE_DIR/static/css"
   cp framework/static/css/styles.css "$SPACE_DIR/static/css/styles.css"
@@ -38,12 +38,20 @@ if [ -d "framework/static/js" ]; then
 fi
 
 # 3. Copy shared Python modules
-for pyfile in framework/scoring.py framework/groq_client.py framework/scanner.py; do
+for pyfile in framework/scoring.py framework/groq_client.py framework/scanner.py \
+              framework/exam_token.py framework/exam_session.py framework/exam_questions.py; do
   if [ -f "$pyfile" ]; then
     cp "$pyfile" "$SPACE_DIR/$(basename $pyfile)"
     echo "  Copied: $(basename $pyfile)"
   fi
 done
+
+# 4. Copy shared JS exam module
+if [ -f "framework/static/js/exam_mode.js" ]; then
+  mkdir -p "$SPACE_DIR/static/js"
+  cp framework/static/js/exam_mode.js "$SPACE_DIR/static/js/exam_mode.js"
+  echo "  Copied: exam_mode.js"
+fi
 
 echo ""
 echo "=== Deploying $SPACE to HuggingFace ==="
@@ -60,7 +68,7 @@ fi
 
 git add -A
 git commit -m "Deploy from ai-security-labs monorepo ($(date +%Y-%m-%d))" 2>/dev/null || echo "No changes to commit"
-git push hf main 2>/dev/null || echo "Push failed — check HF remote is configured"
+git push hf main 2>/dev/null || echo "Push failed - check HF remote is configured"
 
 echo ""
 echo "Done: $SPACE deployed."
