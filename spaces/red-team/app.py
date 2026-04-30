@@ -44,7 +44,7 @@ from challenges import (
 EXAM_ENABLED = False
 try:
     from exam_token import InvalidTokenError, validate_token
-    from exam_session import ExamSession, _SESSIONS
+    from exam_session import _SESSIONS, get_or_create_session
     EXAM_ENABLED = True
 except ImportError:
     pass
@@ -129,7 +129,8 @@ class ExamValidateRequest(BaseModel):
 
 class TheorySubmission(BaseModel):
     token: str
-    answers: dict
+    mcq_answers: dict          # {question_id: selected_option_key}
+    short_answers: list        # [{question_id, response, points_possible?}]
 
 
 # =============================================================================
@@ -156,23 +157,22 @@ def _get_exam_levels(variant: str) -> dict:
 
 
 def _resolve_exam_session(exam_token_value: str, exercise_id: str):
-    """Returns (ExamSession, active_levels) or (None, JSONResponse-with-error)."""
+    """Returns (session, active_levels) or (None, JSONResponse-with-error)."""
     if not EXAM_ENABLED:
         return None, JSONResponse({"error": "Exam mode not available"}, status_code=503)
     try:
-        payload = validate_token(exam_token_value, EXAM_SECRET)
+        payload = validate_token(exam_token_value, EXAM_SECRET, LAB_ID)
     except InvalidTokenError as e:
         return None, JSONResponse({"error": str(e)}, status_code=401)
 
-    session_key = f"{payload['student_id']}:{payload['exam_id']}"
-    session = _SESSIONS.get(session_key)
+    session = _SESSIONS.get(exam_token_value)
     if session is None:
         return None, JSONResponse(
             {"error": "Exam session not initialized. POST /api/exam/validate first."},
             status_code=403,
         )
 
-    cap = payload.get("attempt_caps", {}).get(exercise_id)
+    cap = session.attempt_caps.get(exercise_id)
     if cap is not None and session.attempt_count(exercise_id) >= cap:
         return None, JSONResponse(
             {
@@ -266,7 +266,14 @@ async def red_team_attempt(request: Request, req: RedTeamAttempt):
                 hints = level.get("hints", [])
                 if hints:
                     hint = hints[min(attempt_num - 3, len(hints) - 1)]
-            result = {
+            if exam_session is not None:
+                exam_session.record_attempt(
+                    f"level_{req.level}",
+                    False,
+                    0,
+                    metadata={"attempt": attempt_num, "blocked_by": "Input Scanner"},
+                )
+            return {
                 "level": req.level,
                 "level_name": level["name"],
                 "department": level["department"],
@@ -280,12 +287,6 @@ async def red_team_attempt(request: Request, req: RedTeamAttempt):
                 "defense_log": defense_log,
                 "blocked_by": "Input Scanner",
             }
-            if exam_session is not None:
-                exam_session.record_attempt(
-                    f"level_{req.level}", 0,
-                    {"attempt": attempt_num, "success": False, "blocked_by": "Input Scanner"},
-                )
-            return result
 
         # === MODEL CALL ===
         messages = [
@@ -327,20 +328,19 @@ async def red_team_attempt(request: Request, req: RedTeamAttempt):
             if hints:
                 hint = hints[min(attempt_num - 3, len(hints) - 1)]
 
+        blocked_by = (
+            "Guardrail Model" if guardrail_blocked
+            else "Output Redaction" if was_redacted and found_in_original
+            else "Prompt Hardening" if not found and req.level >= 2
+            else None
+        )
+
         if exam_session is not None:
             exam_session.record_attempt(
-                f"level_{req.level}", score,
-                {
-                    "attempt": attempt_num,
-                    "success": found,
-                    "participant_name": req.participant_name,
-                    "blocked_by": (
-                        "Guardrail Model" if guardrail_blocked
-                        else "Output Redaction" if was_redacted and found_in_original
-                        else "Prompt Hardening" if not found and req.level >= 2
-                        else None
-                    ),
-                },
+                f"level_{req.level}",
+                found,
+                score,
+                metadata={"attempt": attempt_num, "blocked_by": blocked_by},
             )
 
         return {
@@ -355,12 +355,7 @@ async def red_team_attempt(request: Request, req: RedTeamAttempt):
             "hint": hint,
             "max_attempts": 5,
             "defense_log": defense_log,
-            "blocked_by": (
-                "Guardrail Model" if guardrail_blocked
-                else "Output Redaction" if was_redacted and found_in_original
-                else "Prompt Hardening" if not found and req.level >= 2
-                else None
-            ),
+            "blocked_by": blocked_by,
         }
     except Exception as e:
         logger.exception("Error in red team attempt")
@@ -447,21 +442,11 @@ async def exam_validate(req: ExamValidateRequest):
     if not EXAM_ENABLED:
         raise HTTPException(503, "Exam mode not available")
     try:
-        payload = validate_token(req.token, EXAM_SECRET)
+        payload = validate_token(req.token, EXAM_SECRET, LAB_ID)
     except InvalidTokenError as e:
         raise HTTPException(401, str(e))
 
-    session_key = f"{payload['student_id']}:{payload['exam_id']}"
-    if session_key not in _SESSIONS:
-        _SESSIONS[session_key] = ExamSession(
-            student_id=payload["student_id"],
-            exam_id=payload["exam_id"],
-            lab_id=LAB_ID,
-            time_limit_seconds=payload.get("time_limit_seconds", 7200),
-            attempt_caps=payload.get("attempt_caps", {}),
-            dataset_variant=payload.get("dataset_variant", "workshop"),
-        )
-    session = _SESSIONS[session_key]
+    session = get_or_create_session(req.token, payload)
 
     return {
         "status": "valid",
@@ -483,30 +468,37 @@ async def exam_theory(req: TheorySubmission):
     if not EXAM_ENABLED:
         raise HTTPException(503, "Exam mode not available")
     try:
-        payload = validate_token(req.token, EXAM_SECRET)
+        payload = validate_token(req.token, EXAM_SECRET, LAB_ID)
     except InvalidTokenError as e:
         raise HTTPException(401, str(e))
 
-    session_key = f"{payload['student_id']}:{payload['exam_id']}"
-    session = _SESSIONS.get(session_key)
+    session = _SESSIONS.get(req.token)
     if not session:
         raise HTTPException(403, "Session not initialized")
+    if session.theory_submitted():
+        raise HTTPException(409, "Theory already submitted")
 
-    mcq_results: dict = {}
+    # Score MCQ server-side
+    mcq_scored: dict = {}
     try:
         from exam_questions import score_mcq
-        mcq_results = score_mcq(LAB_ID, req.answers)
+        mcq_scored = score_mcq(LAB_ID, req.mcq_answers)
     except ImportError:
         pass
 
-    session.record_theory(req.answers, mcq_results)
+    # Normalise MCQ answers to list[dict] for record_theory
+    mcq_answers_list = [
+        {"question_id": qid, "answer": answer}
+        for qid, answer in req.mcq_answers.items()
+    ]
+    session.record_theory(mcq_answers_list, req.short_answers)
+
+    mcq_score = sum(v.get("points_earned", 0) for v in mcq_scored.values())
     return {
         "status": "received",
-        "mcq_scored": mcq_results,
-        "short_answer_count": sum(
-            1 for k, v in req.answers.items()
-            if isinstance(v, str) and len(v.split()) > 10
-        ),
+        "mcq_scored": mcq_scored,
+        "mcq_score": mcq_score,
+        "short_answer_count": len(req.short_answers),
     }
 
 
@@ -516,7 +508,7 @@ async def exam_questions_route(token: str, lab_id: str = LAB_ID):
     if not EXAM_ENABLED:
         raise HTTPException(503, "Exam mode not available")
     try:
-        validate_token(token, EXAM_SECRET)
+        validate_token(token, EXAM_SECRET, LAB_ID)
     except InvalidTokenError as e:
         raise HTTPException(401, str(e))
     try:
@@ -532,16 +524,57 @@ async def exam_receipt(token: str):
     if not EXAM_ENABLED:
         raise HTTPException(503, "Exam mode not available")
     try:
-        payload = validate_token(token, EXAM_SECRET)
+        payload = validate_token(token, EXAM_SECRET, LAB_ID)
     except InvalidTokenError as e:
         raise HTTPException(401, str(e))
 
-    session_key = f"{payload['student_id']}:{payload['exam_id']}"
-    session = _SESSIONS.get(session_key)
+    session = _SESSIONS.get(token)
     if not session:
         raise HTTPException(403, "Session not initialized")
 
-    return session.build_receipt(payload)
+    practical = session.to_practical_receipt(EXERCISE_DEFINITIONS)
+
+    # Re-score MCQ from stored theory answers for the receipt
+    scored_mcq_list: list[dict] = []
+    if session.theory_submitted():
+        try:
+            from exam_questions import QUESTION_BANKS, score_mcq
+            stored_mcq = session._theory.get("mcq_answers", [])
+            mcq_dict = {item["question_id"]: item["answer"] for item in stored_mcq}
+            score_result = score_mcq(LAB_ID, mcq_dict)
+            # Enrich with question metadata for the receipt
+            bank_mcq = {q["id"]: q for q in QUESTION_BANKS.get(LAB_ID, {}).get("mcq", [])}
+            for qid, result in score_result.items():
+                q = bank_mcq.get(qid, {})
+                correct_opt = next(
+                    (o for o in q.get("options", []) if o.get("correct")), {}
+                )
+                scored_mcq_list.append({
+                    "question_id": qid,
+                    "bloom_level": q.get("bloom_level"),
+                    "points_possible": q.get("points", 5),
+                    "student_answer": mcq_dict.get(qid),
+                    "correct_answer": correct_opt.get("key"),
+                    "correct": result["correct"],
+                    "points_earned": result["points_earned"],
+                })
+        except (ImportError, Exception):
+            pass
+
+    theory = session.to_theory_receipt(scored_mcq_list)
+
+    return {
+        "receipt_version": "1",
+        "exam_id": payload["exam_id"],
+        "student_id": payload["student_id"],
+        "lab_id": LAB_ID,
+        "practical": practical,
+        "theory": theory,
+        "timing": {
+            "total_elapsed_seconds": session.elapsed_seconds(),
+            "time_limit_seconds": session.time_limit_seconds,
+        },
+    }
 
 
 @app.get("/api/exam/status")
@@ -550,13 +583,31 @@ async def exam_status(token: str):
     if not EXAM_ENABLED:
         raise HTTPException(503, "Exam mode not available")
     try:
-        payload = validate_token(token, EXAM_SECRET)
+        validate_token(token, EXAM_SECRET, LAB_ID)
     except InvalidTokenError as e:
         raise HTTPException(401, str(e))
 
-    session_key = f"{payload['student_id']}:{payload['exam_id']}"
-    session = _SESSIONS.get(session_key)
+    session = _SESSIONS.get(token)
     if not session:
         raise HTTPException(403, "Session not initialized")
 
-    return session.status_summary(EXERCISE_DEFINITIONS)
+    exercises = []
+    for defn in EXERCISE_DEFINITIONS:
+        eid = defn["exercise_id"]
+        exercises.append({
+            "exercise_id": eid,
+            "display_name": defn.get("display_name", eid),
+            "attempts_used": session.attempt_count(eid),
+            "attempt_cap": session.attempt_caps.get(eid),
+            "remaining_attempts": session.remaining_attempts(eid),
+            "best_score": session._scores.get(eid, 0),
+            "max_score": defn.get("max_score", 100),
+        })
+
+    return {
+        "exercises": exercises,
+        "remaining_seconds": session.remaining_seconds(),
+        "elapsed_seconds": session.elapsed_seconds(),
+        "time_limit_seconds": session.time_limit_seconds,
+        "theory_submitted": session.theory_submitted(),
+    }
