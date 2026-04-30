@@ -45,9 +45,11 @@
 
   /* --- AI Security Labs accent (violet) --- */
   --color-accent-aisl-interactive: #7c3aed;       /* button fills (with white text) */
+  --color-accent-aisl-interactive-hover: #6d28d9; /* one step darker — violet-700 */
   --color-accent-aisl-highlight:   #a78bfa;       /* text, active labels, tab underlines */
   --color-accent-aisl-subtle:      rgba(124, 58, 237, 0.10);
   --color-accent-aisl-border:      rgba(124, 58, 237, 0.28);
+  --color-text-on-accent: #fafaf0;               /* text on AISL-filled buttons */
 
   /* --- Semantic states --- */
   --color-success: #22c55e;
