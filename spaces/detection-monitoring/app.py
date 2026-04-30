@@ -9,7 +9,7 @@ import os
 import time
 from typing import Literal
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -23,7 +23,7 @@ import waf_parser
 
 try:
     from exam_token import validate_token, InvalidTokenError, sign_receipt
-    from exam_session import get_or_create_session, get_session, AttemptCapError
+    from exam_session import _SESSIONS, get_or_create_session, get_session, AttemptCapError
     EXAM_ENABLED = True
 except ImportError:
     EXAM_ENABLED = False
@@ -95,6 +95,7 @@ class TheorySubmitRequest(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────────
 
 _leaderboard: list[dict] = []
+_ROSTER_MAP: dict[str, str] = {}  # student_id → token (populated by POST /api/admin/load-roster)
 
 VALID_METRICS = {"response_length", "refusal_rate", "query_rate", "confidence"}
 
@@ -227,9 +228,7 @@ async def classify_logs(request: Request, body: ClassifyRequest):
         "fn": fn,
         "tn": tn,
         "entries": entries,
-        **({
-            "exam": {"remaining_attempts": session.remaining_attempts("D1")}
-        } if session else {}),
+        **(({"exam": {"remaining_attempts": session.remaining_attempts("D1")}}) if session else {}),
     }
 
 
@@ -339,9 +338,7 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
         "attack_windows_missed": missed_windows,
         "windows": window_results,
         "missed_why": missed_why,
-        **({
-            "exam": {"remaining_attempts": session.remaining_attempts("D2")}
-        } if session else {}),
+        **(({"exam": {"remaining_attempts": session.remaining_attempts("D2")}}) if session else {}),
     }
 
 
@@ -421,6 +418,7 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
     score = round(f1 * 100, 1)
 
+    # Baseline: BLOCK .* catches all 8 dangerous + all 7 legit → f1 ≈ 0.533
     baseline_tp, baseline_fp = 8, 7
     baseline_prec = baseline_tp / (baseline_tp + baseline_fp)
     baseline_recall = 1.0
@@ -442,9 +440,7 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
         "baseline_f1": round(baseline_f1, 4),
         "beat_baseline": f1 > baseline_f1,
         "outputs": output_results,
-        **({
-            "exam": {"remaining_attempts": session.remaining_attempts("D3")}
-        } if session else {}),
+        **(({"exam": {"remaining_attempts": session.remaining_attempts("D3")}}) if session else {}),
     }
 
 
@@ -693,6 +689,9 @@ def _resolve_exam_session(exam_token: str, exercise_id: str):
             "cap": e.cap,
         })
 
+    if session.is_paused():
+        return JSONResponse(status_code=423, content={"detail": "Exam is paused by instructor. Please wait."})
+
     active_data = _get_exam_data(session.dataset_variant)
     return session, active_data
 
@@ -713,3 +712,115 @@ def _build_window_why(window: dict, thresholds: dict, attack_id: str | None,
         reason = "; ".join(triggered) if triggered else "threshold triggered"
         return f"False positive (hour {window['hour']}) — {reason}. This was normal traffic. Loosen your threshold."
     return ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Routes — admin (exam-admin proxy target, requires X-Exam-Secret header)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _check_admin_auth(request: Request) -> None:
+    if not EXAM_SECRET:
+        raise HTTPException(503, "EXAM_SECRET not configured")
+    if request.headers.get("X-Exam-Secret", "") != EXAM_SECRET:
+        raise HTTPException(401, "Invalid or missing X-Exam-Secret header")
+
+
+class AdminTokenBody(BaseModel):
+    token: str
+
+
+class ExtendTimeBody(BaseModel):
+    token: str
+    additional_seconds: int
+
+
+class ResetAttemptsBody(BaseModel):
+    token: str
+    exercise_id: str
+    reason: str = ""
+
+
+class LoadRosterBody(BaseModel):
+    rows: list[dict]
+
+
+@app.get("/api/admin/roster")
+async def admin_roster(request: Request):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        return {"sessions": [], "note": "Exam infrastructure not deployed"}
+    results = []
+    for token, session in _SESSIONS.items():
+        row = {
+            "student_id": session.student_id,
+            "exam_id": session.exam_id,
+            "token_prefix": token[:8] + "…",
+            "remaining_seconds": session.remaining_seconds(),
+            "elapsed_seconds": session.elapsed_seconds(),
+            "expired": session.is_expired(),
+            "paused": session.is_paused(),
+            "theory_submitted": session.theory_submitted(),
+            "exercises": {},
+        }
+        for defn in EXERCISE_DEFINITIONS:
+            eid = defn["exercise_id"]
+            row["exercises"][eid] = {
+                "attempts_used": session.attempt_count(eid),
+                "cap": session.attempt_caps.get(eid),
+                "best_score": session._scores.get(eid, 0),
+            }
+        results.append(row)
+    return {"sessions": results, "count": len(results)}
+
+
+@app.post("/api/admin/load-roster")
+async def admin_load_roster(request: Request, body: LoadRosterBody):
+    _check_admin_auth(request)
+    global _ROSTER_MAP
+    _ROSTER_MAP = {row["student_id"]: row.get("token", "") for row in body.rows if "student_id" in row}
+    return {"loaded": len(_ROSTER_MAP)}
+
+
+@app.post("/api/admin/extend-time")
+async def admin_extend_time(request: Request, body: ExtendTimeBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.extend_time(body.additional_seconds)
+
+
+@app.post("/api/admin/reset-attempts")
+async def admin_reset_attempts(request: Request, body: ResetAttemptsBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    cleared = session.reset_exercise(body.exercise_id, body.reason)
+    return {"cleared": cleared, "exercise_id": body.exercise_id}
+
+
+@app.post("/api/admin/pause-exam")
+async def admin_pause_exam(request: Request, body: AdminTokenBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.pause()
+
+
+@app.post("/api/admin/resume-exam")
+async def admin_resume_exam(request: Request, body: AdminTokenBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.resume()
