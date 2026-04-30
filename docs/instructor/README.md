@@ -1,5 +1,7 @@
 # Instructor Support Package — CCC 200-Level Readiness
 
+Tracking issue: **#37**
+
 This directory tracks the features, content, and compliance work required for a California Community College instructor to use AI Security Labs as a graded, ADA-compliant 200-level course.
 
 The lab mechanic (formative + summative assessment) is already built. This package fills the gaps between "workshop environment" and "deployable course."
@@ -25,13 +27,12 @@ The lab mechanic (formative + summative assessment) is already built. This packa
 
 Package is "instructor ready" for a Fall 2026 CCC section when all of the following are true:
 
-- [ ] ADA accommodation controls live in exam-admin (time extension, attempt reset, exam pause)
-- [ ] Class roster dashboard live in exam-admin (per-student status, class averages)
-- [ ] WCAG 2.1 AA audit complete + all MUST-fix items resolved
-- [ ] Facilitator guides published for OWASP Top 10, Blue Team, Red Team
-- [ ] Sample syllabus + 16-week pacing guide published
-- [ ] Pre/post diagnostic instrument published
-- [ ] Web token generator UI live (no CLI required for instructors)
+- [ ] #29 ADA accommodation controls live in exam-admin
+- [ ] #30 Class roster dashboard live in exam-admin
+- [ ] #33 WCAG 2.1 AA audit complete + all MUST-fix items resolved
+- [ ] #34 Facilitator guides published for OWASP Top 10, Blue Team, Red Team
+- [ ] #35 Sample syllabus + 16-week pacing guide + pre/post diagnostic published
+- [ ] #31 Web token generator live (no CLI required for instructors)
 
 ---
 
