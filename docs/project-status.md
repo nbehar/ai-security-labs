@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-29 (Phase B complete — known-limitation badges, RP.5 callout, cold-start banners, WAF regex primer. All 4 live labs updated. Phase C (reflection prompts + glossary) is the remaining lower-urgency work.)*
+*Last updated: 2026-04-29 (Phase C complete — reflection prompts + platform glossary. All 4 live labs fully updated through Phase A+B+C pedagogical improvements. QM S1/S2/S3/S7 gaps addressed.)*
 
 ---------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ Interactive AI security training platform by Prof. Nikolas Behar. 3 workshops li
 | File | Lines | Purpose |
 |------|-------|----------|
 | `framework/static/css/styles.css` | 915 | Shared dark theme |
-| `framework/static/js/core.js` | ~337 | DOM helpers, fetchJSON, renderTabs, renderLevelBriefing, renderProgress, renderWhyCard, renderGuidedPractice, renderLeaderboard, renderInfoPage, renderKnowledgeCheck, wireKnowledgeCheck |
+| `framework/static/js/core.js` | ~388 | DOM helpers, fetchJSON, renderTabs, renderLevelBriefing, renderProgress, renderWhyCard, renderGuidedPractice, renderLeaderboard, renderInfoPage, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel |
 | `framework/scoring.py` | 55 | Score calculation + Leaderboard class |
 | `framework/groq_client.py` | 25 | Groq API wrapper |
 | `framework/templates/base.html` | 30 | Jinja2 HTML shell |
@@ -724,6 +724,24 @@ Added 4 Phase A features to the Info tab of all 4 live labs (`red-team`, `blue-t
 | B7 | Cold-start retry banner (4-attempt backoff, 5s interval, auto-dismiss on success) | multimodal `app.js` + data-poisoning `app.js` |
 | B8 | WAF regex primer collapsible card (`\b`, `|`, `(?i)`, `.*`, `\s+` with examples) | blue-team `app.js` `c69d5bb` |
 
-**Pending (Phase C — lower urgency):**
-- C9: End-of-lab reflection prompts (Red Team / Data Poisoning) — each `attack_runner.js`
-- C10: Platform-level Glossary page (20–30 terms, linked from Key Concepts cards)
+**Phase C complete** (commit `07130c6`, deployed 2026-04-29):
+
+| Item | Description | HF commits |
+|------|-------------|------------|
+| C9 | Reflection prompt in Red Team (`renderRedTeamResult`) when 3+ levels solved; in Data Poisoning (`updateScoreBanner`) when all 6 attacks attempted | red-team `app.js` `8685c05`, data-poisoning `attack_runner.js` `ad456313` |
+| C10 | `renderGlossaryPanel()` (22 terms) added to `framework/static/js/core.js`; imported + rendered as collapsible `<details>` after Knowledge Check on all 4 Info tabs | core.js `eca22bdd` (RT), `bb692d59` (BT), `2b3e25c5` (MM), `1d39878c` (DP) + app.js ×4 |
+
+**All Phase A+B+C pedagogical improvements complete.** QM gaps addressed:
+
+| QM Standard | Was | Now |
+|-------------|-----|-----|
+| S1 (Overview) | No prerequisites, no curriculum arc | Assumed Knowledge bullets + "Where This Lab Fits" breadcrumb on all Info tabs |
+| S2 (Learning Objectives) | None | "What You'll Learn" card (5 Bloom's bullets) first card on all Info tabs |
+| S3 (Assessment) | No pre-assessment | 3-MCQ Knowledge Check on all Info tabs; end-of-lab reflection prompt on Red Team + Data Poisoning |
+| S7 (Learner Support) | No glossary | 22-term Platform Glossary collapsible on all Info tabs |
+
+**Remaining items from the original QM walkthrough (deprioritized — not blocking):**
+- Formal WCAG AA statement / screen-reader audit
+- Platform-level `/glossary` route (now covered in-panel; a standalone route would allow deep-linking)
+- Red Team reflection prompt in Jailbreak Lab (jailbreaks don't have a completion threshold — deferred)
+- Blue Team reflection prompt (challenge completion state spans 4 tabs — deferred)
