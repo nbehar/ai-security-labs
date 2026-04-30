@@ -1,0 +1,31 @@
+/*
+ * luminex-bridge.css — Maps legacy framework variables to Luminex tokens.
+ * Loaded after luminex-tokens.css.
+ */
+
+@import url("/static/css/luminex-tokens.css");
+
+:root {
+  --bg:            var(--color-bg-base);
+  --surface:       var(--color-surface-1);
+  --surface-el:    var(--color-surface-2);
+  --border:        var(--color-border);
+  --border-active: var(--color-border-strong);
+  --text:          var(--color-text-primary);
+  --text-sec:      var(--color-text-secondary);
+  --text-muted:    var(--color-text-muted);
+  --blue:          var(--color-accent-aisl-highlight);
+  --purple:        var(--color-accent-aisl-interactive);
+  --green:         var(--color-success-light);
+  --red:           var(--color-danger-light);
+  --amber:         var(--color-warning-light);
+  --font:          var(--font-sans);
+  --mono:          var(--font-mono);
+  --radius:        var(--radius-lg);
+  --radius-sm:     var(--radius-md);
+}
+
+html, body {
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+}

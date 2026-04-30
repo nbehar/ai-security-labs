@@ -1,0 +1,95 @@
+/*
+ * luminex-nav.css — Master nav stylesheet.
+ * NR-1: owl mark in every authenticated nav.
+ * NR-10: owl always brand gold, never product accent.
+ */
+
+.luminex-nav {
+  background: var(--color-surface-1);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+  gap: var(--space-3);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 72px;
+}
+
+.luminex-nav__owl {
+  height: 48px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.luminex-nav__brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.luminex-nav__customer-name {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.luminex-nav__hairline {
+  height: 1px;
+  background: var(--color-border-strong);
+  width: 100%;
+}
+
+.luminex-nav__product-name {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+}
+
+.luminex-nav__spacer { flex: 1; }
+
+.luminex-nav__page-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+}
+
+.luminex-nav__page-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent-aisl-highlight);
+  flex-shrink: 0;
+}
+
+.luminex-nav__page-name {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+  letter-spacing: var(--tracking-tight);
+}
+
+.luminex-nav__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  letter-spacing: var(--tracking-wide);
+  padding-left: var(--space-3);
+}
+
+@media (max-width: 768px) {
+  .luminex-nav { min-height: 64px; padding: var(--space-2) var(--space-3); }
+  .luminex-nav__owl { height: 40px; }
+  .luminex-nav__page-name { font-size: var(--text-base); }
+  .luminex-nav__page-icon { width: 16px; height: 16px; }
+  .luminex-nav__meta { display: none; }
+}
