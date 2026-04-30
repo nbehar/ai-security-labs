@@ -4,7 +4,7 @@
  * Uses shared framework from core.js.
  */
 
-import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice } from "./core.js";
+import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck } from "./core.js";
 
 const state = {
   mode: "info",
@@ -105,6 +105,33 @@ function renderMain() {
 // INFO TAB
 // =============================================================================
 
+const KC_QUESTIONS_RED = [
+  {
+    q: "A canary token (honeytoken) in this lab is:",
+    options: [
+      { label: "A WAF rule that blocks known attack patterns at the perimeter", correct: false, explanation: "WAF rules are a defense mechanism. The canary is inside the system prompt — it's the tripwire secret, not a filter." },
+      { label: "A secret phrase planted in the system prompt that confirms the AI was jailbroken if it appears in the output", correct: true, explanation: "If 'CRIMSON FALCON' appears in the model's response, the AI followed your attacker instructions over its security rules. The canary triggered." },
+      { label: "An XML boundary tag that separates trusted instructions from user input", correct: false, explanation: "XML tags (like <SYSTEM_INSTRUCTIONS>) are a Level 3 defense technique. The canary is the planted secret, not a structural separator." },
+    ],
+  },
+  {
+    q: "At Level 4, why doesn't typing 'ignore previous instructions' reach the model?",
+    options: [
+      { label: "The XML boundary tags filter it out before it's processed", correct: false, explanation: "XML tags are a Level 3 defense against extraction techniques, not input filtering. Level 4 adds something earlier in the pipeline." },
+      { label: "The input scanner rejects the prompt before the LLM is ever called", correct: true, explanation: "Level 4's input scanner runs before the LLM call. If 'ignore' appears in your prompt, the request is rejected at the perimeter. Check the Defense Log after an attempt — it shows 'Input Scanner: BLOCKED'." },
+      { label: "The model was fine-tuned to refuse override commands", correct: false, explanation: "No fine-tuning here — the defenses are software filters and system prompt rules, not model training changes." },
+    ],
+  },
+  {
+    q: "Defense-in-depth (Level 5) means:",
+    options: [
+      { label: "One extremely thorough refusal rule written in the system prompt", correct: false, explanation: "One rule — however thorough — is a single point of failure. Attackers find edge cases in any rule. Defense-in-depth means multiple independent layers." },
+      { label: "Multiple independent layers so bypassing one layer alone doesn't give the attacker a win", correct: true, explanation: "Level 5 stacks input scanning + prompt hardening + output redaction. Bypass the scanner with a synonym? Output redaction still catches the secret in the response. That's the point." },
+      { label: "Scanning input and output with the same detection pattern", correct: false, explanation: "Same pattern twice doesn't add protection — an attacker who evades it once evades it again. True depth means different mechanisms at different stages of the pipeline." },
+    ],
+  },
+];
+
 const GUIDED_STEPS_RED = [
   {
     step: "Know your target",
@@ -140,6 +167,18 @@ function renderInfo(main) {
     title: "Welcome to the Red Team Workshop",
     cards: [
       {
+        title: "What You'll Learn",
+        body: '<em style="color:var(--text-muted);font-size:13px;">Assumed knowledge: familiarity with web concepts (HTTP requests, how a web app works). No security expertise required.</em><br><br>'
+          + 'By the end of this workshop you will be able to:<br><br>'
+          + '<ul style="margin:0;padding-left:20px;line-height:1.8;">'
+          + '<li><strong>Identify</strong> the system prompt as an attack surface distinct from user input</li>'
+          + '<li><strong>Explain</strong> why prompt injection and SQL injection are structurally analogous</li>'
+          + '<li><strong>Recognize</strong> what a successful jailbreak looks like — and why a canary token confirms it</li>'
+          + '<li><strong>Distinguish</strong> input-layer defenses (keyword scanning) from output-layer defenses (redaction)</li>'
+          + '<li><strong>Explain</strong> why defense-in-depth is required when any single layer can be bypassed</li>'
+          + '</ul>',
+      },
+      {
         title: "Key Concepts",
         body: '<strong>System Prompt</strong> \u2014 Hidden instructions the developer gives the AI before any user messages. Users can\'t normally see it. Think of it like a server configuration file that controls how the app behaves.<br><br>'
           + '<strong>Prompt Injection</strong> \u2014 Like SQL injection but for AI. You craft user input that tricks the model into treating your message as instructions rather than data. The model processes the system prompt and your message as one long text \u2014 it can\'t enforce hard boundaries between "developer rules" and "user input."<br><br>'
@@ -162,6 +201,18 @@ function renderInfo(main) {
         title: "Jailbreak Lab",
         body: '15 pre-loaded jailbreak techniques across 5 categories: Direct Override, Encoding, Role-Play, Social Engineering, and Advanced. Select a technique, customize the payload, and see if it works against a hardened target.',
       },
+      {
+        title: "Where This Lab Fits",
+        body: '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;">'
+          + '<span style="padding:3px 8px;background:var(--surface);border-radius:var(--radius-sm);color:var(--text-muted);">OWASP LLM Top 10 →</span>'
+          + '<span style="padding:3px 8px;background:rgba(239,68,68,0.12);border:1px solid var(--red);border-radius:var(--radius-sm);color:var(--red);font-weight:600;">Red Team (you are here)</span>'
+          + '<span style="padding:3px 8px;background:var(--surface);border-radius:var(--radius-sm);color:var(--text-muted);">→ Blue Team</span>'
+          + '<span style="padding:3px 8px;background:var(--surface);border-radius:var(--radius-sm);color:var(--text-muted);">→ Multimodal</span>'
+          + '<span style="padding:3px 8px;background:var(--surface);border-radius:var(--radius-sm);color:var(--text-muted);">→ Data Poisoning</span>'
+          + '</div><br>'
+          + '<strong>This lab:</strong> You are the attacker. Learn how LLM systems are broken.<br>'
+          + '<strong>Next — Blue Team:</strong> You are the defender. Build detection and filtering rules to stop the attacks you just ran.',
+      },
     ],
     buttonLabel: "\u2694\ufe0f Start Attacking",
     buttonColor: "var(--red)",
@@ -178,6 +229,13 @@ function renderInfo(main) {
       renderInfo(mainEl);
     });
     $("[data-action='guided-start']")?.addEventListener("click", () => switchTab("redteam"));
+  }
+
+  // Append knowledge check before the Start button
+  const startBtn = mainEl.querySelector(".btn--primary");
+  if (startBtn) {
+    startBtn.insertAdjacentHTML("beforebegin", renderKnowledgeCheck(KC_QUESTIONS_RED, "var(--red)"));
+    wireKnowledgeCheck(mainEl);
   }
 }
 

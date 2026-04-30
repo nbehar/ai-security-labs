@@ -9,7 +9,7 @@
  * `Range.createContextualFragment` to keep the platform security hook happy.
  */
 
-import { fetchJSON, escapeHtml } from "/static/js/core.js";
+import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck } from "/static/js/core.js";
 import { renderRagPoisoningTab } from "/static/js/attack_runner.js";
 import { renderCorpusBrowserTab } from "/static/js/corpus_browser.js";
 
@@ -141,6 +141,33 @@ function renderActivePanel() {
 // Info tab
 // ---------------------------------------------------------------------------
 
+const KC_QUESTIONS_DATA_POISONING = [
+  {
+    q: "In RP.5 (Embedding Adjacency), the poisoned document retrieves ahead of the legitimate policy because:",
+    options: [
+      { label: "It contains explicit override instructions like 'IGNORE PREVIOUS DOCUMENTS'", correct: false, explanation: "RP.5 intentionally has no injection language. That's what makes it hard to catch with content filters. It manipulates retrieval, not the model's instruction-following." },
+      { label: "Its embedding vector is more similar to the query's embedding than the legitimate policy document", correct: true, explanation: "By repeating keywords from common employee queries, the poisoned doc's meaning-fingerprint (embedding) ends up closer to those queries than the real policy doc. The retriever ranks it #1 — so the model receives it as the authoritative source." },
+      { label: "It has a more recent modification timestamp than the legitimate policy", correct: false, explanation: "RP.3 (Outdated-Info Override) uses a recency claim. RP.5 uses keyword stuffing — the retrieval mechanism is semantic similarity, not timestamp." },
+    ],
+  },
+  {
+    q: "Which single defense catches RP.5 (Embedding Adjacency)?",
+    options: [
+      { label: "Adversarial Filter — it detects injection-like patterns in the document text", correct: false, explanation: "Adversarial filter looks for ATTENTION calls, fake authority phrases, year-pinned claims. RP.5 has none of those — keyword stuffing leaves no detectable injection pattern." },
+      { label: "Output Grounding — it rejects responses that cite non-existent document IDs", correct: false, explanation: "Output grounding catches RP.4's fabricated citations. RP.5 doesn't fabricate citations — it gets retrieved naturally via keyword stuffing, then cited as a real doc." },
+      { label: "Provenance Check — it blocks any document not from a trusted source URI", correct: true, explanation: "The poisoned doc's source is '(attack — pre-canned)', not on the trusted allowlist. Provenance blocks before retrieval, regardless of document content or embedding. Source control is the load-bearing defense." },
+    ],
+  },
+  {
+    q: "Provenance in a RAG system is most analogous to:",
+    options: [
+      { label: "A document's word count or estimated reading level", correct: false, explanation: "Word count is a content property. You can't determine trustworthiness from document length. Provenance is about origin, not content." },
+      { label: "Git commit signing — you trust commits from known, cryptographically verified authors", correct: true, explanation: "Just as you only merge commits signed by a verified key, you only index documents from verified source URIs. An attacker who can't spoof a trusted source path can't poison the corpus — regardless of how convincing the document content is." },
+      { label: "The cosine similarity score between two embedding vectors", correct: false, explanation: "Cosine similarity measures semantic relatedness — it's how the retriever ranks documents. Provenance is about who supplied the document, not how semantically similar it is to a query." },
+    ],
+  },
+];
+
 const CONCEPTS = [
   {
     name: "RAG (Retrieval-Augmented Generation)",
@@ -194,6 +221,21 @@ function renderInfoTab(container) {
   `).join("");
 
   setHtml(container, `
+    <section class="card">
+      <h2 class="card-title">What You'll Learn</h2>
+      <div class="card-body">
+        <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">Assumed knowledge: basic understanding of what a search engine or database index does. No ML expertise required.</p>
+        <p style="margin-bottom:8px;">By the end of this workshop you will be able to:</p>
+        <ul style="margin:0;padding-left:20px;line-height:1.8;">
+          <li><strong>Explain</strong> how the RAG pipeline (embed → retrieve → generate) creates a new attack surface beyond the LLM itself</li>
+          <li><strong>Predict</strong> why keyword-stuffing increases a document's cosine similarity to common queries — and why that lets it displace the legitimate policy document</li>
+          <li><strong>Distinguish</strong> content-based defenses (adversarial filter, output grounding) from source-based defenses (provenance) and identify which attack class each one cannot catch</li>
+          <li><strong>Explain</strong> why provenance is load-bearing: only source control catches RP.5, because content-based filters are blind to documents with no injection language</li>
+          <li><strong>Apply</strong> the RAG poisoning threat model to a real-world scenario and identify which single defense to deploy first</li>
+        </ul>
+      </div>
+    </section>
+
     <section class="card">
       <h2 class="card-title">The NexaCore Knowledge Hub</h2>
       <div class="card-body">
@@ -253,7 +295,26 @@ function renderInfoTab(container) {
         </p>
       </div>
     </section>
+
+    <section class="card">
+      <h2 class="card-title">Where This Lab Fits</h2>
+      <div class="card-body">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-bottom:12px;">
+          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">OWASP LLM Top 10 →</span>
+          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">Red Team →</span>
+          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">Blue Team →</span>
+          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">Multimodal →</span>
+          <span style="padding:3px 8px;background:rgba(139,92,246,0.15);border:1px solid #a78bfa;border-radius:4px;color:#a78bfa;font-weight:600;">Data Poisoning (you are here)</span>
+        </div>
+        <p><strong>This lab:</strong> Attacks on the retrieval layer — poisoning the knowledge base the AI reads from before it answers. These work even if the model itself is perfectly hardened.</p>
+        <p style="color:var(--muted);font-size:13px;margin-top:8px;">You've now covered all four major LLM attack surfaces: prompt injection (Red Team), defense construction (Blue Team), multimodal vectors (Multimodal), and supply-chain poisoning (this lab).</p>
+      </div>
+    </section>
+
+    ${renderKnowledgeCheck(KC_QUESTIONS_DATA_POISONING, "#a78bfa")}
   `);
+
+  wireKnowledgeCheck(container);
 }
 
 // ---------------------------------------------------------------------------
