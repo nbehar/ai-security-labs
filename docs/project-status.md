@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-29 (Phase A pedagogical improvements deployed to all 4 live labs — learning objectives, knowledge checks, cross-lab navigation, assumed knowledge. Specs updated for all 4 spaces.)*
+*Last updated: 2026-04-29 (Phase B complete — known-limitation badges, RP.5 callout, cold-start banners, WAF regex primer. All 4 live labs updated. Phase C (reflection prompts + glossary) is the remaining lower-urgency work.)*
 
 ---------------------------------------------------------------------
 
@@ -715,11 +715,15 @@ Added 4 Phase A features to the Info tab of all 4 live labs (`red-team`, `blue-t
 - `spaces/multimodal/specs/frontend_spec.md` — "What You'll Learn", Assumed Knowledge, KC, "Where This Lab Fits" added to Info Tab section; Reuse table updated
 - `spaces/data-poisoning/specs/frontend_spec.md` — same additions; Reuse table updated
 
-**Pending follow-up (Phase B):**
+**Phase B complete** (commit `f3ecce8`, deployed 2026-04-29):
 
-| Item | Description | Files |
-|------|-------------|-------|
-| B3 | Add `⚠ Known limitation` badge to Multimodal P1.4 + P5.5 in attack picker | `spaces/multimodal/static/js/app.js` + `attacks.py` |
-| B4 | RP.5 "semantic attack" headline callout after result renders | `spaces/data-poisoning/static/js/attack_runner.js` |
-| B7 | Cold-start banner in `/health` probe | `framework/static/js/core.js` + each `app.js` |
-| B8 | WAF regex primer card in Blue Team WAF tab | `spaces/blue-team/static/js/app.js` |
+| Item | Description | HF commits |
+|------|-------------|------------|
+| B3 | `⚠ Known limitation` badge on P1.4 + P5.5 in Multimodal attack picker | multimodal `attacks.py` + `attack_runner.js` |
+| B4 | RP.5 "semantic attack" headline callout (sharpest-insight card above Cause panel) | data-poisoning `attack_runner.js` `453c402` |
+| B7 | Cold-start retry banner (4-attempt backoff, 5s interval, auto-dismiss on success) | multimodal `app.js` + data-poisoning `app.js` |
+| B8 | WAF regex primer collapsible card (`\b`, `|`, `(?i)`, `.*`, `\s+` with examples) | blue-team `app.js` `c69d5bb` |
+
+**Pending (Phase C — lower urgency):**
+- C9: End-of-lab reflection prompts (Red Team / Data Poisoning) — each `attack_runner.js`
+- C10: Platform-level Glossary page (20–30 terms, linked from Key Concepts cards)
