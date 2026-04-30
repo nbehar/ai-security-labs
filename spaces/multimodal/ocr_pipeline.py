@@ -72,42 +72,41 @@ def extract_with_confidence(image_bytes: bytes) -> Tuple[str, float]:
         return "", 0.0
 
 
-def extract_low_contrast_ratio(image_bytes: bytes, cell_size: int = 32) -> float:
-    """Detect near-white hidden text via grid-cell luminance variance analysis.
+def extract_low_contrast_ratio(image_bytes: bytes) -> float:
+    """Detect near-white hidden text via histogram spike analysis.
 
-    Divides the image into cell_size×cell_size tiles. A cell is 'suspicious'
-    if its mean luminance ≥ 245 AND 1 ≤ variance ≤ 30 — the fingerprint of
-    near-white text on a white background (P5.1 white-on-white, P5.3 color-
-    adjacent). Purely uniform white cells have variance=0; high-contrast text
-    cells have variance >> 30.
+    Hidden near-white text (e.g., fill=252 on a 255 background) creates a
+    cluster of pixels at a specific luminance value that is absent in normal
+    white-background documents. We find the largest such spike in the
+    241–253 luminance range (above this = pure white; below = visible gray).
 
-    Returns the fraction of suspicious cells (0.0–1.0). The
-    confidence_threshold defense uses ≥ 0.05 (5%) as its BLOCK threshold.
+    Method:
+      1. Build a per-value pixel count for luminance 241–253.
+      2. Return (max_spike_count / total_pixels).
+
+    A ratio ≥ 0.001 (0.1%) indicates likely hidden text:
+      - P5.1 NEAR_WHITE (252 on 255): ~1–2% ratio — caught
+      - P5.3 PALE_YELLOW grayscale 248 (on 255): ~1–2% ratio — caught
+      - Legit documents (anti-aliased dark text): typically < 0.04% for any
+        specific value in 241–253 — not caught
+
     Returns 0.0 on any Pillow error (graceful degradation).
     """
     try:
         img = _open_image(image_bytes).convert("L")
-        width, height = img.size
         pixels = list(img.getdata())
+        total = len(pixels)
+        if not total:
+            return 0.0
 
-        suspicious = 0
-        total = 0
+        # Count pixels per exact value in near-white range 241–253
+        counts: dict[int, int] = {}
+        for p in pixels:
+            if 241 <= p <= 253:
+                counts[p] = counts.get(p, 0) + 1
 
-        for y in range(0, height - cell_size + 1, cell_size):
-            for x in range(0, width - cell_size + 1, cell_size):
-                cell_pixels = [
-                    pixels[(y + cy) * width + (x + cx)]
-                    for cy in range(cell_size)
-                    for cx in range(cell_size)
-                ]
-                n = len(cell_pixels)
-                mean = sum(cell_pixels) / n
-                variance = sum((p - mean) ** 2 for p in cell_pixels) / n
-                if mean >= 245 and 1 <= variance <= 30:
-                    suspicious += 1
-                total += 1
-
-        return suspicious / total if total else 0.0
+        max_spike = max(counts.values(), default=0)
+        return max_spike / total
     except Exception as e:
         logger.warning(
             "ocr_pipeline.extract_low_contrast_ratio failed: %s: %s", type(e).__name__, e
