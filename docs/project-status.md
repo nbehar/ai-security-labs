@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-29 (Data Poisoning Phase 4b complete — full 4-tab Luminex SPA live; v1 backend + SPA both deployed. Phase 2 corpus expansion is the only non-blocking follow-up.)*
+*Last updated: 2026-04-30 (Maintenance pass: 4 issues closed — #15 Multimodal MILESTONE, #17 architecture.md spec sync, #19 NR-8 CSS fix, #20 missing space-level project-status.md. PRs #24/#25/#26 open. Issue #18 open, needs decision.)*
 
 ---------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ Interactive AI security training platform by Prof. Nikolas Behar. 3 workshops li
 | File | Lines | Purpose |
 |------|-------|----------|
 | `framework/static/css/styles.css` | 915 | Shared dark theme |
-| `framework/static/js/core.js` | ~220 | DOM helpers, fetchJSON, renderTabs, renderLevelBriefing, renderProgress, renderWhyCard, renderGuidedPractice, renderLeaderboard, renderInfoPage |
+| `framework/static/js/core.js` | ~388 | DOM helpers, fetchJSON, renderTabs, renderLevelBriefing, renderProgress, renderWhyCard, renderGuidedPractice, renderLeaderboard, renderInfoPage, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel |
 | `framework/scoring.py` | 55 | Score calculation + Leaderboard class |
 | `framework/groq_client.py` | 25 | Groq API wrapper |
 | `framework/templates/base.html` | 30 | Jinja2 HTML shell |
@@ -76,7 +76,7 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 
 | Priority | Space | Status | v1 Content | Hardware |
 |----------|-------|--------|------------|----------|
-| 3 | Multimodal Security | **Phase 5 MEASURED** at `nikobehar/ai-sec-lab4-multimodal` — full 12×6 defense matrix run live; per-defense catches: `output_redaction` 10/10, `ocr_prescan` 4/10, `boundary_hardening` 0/10 catch + 2/10 deters, `confidence_threshold` 0/10, `all_four` 9/10. Phase 4b SPA shell + Phase 3.1 defense improvements (issue #21) remain. | P1 Image Prompt Injection + P5 OCR Poisoning | `cpu-basic` + HF Inference Providers (`Qwen/Qwen2.5-VL-72B-Instruct` via `ovhcloud`) |
+| 3 | Multimodal Security | **Phase 3.1 COMPLETE** at `nikobehar/ai-sec-lab4-multimodal` (issue #21, PR #23, 2026-04-29) — 3 defense quality fixes deployed. Updated catches: `output_redaction` 10/10, `ocr_prescan` **6/10** (+P1.5+P5.6), `boundary_hardening` 0/10 catch + **7/10 partial-deters** (sandwich pattern), `confidence_threshold` **2/10** (+P5.1+P5.3, histogram-spike analysis). PR #23 pending merge. v1.1 image regen (P1.4/P5.2/P5.5) is the only remaining non-blocking follow-up. | P1 Image Prompt Injection + P5 OCR Poisoning | `cpu-basic` + HF Inference Providers (`Qwen/Qwen2.5-VL-72B-Instruct` via `ovhcloud`) |
 | 4 | Data Poisoning Lab | **Phase 4b COMPLETE** at `nikobehar/ai-sec-lab5-data-poisoning` — full 4-tab Luminex SPA live (Info / RAG Poisoning / Defenses / Corpus Browser). Phase 4a 9-endpoint API surface + upload mode + scoring still live. Phase 5 measured matrix authoritative (provenance 6/6, adv_filter 3/6, retrieval_diversity 1/6, output_grounding 1/6, all_four 6/6). All reviewer-validated (10 issues across 4 passes). Phase 2 (corpus 6→15 expansion) is the only non-blocking follow-up. | RAG corpus poisoning (RP.1—RP.6) | `cpu-basic` + Groq (`llama-3.3-70b-versatile`) + sentence-transformers MiniLM-L6 in-process |
 | 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
 | 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
@@ -108,9 +108,18 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | 12 | Both: WHY explanations | Closed ✅ (2026-04-27) | `2994d90` + `7d157bb` + `cf87474` |
 | 13 | Spec drift: Red Team L1 system prompt framing | Closed ✅ (2026-04-28) | Fixed in red_team_challenge.md — drift was on all 5 levels, not just L1 |
 | 14 | Spec gap: Educational features not in any spec | Closed ✅ (2026-04-28) | Educational Layer sections added to blue-team + red-team architecture.md |
-| **15** | MILESTONE: Multimodal Security Lab v1 build | **Open** (filed 2026-04-27) | Phase 4a complete — backend, defenses, full API surface deployed. Phase 4b (frontend) + Phase 5 (full defense matrix) remain. |
+| 15 | MILESTONE: Multimodal Security Lab v1 build | Closed ✅ (2026-04-30) | All 6 phases complete — cpu-basic + Qwen2.5-VL-72B live; Phase 3.1 defense quality fixes (PR #23); pedagogical Phase A+B+C applied. |
 | 16 | Red Team L5 missing Guardrail Evaluation defense layer | Closed ✅ (2026-04-28) | Implemented `guardrail_evaluate()` in challenges.py; wired into L5 attack flow in app.py |
-| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 0 (specs) → Phase 1 (backend) → Phase 3 prep (calibration) → Phase 3 build (4 defenses) → Phase 3 smoke → reviewer-validated Phases 1+2+3 → **Phase 5 measured matrix** (6/3/1/1 catches, exact match to design intent) → Phase 4a (9-endpoint API + upload mode) → **Phase 4b (full 4-tab SPA live — HF commit `e69a382`)**. Phase 2 corpus expansion (6→15 legit) is the only remaining non-blocking item. |
+| **17** | Brand refresh: re-sync architecture.md Brand & Identity sections to digistore-pattern nav | Closed ✅ (2026-04-30) | PR #26 — Master Nav section + Constraints updated for both red-team + blue-team architecture.md |
+| **18** | needs-decision: does alt="Luminex Learning" satisfy NR-2 or do we need a visible wordmark? | **Open** (needs human decision) | Blocked — requires design/brand decision before any nav change |
+| **19** | Eliminate hardcoded color primitives (NR-8) | Closed ✅ (2026-04-30) | PR #24 — tokens added, multimodal.css + luminex-bridge.css (blue+red team) fixed |
+| **20** | Pre-existing spec gaps: missing project-status.md + architecture.md | Closed ✅ (2026-04-30) | PR #25 — bootstrapped docs/project-status.md for blue-team and red-team |
+| 21 | Multimodal Phase 3.1: 3 defense quality fixes | Closed ✅ (2026-04-29) | PR #23 — ocr_prescan 6/10, boundary_hardening 7/10 partial-deters, confidence_threshold 2/10 |
+| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 4b complete. Phase 2 corpus expansion (6→15 legit docs) is the only remaining non-blocking item. |
+| **23** | PR: Multimodal Phase 3.1 defense fixes | **Open** (PR #23) | Awaiting merge |
+| **24** | PR: Fix NR-8 hardcoded color primitives | **Open** (PR #24) | Awaiting merge |
+| **25** | PR: Bootstrap space-level project-status.md | **Open** (PR #25) | Awaiting merge |
+| **26** | PR: Sync architecture.md nav spec | **Open** (PR #26) | Awaiting merge |
 
 ### llm-top-10-demo repo (OWASP workshop)
 - 31 issues total (12 closed, 19 open)
@@ -666,3 +675,98 @@ Ran the full 6 attacks × 6 defense conditions = 36-cell measured matrix live ag
 | **Total** | **10 substantive** | **10** | **1** |
 
 **State:** Phases 1, 2, 3, and 5 are all reviewer-validated. Lab is fully reviewer-validated as a backend/API-only deliverable for graduate-course use. Phase 4a (full API surface) + Phase 4b (4-tab SPA shell) are the only remaining v1 deliverables for full participant UX. No defense improvements needed — every defense performs at its design-intent level.
+
+------------------------------------------------------------------------
+
+### 2026-04-29 (cont.) — Phase A: Pedagogical Improvements (All 4 Live Labs)
+
+**Trigger:** Graduate-student + Quality Matters (QM) framework walkthrough surfaced that all 4 labs lack: (1) explicit learning objectives (QM S2), (2) pre-assessment / knowledge checks (QM S3), (3) prerequisite disclosure (QM S1), and (4) cross-lab curriculum navigation (QM S1).
+
+**What was done:**
+
+Added 4 Phase A features to the Info tab of all 4 live labs (`red-team`, `blue-team`, `multimodal`, `data-poisoning`) in a single commit:
+
+| Feature | What | QM Standard |
+|---------|------|-------------|
+| "What You'll Learn" card | First card on Info tab; 3-5 Bloom's-level bullets (identify, explain, predict, apply, evaluate) | S2 — Learning Objectives |
+| "Check Your Understanding" | Collapsible `<details>` with 3 MCQs; correct answer + explanation on click; no backend | S3 — Pre-assessment |
+| Assumed Knowledge | 2-3 bullet prerequisites inside the "What You'll Learn" card | S1 — Overview & Intro |
+| "Where This Lab Fits" | Cross-lab breadcrumb (OWASP → Red Team → Blue Team → Multimodal → Data Poisoning) | S1 — Course Overview |
+
+**Files changed:**
+
+| File | Change |
+|------|--------|
+| `framework/static/js/core.js` | Added `renderKnowledgeCheck(questions, accentColor)` and `wireKnowledgeCheck(container)` as named exports. KC uses `<details class="kc-block">` with `<button class="kc-option">` elements; wireKC uses DOM methods only (no innerHTML). |
+| `spaces/red-team/static/js/app.js` | `KC_QUESTIONS_RED` (3 Qs); `renderInfo()` updated: "What You'll Learn" first, KC + "Where This Lab Fits" at bottom |
+| `spaces/blue-team/static/js/app.js` | `KC_QUESTIONS_BLUE` (3 Qs); `renderInfo()` updated; Key Concepts body also updated with "broken product" statement |
+| `spaces/multimodal/static/js/app.js` | `KC_QUESTIONS_MULTIMODAL` (3 Qs); `renderInfoTab()` updated with setHtml template + wireKnowledgeCheck post-render |
+| `spaces/data-poisoning/static/js/app.js` | `KC_QUESTIONS_DATA_POISONING` (3 Qs); `renderInfoTab()` updated with same pattern as multimodal |
+
+**Commit:** `49ed2b0` (GitHub main branch)
+
+**Deployed to all 4 HF Spaces:**
+
+| Space | File | HF commit |
+|-------|------|-----------|
+| `nikobehar/red-team-workshop` | `static/js/core.js` | `96ffe93` |
+| `nikobehar/red-team-workshop` | `static/js/app.js` | `5be74a1` |
+| `nikobehar/blue-team-workshop` | `static/js/core.js` | `1009230` |
+| `nikobehar/blue-team-workshop` | `static/js/app.js` | `c774975` |
+| `nikobehar/ai-sec-lab4-multimodal` | `static/js/core.js` | `189c75c` |
+| `nikobehar/ai-sec-lab4-multimodal` | `static/js/app.js` | `eadcea2` |
+| `nikobehar/ai-sec-lab5-data-poisoning` | `static/js/core.js` | `754b94b` |
+| `nikobehar/ai-sec-lab5-data-poisoning` | `static/js/app.js` | `d4f8d2d` |
+
+**Spec updates (this session entry):** All 4 space-level specs updated with Phase A additions:
+- `spaces/red-team/specs/architecture.md` — items 9–12 added to Educational Layer; Framework Reuse table updated
+- `spaces/blue-team/specs/architecture.md` — items 8–11 added to Educational Layer; Framework Reuse table + Constraints updated
+- `spaces/multimodal/specs/frontend_spec.md` — "What You'll Learn", Assumed Knowledge, KC, "Where This Lab Fits" added to Info Tab section; Reuse table updated
+- `spaces/data-poisoning/specs/frontend_spec.md` — same additions; Reuse table updated
+
+**Phase B complete** (commit `f3ecce8`, deployed 2026-04-29):
+
+| Item | Description | HF commits |
+|------|-------------|------------|
+| B3 | `⚠ Known limitation` badge on P1.4 + P5.5 in Multimodal attack picker | multimodal `attacks.py` + `attack_runner.js` |
+| B4 | RP.5 "semantic attack" headline callout (sharpest-insight card above Cause panel) | data-poisoning `attack_runner.js` `453c402` |
+| B7 | Cold-start retry banner (4-attempt backoff, 5s interval, auto-dismiss on success) | multimodal `app.js` + data-poisoning `app.js` |
+| B8 | WAF regex primer collapsible card (`\b`, `|`, `(?i)`, `.*`, `\s+` with examples) | blue-team `app.js` `c69d5bb` |
+
+**Phase C complete** (commit `07130c6`, deployed 2026-04-29):
+
+| Item | Description | HF commits |
+|------|-------------|------------|
+| C9 | Reflection prompt in Red Team (`renderRedTeamResult`) when 3+ levels solved; in Data Poisoning (`updateScoreBanner`) when all 6 attacks attempted | red-team `app.js` `8685c05`, data-poisoning `attack_runner.js` `ad456313` |
+| C10 | `renderGlossaryPanel()` (22 terms) added to `framework/static/js/core.js`; imported + rendered as collapsible `<details>` after Knowledge Check on all 4 Info tabs | core.js `eca22bdd` (RT), `bb692d59` (BT), `2b3e25c5` (MM), `1d39878c` (DP) + app.js ×4 |
+
+**All Phase A+B+C pedagogical improvements complete.** QM gaps addressed:
+
+| QM Standard | Was | Now |
+|-------------|-----|-----|
+| S1 (Overview) | No prerequisites, no curriculum arc | Assumed Knowledge bullets + "Where This Lab Fits" breadcrumb on all Info tabs |
+| S2 (Learning Objectives) | None | "What You'll Learn" card (5 Bloom's bullets) first card on all Info tabs |
+| S3 (Assessment) | No pre-assessment | 3-MCQ Knowledge Check on all Info tabs; end-of-lab reflection prompt on Red Team + Data Poisoning |
+| S7 (Learner Support) | No glossary | 22-term Platform Glossary collapsible on all Info tabs |
+
+**Remaining items from the original QM walkthrough (deprioritized — not blocking):**
+- Formal WCAG AA statement / screen-reader audit
+- Platform-level `/glossary` route (now covered in-panel; a standalone route would allow deep-linking)
+- Red Team reflection prompt in Jailbreak Lab (jailbreaks don't have a completion threshold — deferred)
+- Blue Team reflection prompt (challenge completion state spans 4 tabs — deferred)
+
+### Session (2026-04-30) — Maintenance pass: 4 issues closed
+
+**Issues closed:**
+- #15 Multimodal MILESTONE — all 6 phases complete; closed with summary comment
+- #17 architecture.md spec sync (red-team + blue-team) — Master Nav + Constraints updated to digistore-pattern; PR #26
+- #19 NR-8 CSS fix — hardcoded color primitives replaced with Luminex tokens across all 3 live spaces; PR #24
+- #20 Missing space-level project-status.md — bootstrapped docs/project-status.md for blue-team and red-team; PR #25
+
+**Still open:**
+- #18 (needs human decision: visible wordmark vs. alt= for NR-2 compliance)
+- #22 (Data Poisoning MILESTONE — Phase 4b complete; corpus expansion non-blocking)
+- PRs #23, #24, #25, #26 — all awaiting merge
+
+**Next Recommended Task:**
+Issue #18 needs a decision from the user before any nav work proceeds. If #18 is deferred, the next substantial work is bootstrapping Space 5: Detection & Monitoring (the next planned lab in the pipeline). Per platform rules, a new space requires specs first — bootstrap checklist before any code.
