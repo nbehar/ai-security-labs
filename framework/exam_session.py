@@ -5,6 +5,7 @@ One ExamSession is created per validated exam token. It tracks:
   - attempt counts and timing per exercise (enforces caps from the token)
   - theory answers (MCQ + short answer)
   - exam start/end timestamps
+  - pause state and admin action log (ADA accommodations)
 
 Sessions live in-memory keyed by the token string.
 On server restart the session is lost; the client caches partial state
@@ -34,6 +35,11 @@ class ExamSession:
         self.attempt_caps: dict[str, int] = exam_context.get("attempt_caps", {})
         self.started_at: int = int(time.time())
         self.ended_at: int | None = None
+
+        # ADA accommodation state
+        self.paused_at: int | None = None
+        self._pause_duration_total: int = 0
+        self._admin_log: list[dict] = []
 
         # {exercise_id: [attempt_record, ...]}
         self._attempts: dict[str, list[dict]] = {}
@@ -89,6 +95,68 @@ class ExamSession:
         return record
 
     # ------------------------------------------------------------------
+    # ADA accommodation controls
+    # ------------------------------------------------------------------
+
+    def is_paused(self) -> bool:
+        return self.paused_at is not None
+
+    def pause(self) -> dict:
+        """Pause the exam clock. Idempotent."""
+        if self.paused_at is not None:
+            return {"already_paused": True, "paused_at": self.paused_at}
+        self.paused_at = int(time.time())
+        self._admin_log.append({"action": "pause", "timestamp": self.paused_at})
+        return {"paused_at": self.paused_at}
+
+    def resume(self) -> dict:
+        """Resume after a pause, adding the pause duration back to the time limit."""
+        if self.paused_at is None:
+            return {"not_paused": True}
+        now = int(time.time())
+        duration = now - self.paused_at
+        self._pause_duration_total += duration
+        self.time_limit_seconds += duration
+        self._admin_log.append({
+            "action": "resume",
+            "timestamp": now,
+            "pause_duration_seconds": duration,
+        })
+        self.paused_at = None
+        return {
+            "pause_duration_seconds": duration,
+            "new_time_limit_seconds": self.time_limit_seconds,
+            "remaining_seconds": self.remaining_seconds(),
+        }
+
+    def extend_time(self, additional_seconds: int) -> dict:
+        """Add time to the session limit (e.g. 1.5x accommodation)."""
+        self.time_limit_seconds += additional_seconds
+        self._admin_log.append({
+            "action": "extend_time",
+            "timestamp": int(time.time()),
+            "additional_seconds": additional_seconds,
+        })
+        return {
+            "new_time_limit_seconds": self.time_limit_seconds,
+            "remaining_seconds": self.remaining_seconds(),
+        }
+
+    def reset_exercise(self, exercise_id: str, reason: str = "") -> int:
+        """Clear attempts and score for one exercise. Returns count of cleared attempts."""
+        cleared = len(self._attempts.get(exercise_id, []))
+        self._attempts[exercise_id] = []
+        self._scores.pop(exercise_id, None)
+        self._admin_log.append({
+            "action": "reset_attempts",
+            "timestamp": int(time.time()),
+            "exercise_id": exercise_id,
+            "attempts_cleared": cleared,
+            "reason": reason,
+        })
+        return cleared
+
+    # ------------------------------------------------------------------
     # Theory management
     # ------------------------------------------------------------------
 
@@ -104,12 +172,15 @@ class ExamSession:
         return self._theory is not None
 
     # ------------------------------------------------------------------
-    # Receipt serialization
+    # Timing — accounts for paused duration
     # ------------------------------------------------------------------
 
     def elapsed_seconds(self) -> int:
         end = self.ended_at or int(time.time())
-        return end - self.started_at
+        total = end - self.started_at - self._pause_duration_total
+        if self.paused_at is not None:
+            total -= (end - self.paused_at)
+        return max(0, total)
 
     def remaining_seconds(self) -> int:
         return max(0, self.time_limit_seconds - self.elapsed_seconds())
@@ -154,11 +225,14 @@ class ExamSession:
                     for a in attempts
                 ],
             })
-        return {
+        result = {
             "exercises": exercises,
             "total_practical_score": total_earned,
             "max_practical_score": total_max,
         }
+        if self._admin_log:
+            result["admin_log"] = self._admin_log
+        return result
 
     def to_theory_receipt(self, scored_mcq: list[dict]) -> dict:
         """
