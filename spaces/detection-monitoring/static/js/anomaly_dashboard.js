@@ -54,7 +54,7 @@ export async function renderAnomalyTab(container) {
   evalBtn.addEventListener('click', runEvaluate);
 }
 
-// ─── Charts ──────────────────────────────────────────────────────────────────────────────
+// ─── Charts ──────────────────────────────────────────────────────────────────
 
 function buildCharts() {
   const el = document.getElementById('d2-charts');
@@ -114,7 +114,7 @@ function buildSparkCard(metric) {
   `;
 }
 
-// ─── Thresholds ──────────────────────────────────────────────────────────────────────────────
+// ─── Thresholds ───────────────────────────────────────────────────────────────
 
 function buildThresholds() {
   const el = document.getElementById('d2-thresholds-section');
@@ -151,7 +151,7 @@ function buildThreshRow(m) {
   `;
 }
 
-// ─── Evaluate ────────────────────────────────────────────────────────────────────────────
+// ─── Evaluate ────────────────────────────────────────────────────────────────
 
 async function runEvaluate() {
   const thresholds = {};

@@ -143,6 +143,7 @@ async function classify(id, label) {
   updateSubmitButton();
   renderScoreBanner();
 
+  // Send all currently-classified entries to get WHY feedback immediately
   const partial = _logs.map(l => ({
     id: l.id,
     label: _classifications[l.id] || 'LEGITIMATE',
@@ -243,9 +244,9 @@ function renderPagination() {
 
   el.innerHTML = `
     <div class="d1-pagination">
-      <button class="d1-page-btn" id="d1-prev" ${_currentPage === 0 ? 'disabled' : ''}>← Prev</button>
+      <button class="d1-page-btn" id="d1-prev" ${_currentPage === 0 ? 'disabled' : ''}>&#8592; Prev</button>
       <span class="d1-page-indicator">Page ${_currentPage + 1} of ${totalPages}</span>
-      <button class="d1-page-btn" id="d1-next" ${_currentPage >= totalPages - 1 ? 'disabled' : ''}>Next →</button>
+      <button class="d1-page-btn" id="d1-next" ${_currentPage >= totalPages - 1 ? 'disabled' : ''}>Next &#8594;</button>
     </div>
   `;
 

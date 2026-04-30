@@ -12,6 +12,7 @@ const TABS = [
 ];
 
 async function init() {
+  // Cold-start health probe
   try {
     const health = await fetchJSON('/health');
     if (health.status !== 'ok') throw new Error();
@@ -80,7 +81,7 @@ function renderInfoTab(container) {
       {
         name: 'Behavioral Baselines',
         def: 'Statistical profiles of normal model behavior; deviations signal attacks.',
-        analogy: 'Like a network anomaly detector that learns “normal” traffic first.',
+        analogy: 'Like a network anomaly detector that learns "normal" traffic first.',
       },
       {
         name: 'False Positive Rate',
