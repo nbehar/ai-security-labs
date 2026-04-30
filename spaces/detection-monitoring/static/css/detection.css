@@ -1,6 +1,6 @@
 /* detection.css — Space-specific styles for the Detection & Monitoring Lab */
 
-/* ─── Log entry cards (D1) ────────────────────────────────────────────────────────── */
+/* ─── Log entry cards (D1) ─────────────────────────────────────── */
 
 .log-card {
   background: var(--color-surface-2);
@@ -209,7 +209,7 @@
   font-family: var(--font-mono);
 }
 
-/* ─── D2: Anomaly Detection ────────────────────────────────────────────────────────── */
+/* ─── D2: Anomaly Detection ─────────────────────────────────────── */
 
 .d2-charts-grid {
   display: grid;
@@ -399,7 +399,7 @@
   letter-spacing: var(--tracking-wider);
 }
 
-/* ─── D3: Output Sanitization ────────────────────────────────────────────────────────── */
+/* ─── D3: Output Sanitization ─────────────────────────────────────── */
 
 .d3-layout {
   display: grid;
@@ -535,7 +535,7 @@
   border-radius: var(--radius-full);
 }
 
-/* ─── Shared submit button ────────────────────────────────────────────────────────── */
+/* ─── Shared submit button ─────────────────────────────────────────── */
 
 .btn-primary {
   background: var(--color-accent-aisl-interactive);
@@ -560,7 +560,7 @@
   cursor: not-allowed;
 }
 
-/* ─── Info tab architecture diagram ───────────────────────────────────────────────────────── */
+/* ─── Info tab architecture diagram ────────────────────────────────────── */
 
 .arch-diagram {
   background: var(--color-surface-2);
