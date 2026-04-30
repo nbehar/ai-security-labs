@@ -35,7 +35,7 @@ All 4 specs written. CLAUDE.md and this file complete. Ready for Phase 1 impleme
 | `specs/deployment_spec.md` | ✅ Written 2026-04-29 |
 | `CLAUDE.md` | ✅ Written 2026-04-29 |
 | `docs/project-status.md` | ✅ This file |
-| GitHub milestone issue | Pending (to be filed) |
+| GitHub milestone issue | ✅ #27 filed 2026-04-29 |
 
 ---
 
@@ -94,4 +94,4 @@ From `specs/frontend_spec.md`:
 
 | Date | Work |
 |------|------|
-| 2026-04-29 | Phase 0 bootstrap: all 4 specs, CLAUDE.md, project-status.md written |
+| 2026-04-29 | Phase 0 bootstrap: all 4 specs, CLAUDE.md, project-status.md written and pushed (`3f2f739`). Issue #27 filed. |
