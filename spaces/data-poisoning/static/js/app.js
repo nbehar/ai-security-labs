@@ -9,7 +9,7 @@
  * `Range.createContextualFragment` to keep the platform security hook happy.
  */
 
-import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck } from "/static/js/core.js";
+import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "/static/js/core.js";
 import { renderRagPoisoningTab } from "/static/js/attack_runner.js";
 import { renderCorpusBrowserTab } from "/static/js/corpus_browser.js";
 
@@ -330,6 +330,7 @@ function renderInfoTab(container) {
     </section>
 
     ${renderKnowledgeCheck(KC_QUESTIONS_DATA_POISONING, "#a78bfa")}
+    ${renderGlossaryPanel()}
   `);
 
   wireKnowledgeCheck(container);

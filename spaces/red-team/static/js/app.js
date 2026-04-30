@@ -4,7 +4,7 @@
  * Uses shared framework from core.js.
  */
 
-import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck } from "./core.js";
+import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "./core.js";
 
 const state = {
   mode: "info",
@@ -231,10 +231,11 @@ function renderInfo(main) {
     $("[data-action='guided-start']")?.addEventListener("click", () => switchTab("redteam"));
   }
 
-  // Append knowledge check before the Start button
+  // Append knowledge check + glossary before the Start button
   const startBtn = mainEl.querySelector(".btn--primary");
   if (startBtn) {
     startBtn.insertAdjacentHTML("beforebegin", renderKnowledgeCheck(KC_QUESTIONS_RED, "var(--red)"));
+    startBtn.insertAdjacentHTML("beforebegin", renderGlossaryPanel());
     wireKnowledgeCheck(mainEl);
   }
 }
@@ -318,6 +319,13 @@ function renderRedTeamResult(r) {
   const color = r.success ? "var(--green)" : "var(--red)";
   const icon = r.success ? "\ud83c\udf89" : "\ud83d\udeab";
   const label = r.success ? "SECRET EXTRACTED!" : "BLOCKED";
+  const completedCount = Object.keys(state.completedLevels).length;
+  const reflectionHtml = completedCount >= 3 ? `
+    <div style="margin-top:16px;padding:14px 18px;background:rgba(139,92,246,0.07);border-left:3px solid #a78bfa;border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+      <div style="font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:6px;">\u{1F4AD} Reflect</div>
+      <p style="font-size:13px;color:var(--text-sec);margin:0 0 4px;">Which defense layer was hardest to bypass? Why do you think that is?</p>
+      <p style="font-size:11px;color:var(--text-muted);margin:0;">No answer needed \u2014 just think about it before moving to the Blue Team lab.</p>
+    </div>` : "";
 
   // Defense log
   const defenseLog = (r.defense_log || []).filter(d => d.active).map(d => {
@@ -344,6 +352,7 @@ function renderRedTeamResult(r) {
       <div class="code-block__label">Model Response</div>
       <div class="model-output" style="max-height:200px;overflow-y:auto;">${escapeHtml(r.model_output || "")}</div>
       ${r.hint ? `<div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.08);border-left:3px solid var(--amber);border-radius:0 4px 4px 0;font-size:13px;color:var(--text-sec);"><strong style="color:var(--amber);">Hint:</strong> ${escapeHtml(r.hint)}</div>` : ""}
+      ${reflectionHtml}
     </div>`;
 }
 

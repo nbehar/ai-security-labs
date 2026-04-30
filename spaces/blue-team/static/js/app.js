@@ -4,7 +4,7 @@
  * Uses shared framework from core.js.
  */
 
-import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck } from "./core.js";
+import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "./core.js";
 
 const state = {
   mode: "info",
@@ -254,10 +254,11 @@ function renderInfo(main) {
     $("[data-action='guided-start']")?.addEventListener("click", () => switchTab("challenge"));
   }
 
-  // Append knowledge check before the Start button
+  // Append knowledge check + glossary before the Start button
   const startBtn = mainEl.querySelector(".btn--primary");
   if (startBtn) {
     startBtn.insertAdjacentHTML("beforebegin", renderKnowledgeCheck(KC_QUESTIONS_BLUE, "var(--blue)"));
+    startBtn.insertAdjacentHTML("beforebegin", renderGlossaryPanel());
     wireKnowledgeCheck(mainEl);
   }
 }

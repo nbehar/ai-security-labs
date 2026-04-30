@@ -10,7 +10,7 @@
  * platform security hook happy; functionally equivalent given the escape rule.
  */
 
-import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck } from "/static/js/core.js";
+import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "/static/js/core.js";
 import { renderImagePromptInjectionTab } from "/static/js/attack_runner.js";
 
 const TABS = [
@@ -312,6 +312,7 @@ function renderInfoTab(container) {
     </section>
 
     ${renderKnowledgeCheck(KC_QUESTIONS_MULTIMODAL, "#8b5cf6")}
+    ${renderGlossaryPanel()}
   `);
 
   wireKnowledgeCheck(container);

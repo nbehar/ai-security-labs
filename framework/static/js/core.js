@@ -335,3 +335,54 @@ export function wireKnowledgeCheck(container) {
     });
   });
 }
+
+// =============================================================================
+// PLATFORM GLOSSARY COMPONENT
+// =============================================================================
+
+/**
+ * Render a collapsible platform-wide glossary panel.
+ * Returns an HTML string. Drop after the knowledge check on any Info tab.
+ */
+export function renderGlossaryPanel() {
+  const terms = [
+    ["Adversarial Filter", "A defense that scans document or query text for known injection patterns before they reach the model. Effective against overt injection language; blind to semantic (embedding-level) attacks."],
+    ["Canary Token (Honeytoken)", "A secret phrase embedded in a system prompt as a tripwire. If the model outputs the phrase, the attack succeeded in crossing the prompt boundary."],
+    ["Cosine Similarity", "A 0–1 measure of how close two embedding vectors are in semantic space. Higher = more similar. Used in RAG retrieval to rank candidate documents against a query."],
+    ["Corpus Poisoning", "Injecting malicious documents into a RAG knowledge base so the model retrieves and repeats attacker-controlled content in its answers."],
+    ["Defense in Depth", "Using multiple independent defense layers so no single bypass compromises the whole system. The core architectural principle behind hardened AI systems."],
+    ["Embedding", "A numerical vector representation of text produced by an encoder model. Texts with similar meaning cluster together — which attackers exploit via keyword stuffing (RP.5)."],
+    ["F1 Score", "Harmonic mean of precision (low false positives) and recall (low false negatives). A defense with F1 = 1.0 catches every attack without blocking any legitimate query."],
+    ["False Negative", "A missed attack: the defense did not fire on genuinely malicious input. High false-negative rate means attackers get through undetected."],
+    ["False Positive", "A wrongly blocked query: the defense fired on a legitimate, benign input. High false-positive rate means real users are being disrupted."],
+    ["Grounding (Output Grounding)", "A post-generation defense that checks whether the model’s response is supported by the retrieved documents. Catches citation spoofing (RP.4)."],
+    ["Jailbreaking", "Bypassing an LLM’s safety rules via crafted prompts. Unlike system-level exploits, jailbreaks work per-conversation and manipulate language, not code."],
+    ["LLM01 / Prompt Injection", "OWASP LLM Top 10 category #1. Covers direct attacks (user-to-model) and indirect attacks (corpus-to-model via retrieved content)."],
+    ["OCR Injection", "An attack where malicious instructions hidden in an image’s text layer are extracted by OCR and inserted into the model’s context — exploiting the vision-text boundary."],
+    ["OWASP LLM Top 10", "The Open Worldwide Application Security Project’s list of the most critical security risks for LLM applications. Standard reference for enterprise AI risk management."],
+    ["Prompt Injection", "Crafting input that makes the model treat attacker text as trusted developer instructions rather than untrusted user data, bypassing the system prompt boundary."],
+    ["Provenance Check", "A defense that verifies a document’s source URI against a trusted allowlist. Blocks any document not from a pre-approved origin — effective even against semantic attacks that content-based defenses miss."],
+    ["RAG (Retrieval-Augmented Generation)", "An LLM architecture where answers are grounded in documents retrieved from a knowledge base at query time. Adds context, but creates a new attack surface: the corpus."],
+    ["Retrieval Diversity", "A defense that penalizes retrieval results where multiple documents share the same source URI. Specifically designed to detect multi-document consensus attacks (RP.6)."],
+    ["Semantic Attack", "An attack that exploits embedding proximity rather than injection text. The poisoned document looks clean — it only manipulates its vector. Content-based defenses are blind to it."],
+    ["System Prompt", "Hidden developer instructions given to the model before any user message. Controls model behavior and persona but is not visible to end users — making it an extraction target."],
+    ["Vision-Text Boundary", "The architectural layer where image content is converted to text (via OCR or a vision model) before entering the LLM context. A primary injection surface in multimodal AI systems."],
+    ["WAF (Web Application Firewall)", "A rule-based filter that blocks requests matching known attack signatures before they reach the application. LLM input scanners play an analogous role at the prompt layer."],
+  ];
+
+  const rows = terms.map(([term, def]) =>
+    `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:220px 1fr;gap:12px;align-items:baseline;">
+      <span style="font-size:13px;font-weight:600;color:var(--text);">${escapeHtml(term)}</span>
+      <span style="font-size:12px;color:var(--text-sec);line-height:1.5;">${escapeHtml(def)}</span>
+    </div>`
+  ).join("");
+
+  return `
+    <details class="glossary-panel" style="margin-top:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+      <summary style="padding:12px 16px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;background:var(--surface);list-style:none;display:flex;align-items:center;gap:8px;user-select:none;">
+        \u{1F4D6} Platform Glossary
+        <span style="font-size:11px;color:var(--text-muted);font-weight:400;margin-left:auto;">${terms.length} terms</span>
+      </summary>
+      <div style="padding:4px 16px 16px;">${rows}</div>
+    </details>`;
+}

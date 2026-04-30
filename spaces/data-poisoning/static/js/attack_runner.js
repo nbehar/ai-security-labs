@@ -131,6 +131,7 @@ export function renderRagPoisoningTab(container, state) {
     </section>
 
     <div id="results"></div>
+    <div id="reflection-card" style="display:none;margin-top:var(--space-4);"></div>
   `);
 
   // Wire up elements
@@ -327,6 +328,21 @@ function updateScoreBanner(root, state, localState) {
     `<span class="${i < completed ? "star-on" : "star-off"}" aria-hidden="true">★</span>`
   ).join("");
   setHtml(starsEl, stars);
+
+  if (completed >= totalAttacks) {
+    const reflectionEl = root.querySelector("#reflection-card");
+    if (reflectionEl && !reflectionEl.dataset.shown) {
+      reflectionEl.dataset.shown = "1";
+      reflectionEl.style.display = "block";
+      setHtml(reflectionEl, `
+        <div style="padding:14px 18px;background:rgba(139,92,246,0.07);border-left:3px solid var(--color-accent-aisl-highlight,#a78bfa);border-radius:0 var(--radius-sm,4px) var(--radius-sm,4px) 0;">
+          <div style="font-size:13px;font-weight:700;color:var(--color-accent-aisl-highlight,#a78bfa);margin-bottom:6px;">\u{1F4AD} Reflect</div>
+          <p style="font-size:13px;color:var(--color-text-secondary,#9ca3af);margin:0 0 6px;">If you were building a RAG-based HR assistant at a real company, which single defense would you deploy first?</p>
+          <p style="font-size:11px;color:var(--color-text-muted,#6b7280);margin:0;">No answer needed — just think about it. If you want to go deeper, try running each attack with only one defense enabled and compare which one catches the most.</p>
+        </div>
+      `);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
