@@ -43,18 +43,11 @@ export async function fetchJSON(url, opts = {}) {
 // TAB RENDERING
 // =============================================================================
 
-/**
- * Render horizontal tabs into a container.
- * @param {HTMLElement} container - The tabs nav element
- * @param {Array<{mode: string, label: string}>} tabDefs - Tab definitions
- * @param {string} activeMode - Currently active mode
- * @param {function} onSwitch - Callback when tab is clicked (receives mode string)
- */
 export function renderTabs(container, tabDefs, activeMode, onSwitch) {
   container.innerHTML = tabDefs.map((t) =>
     `<button class="tab${t.mode === activeMode ? " tab--active" : ""}" data-mode="${t.mode}">${t.label}</button>`
   ).join("");
-  $$(`.tab`, container).forEach((btn) => {
+  $$(`tab`, container).forEach((btn) => {
     btn.addEventListener("click", () => onSwitch(btn.dataset.mode));
   });
 }
@@ -63,11 +56,6 @@ export function renderTabs(container, tabDefs, activeMode, onSwitch) {
 // LEVEL BRIEFING CARDS
 // =============================================================================
 
-/**
- * Render a level briefing card with collapsible suggestion.
- * @param {object} briefing - {title, icon, fields: [{label, value}], tryThis}
- * @param {string} accentColor - CSS color for the left border and suggestion toggle
- */
 export function renderLevelBriefing(briefing, accentColor = "var(--blue)") {
   if (!briefing) return "";
   const fieldsHtml = (briefing.fields || [])
@@ -97,13 +85,6 @@ export function renderLevelBriefing(briefing, accentColor = "var(--blue)") {
 // LEADERBOARD RENDERING
 // =============================================================================
 
-/**
- * Render a leaderboard table.
- * @param {HTMLElement} container - Main element to render into
- * @param {string} endpoint - API endpoint (e.g., "/api/leaderboard")
- * @param {Array<{key: string, label: string}>} columns - Score columns to show
- * @param {string} accentColor - Color for the total score
- */
 export async function renderLeaderboard(container, endpoint, columns, accentColor = "var(--blue)") {
   container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);"><span class="spinner"></span> Loading…</div>';
 
@@ -139,11 +120,6 @@ export async function renderLeaderboard(container, endpoint, columns, accentColo
 // INFO PAGE PATTERN
 // =============================================================================
 
-/**
- * Render a standard Info/welcome page with mission, cards, and start button.
- * @param {HTMLElement} container - Main element
- * @param {object} config - {title, cards: [{title, body}], buttonLabel, buttonColor, onStart}
- */
 export function renderInfoPage(container, config) {
   const cardsHtml = (config.cards || []).map((card) => `
     <div class="card" style="margin-bottom:16px;">
@@ -167,16 +143,25 @@ export function renderInfoPage(container, config) {
 }
 
 // =============================================================================
+// INSTRUCTOR PREVIEW BANNER
+// =============================================================================
+
+export function renderPreviewBanner() {
+  const existing = document.getElementById('preview-banner');
+  if (existing) return;
+  const banner = document.createElement('div');
+  banner.id = 'preview-banner';
+  banner.setAttribute('role', 'status');
+  banner.setAttribute('aria-live', 'polite');
+  banner.style.cssText = 'position:sticky;top:0;z-index:999;background:var(--color-warning,#b45309);color:#fff;text-align:center;padding:8px 16px;font-size:0.875rem;font-weight:600;';
+  banner.textContent = '🔍 INSTRUCTOR PREVIEW — scores are not recorded';
+  document.body.prepend(banner);
+}
+
+// =============================================================================
 // PROGRESS VISUALIZATION
 // =============================================================================
 
-/**
- * Render level progress indicators (stars/checkmarks).
- * @param {number} totalLevels
- * @param {object} completedLevels - {1: 95, 2: 80, ...} level -> best score
- * @param {number} currentLevel
- * @param {number} maxUnlocked
- */
 export function renderProgress(totalLevels, completedLevels, currentLevel, maxUnlocked) {
   const items = [];
   for (let l = 1; l <= totalLevels; l++) {
@@ -184,11 +169,11 @@ export function renderProgress(totalLevels, completedLevels, currentLevel, maxUn
     const isCurrent = l === currentLevel;
     const isLocked = l > maxUnlocked;
     let icon, color;
-    if (score >= 80) { icon = "⭐"; color = "var(--amber)"; }       // star = great
-    else if (score >= 60) { icon = "✅"; color = "var(--green)"; }   // check = passed
-    else if (score > 0) { icon = "⚠️"; color = "var(--amber)"; } // warning = attempted
+    if (score >= 80) { icon = "⭐"; color = "var(--amber)"; }
+    else if (score >= 60) { icon = "✅"; color = "var(--green)"; }
+    else if (score > 0) { icon = "⚠️"; color = "var(--amber)"; }
     else if (isLocked) { icon = "🔒"; color = "var(--text-muted)"; }
-    else { icon = "○"; color = "var(--text-muted)"; }               // empty circle
+    else { icon = "○"; color = "var(--text-muted)"; }
 
     const border = isCurrent ? "border-bottom:2px solid var(--blue);" : "";
     items.push(`<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;font-size:12px;${border}" title="Level ${l}: ${score > 0 ? score + ' pts' : isLocked ? 'Locked' : 'Not attempted'}"><span style="font-size:16px;">${icon}</span><span style="color:${color};">L${l}</span></span>`);
@@ -200,12 +185,6 @@ export function renderProgress(totalLevels, completedLevels, currentLevel, maxUn
 // WHY EXPLANATION COMPONENT
 // =============================================================================
 
-/**
- * Render a "Why it worked/failed" explanation card.
- * @param {boolean} success - Whether the attack succeeded
- * @param {string} attackName
- * @param {string} whyText - Educational explanation
- */
 export function renderWhyCard(success, attackName, whyText) {
   const color = success ? "var(--red)" : "var(--green)";
   const bgColor = success ? "rgba(239,68,68,0.06)" : "rgba(34,197,94,0.06)";
@@ -222,14 +201,6 @@ export function renderWhyCard(success, attackName, whyText) {
 // GUIDED PRACTICE / WALKTHROUGH
 // =============================================================================
 
-/**
- * Render a guided practice walkthrough with numbered steps.
- * @param {Array<{step: string, instruction: string, tip: string}>} steps
- * @param {number} currentStep - 0-based index of current step
- * @param {string} accentColor
- * @param {function} onNext - called with next step index
- * @param {function} onStart - called when "Let's go" is clicked on final step
- */
 export function renderGuidedPractice(steps, currentStep, accentColor, onNext, onStart) {
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
@@ -260,12 +231,6 @@ export function renderGuidedPractice(steps, currentStep, accentColor, onNext, on
 // KNOWLEDGE CHECK COMPONENT
 // =============================================================================
 
-/**
- * Render a collapsible "Check Your Understanding" self-quiz.
- * Returns an HTML string. After insertion call wireKnowledgeCheck(container).
- * @param {Array<{q: string, options: Array<{label: string, correct?: boolean, explanation: string}>}>} questions
- * @param {string} accentColor
- */
 export function renderKnowledgeCheck(questions, accentColor = "var(--blue)") {
   const qs = questions.map((q, qi) => {
     const opts = q.options.map((opt, oi) =>
@@ -293,11 +258,6 @@ export function renderKnowledgeCheck(questions, accentColor = "var(--blue)") {
     </details>`;
 }
 
-/**
- * Wire click handlers for a rendered knowledge check block.
- * Uses only DOM creation methods — no innerHTML.
- * @param {HTMLElement} container - element containing the rendered kc-block
- */
 export function wireKnowledgeCheck(container) {
   container.querySelectorAll(".kc-option").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -340,10 +300,6 @@ export function wireKnowledgeCheck(container) {
 // PLATFORM GLOSSARY COMPONENT
 // =============================================================================
 
-/**
- * Render a collapsible platform-wide glossary panel.
- * Returns an HTML string. Drop after the knowledge check on any Info tab.
- */
 export function renderGlossaryPanel() {
   const terms = [
     ["Adversarial Filter", "A defense that scans document or query text for known injection patterns before they reach the model. Effective against overt injection language; blind to semantic (embedding-level) attacks."],
@@ -352,16 +308,16 @@ export function renderGlossaryPanel() {
     ["Corpus Poisoning", "Injecting malicious documents into a RAG knowledge base so the model retrieves and repeats attacker-controlled content in its answers."],
     ["Defense in Depth", "Using multiple independent defense layers so no single bypass compromises the whole system. The core architectural principle behind hardened AI systems."],
     ["Embedding", "A numerical vector representation of text produced by an encoder model. Texts with similar meaning cluster together — which attackers exploit via keyword stuffing (RP.5)."],
-    ["F1 Score", "Harmonic mean of precision (low false positives) and recall (low false negatives). A defense with F1 = 1.0 catches every attack without blocking any legitimate query."],
+    ["F1 Score", "Harmonic mean of precision (low false positives) and recall (low false negatives). A defense with F1 = 1.0 catches every attack without blocking any legitimate query."],
     ["False Negative", "A missed attack: the defense did not fire on genuinely malicious input. High false-negative rate means attackers get through undetected."],
     ["False Positive", "A wrongly blocked query: the defense fired on a legitimate, benign input. High false-positive rate means real users are being disrupted."],
-    ["Grounding (Output Grounding)", "A post-generation defense that checks whether the model’s response is supported by the retrieved documents. Catches citation spoofing (RP.4)."],
-    ["Jailbreaking", "Bypassing an LLM’s safety rules via crafted prompts. Unlike system-level exploits, jailbreaks work per-conversation and manipulate language, not code."],
-    ["LLM01 / Prompt Injection", "OWASP LLM Top 10 category #1. Covers direct attacks (user-to-model) and indirect attacks (corpus-to-model via retrieved content)."],
-    ["OCR Injection", "An attack where malicious instructions hidden in an image’s text layer are extracted by OCR and inserted into the model’s context — exploiting the vision-text boundary."],
-    ["OWASP LLM Top 10", "The Open Worldwide Application Security Project’s list of the most critical security risks for LLM applications. Standard reference for enterprise AI risk management."],
+    ["Grounding (Output Grounding)", "A post-generation defense that checks whether the model's response is supported by the retrieved documents. Catches citation spoofing (RP.4)."],
+    ["Jailbreaking", "Bypassing an LLM's safety rules via crafted prompts. Unlike system-level exploits, jailbreaks work per-conversation and manipulate language, not code."],
+    ["LLM01 / Prompt Injection", "OWASP LLM Top 10 category #1. Covers direct attacks (user-to-model) and indirect attacks (corpus-to-model via retrieved content)."],
+    ["OCR Injection", "An attack where malicious instructions hidden in an image's text layer are extracted by OCR and inserted into the model's context — exploiting the vision-text boundary."],
+    ["OWASP LLM Top 10", "The Open Worldwide Application Security Project's list of the most critical security risks for LLM applications. Standard reference for enterprise AI risk management."],
     ["Prompt Injection", "Crafting input that makes the model treat attacker text as trusted developer instructions rather than untrusted user data, bypassing the system prompt boundary."],
-    ["Provenance Check", "A defense that verifies a document’s source URI against a trusted allowlist. Blocks any document not from a pre-approved origin — effective even against semantic attacks that content-based defenses miss."],
+    ["Provenance Check", "A defense that verifies a document's source URI against a trusted allowlist. Blocks any document not from a pre-approved origin — effective even against semantic attacks that content-based defenses miss."],
     ["RAG (Retrieval-Augmented Generation)", "An LLM architecture where answers are grounded in documents retrieved from a knowledge base at query time. Adds context, but creates a new attack surface: the corpus."],
     ["Retrieval Diversity", "A defense that penalizes retrieval results where multiple documents share the same source URI. Specifically designed to detect multi-document consensus attacks (RP.6)."],
     ["Semantic Attack", "An attack that exploits embedding proximity rather than injection text. The poisoned document looks clean — it only manipulates its vector. Content-based defenses are blind to it."],
@@ -380,7 +336,7 @@ export function renderGlossaryPanel() {
   return `
     <details class="glossary-panel" style="margin-top:20px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
       <summary style="padding:12px 16px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;background:var(--surface);list-style:none;display:flex;align-items:center;gap:8px;user-select:none;">
-        \u{1F4D6} Platform Glossary
+        📖 Platform Glossary
         <span style="font-size:11px;color:var(--text-muted);font-weight:400;margin-left:auto;">${terms.length} terms</span>
       </summary>
       <div style="padding:4px 16px 16px;">${rows}</div>
