@@ -94,9 +94,11 @@ async function _completeEmailLinkSignIn() {
     window.history.replaceState({}, '', window.location.pathname);
     _currentUser = result.user;
     return result.user;
-  } catch (err) {
-    console.error('Email link sign-in failed:', err.message);
-    return null;
+  } catch (e) {
+    console.error('Email link sign-in failed:', e.message);
+    window.history.replaceState({}, '', window.location.pathname);
+    // Link expired/used — fall through to sign-in overlay so user can retry
+    return await _showSignInOverlay();
   }
 }
 
@@ -277,7 +279,10 @@ function _wireOverlay(wrap, stepMain, stepEmailSent, stepSms, errEl, onAuth) {
       _smsConfirmation = await signInWithPhoneNumber(_auth, phone, window._fbRecaptcha);
       wrap.querySelector('#fba-phone-display').textContent = phone;
       show(stepSms);
-    } catch (e) { err(e.message); }
+    } catch (e) {
+      if (window._fbRecaptcha) { window._fbRecaptcha.clear(); window._fbRecaptcha = null; }
+      err(e.message);
+    }
   });
 
   wrap.querySelector('#fba-otp-btn').addEventListener('click', async () => {

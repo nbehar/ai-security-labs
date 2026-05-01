@@ -1493,7 +1493,10 @@ async function handleRunScorecard() {
   renderScorecardMode();
 
   try {
-    const url = `/api/scorecard/stream?canary=${encodeURIComponent(canary)}&workshop=${state.workshop}`;
+    // EventSource cannot set headers — append Firebase token as query param
+    const fbToken = await getIdToken().catch(() => null);
+    const tokenParam = fbToken ? `&firebase_token=${encodeURIComponent(fbToken)}` : '';
+    const url = `/api/scorecard/stream?canary=${encodeURIComponent(canary)}&workshop=${state.workshop}${tokenParam}`;
     const evtSource = new EventSource(url);
     const results = [];
 
@@ -1567,6 +1570,8 @@ function bindEvents() {
 // =============================================================================
 
 async function init() {
+  // initFirebaseAuth() calls /api/firebase-config (exempt from auth) so it's
+  // safe to await before the fetch patch exists.
   const fbUser = await initFirebaseAuth();
   if (fbUser) {
     const _fbFetch = window.fetch;

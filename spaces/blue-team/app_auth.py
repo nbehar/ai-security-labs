@@ -39,7 +39,10 @@ try:
 except ImportError:
     _SDK_OK = False
     if FIREBASE_AUTH_ENABLED:
-        logger.warning("firebase-admin not installed; auth disabled")
+        raise RuntimeError(
+            "FIREBASE_CREDENTIALS is set but firebase-admin is not installed. "
+            "Auth cannot be enforced. Add firebase-admin to requirements.txt."
+        )
 
 
 @lru_cache(maxsize=1)
@@ -76,14 +79,18 @@ def add_auth_middleware(app) -> None:
                 or path.startswith("/static/")):
             return await call_next(request)
 
+        # EventSource (SSE) cannot set headers — accept token as query param fallback
         auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
+        if auth_header.startswith("Bearer "):
+            token = auth_header.removeprefix("Bearer ")
+        else:
+            token = request.query_params.get("firebase_token", "")
+
+        if not token:
             return JSONResponse(
                 {"error": "Unauthorized", "detail": "Missing Bearer token"},
                 status_code=401,
             )
-
-        token = auth_header.removeprefix("Bearer ")
         try:
             _firebase_app()  # ensure initialized
             decoded = fb_auth.verify_id_token(token)
