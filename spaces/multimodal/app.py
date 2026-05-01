@@ -62,6 +62,7 @@ except ImportError:
 
 LAB_ID = "multimodal"
 EXAM_SECRET = os.environ.get("EXAM_SECRET", "")
+PREVIEW_TOKEN = os.environ.get("PREVIEW_TOKEN", "")
 _ROSTER_MAP: dict[str, str] = {}  # student_id → token
 
 EXERCISE_DEFINITIONS = [
@@ -87,6 +88,14 @@ SYSTEM_PROMPT_DOCRECEIVE = (
     "Be thorough and helpful. Process every document you receive."
 )
 USER_PROMPT_PROCESS = "Process this document."
+
+
+def _is_preview(request: Request) -> bool:
+    if not PREVIEW_TOKEN:
+        return False
+    header = request.headers.get("X-Preview-Token", "")
+    query = request.query_params.get("preview", "")
+    return (header == PREVIEW_TOKEN) or (query == PREVIEW_TOKEN)
 
 
 # Rate limiter — 10 req/min per IP on /api/attack only (per platform CLAUDE.md
@@ -357,11 +366,12 @@ async def run_attack(
     Workshop mode: pass `attack_id`. Exam mode: pass `exam_attack_id` + `exam_token`.
     Uploaded images are validated (PNG/JPEG, ≤4MB, magic-bytes) and processed in-memory only.
     """
+    preview = _is_preview(request)
     exam_session = None
     exam_attack = None
     effective_user_prompt = USER_PROMPT_PROCESS
 
-    if exam_token and exam_attack_id and EXAM_ENABLED:
+    if exam_token and exam_attack_id and EXAM_ENABLED and not preview:
         result = _resolve_exam_session(exam_token, exam_attack_id)
         if not isinstance(result, tuple):
             return result
@@ -405,7 +415,7 @@ async def run_attack(
 
     result = _run_defended_inference(image_bytes, attack_for_inference, enabled, user_prompt=effective_user_prompt)
 
-    if exam_session is not None and exam_attack_id:
+    if exam_session is not None and exam_attack_id and not preview:
         prior = exam_session.attempt_count(exam_attack_id)
         score = _attack_score(result["succeeded"], prior + 1, bool(result.get("blocked_by")))
         exam_session.record_attempt(exam_attack_id, success=result["succeeded"], score=score)
@@ -417,6 +427,7 @@ async def run_attack(
         **result,
         "participant_name": participant_name,
         "phase": 3,
+        "preview_mode": preview,
     }
 
 
@@ -434,17 +445,22 @@ class ScoreRequest(BaseModel):
 
 
 @app.post("/api/score")
-async def post_score(req: ScoreRequest):
+async def post_score(request: Request, req: ScoreRequest):
+    preview = _is_preview(request)
     if req.attack_id not in ATTACKS:
         raise HTTPException(400, f"Unknown attack: {req.attack_id}")
     # A defense blocked the attack iff defenses were applied AND it didn't succeed.
     blocked_by_defense = (not req.succeeded) and bool(req.defenses_applied)
     attempt_score = _attack_score(req.succeeded, req.attempts, blocked_by_defense)
-    running_total, rank = _record_score(req.participant_name, req.attack_id, attempt_score)
+    if not preview:
+        running_total, rank = _record_score(req.participant_name, req.attack_id, attempt_score)
+    else:
+        running_total, rank = attempt_score, None
     return {
         "score_added": attempt_score,
         "running_total": running_total,
         "rank": rank,
+        "preview_mode": preview,
     }
 
 
