@@ -13,6 +13,10 @@ export function detectExamToken() {
   return new URLSearchParams(window.location.search).get('exam_token') || null;
 }
 
+export function detectPreviewToken() {
+  return new URLSearchParams(window.location.search).get('preview') || '';
+}
+
 // ─── Session initialization ───────────────────────────────────────────────────
 
 export async function initExamMode(token, labId) {
@@ -28,6 +32,9 @@ export async function initExamMode(token, labId) {
 let _timerInterval = null;
 
 export function renderExamBanner(ctx, container) {
+  // Suppress exam timer and attempt counter in preview mode.
+  if (detectPreviewToken()) return;
+
   const banner = document.createElement('div');
   banner.id = 'exam-banner';
   container.insertBefore(banner, container.firstChild);
