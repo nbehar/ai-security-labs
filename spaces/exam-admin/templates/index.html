@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Admin — AI Security Labs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/luminex-bridge.css">
+  <link rel="stylesheet" href="/static/css/luminex-nav.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+
+  <nav class="luminex-nav">
+    <img src="/static/owl.svg" alt="Luminex Learning" class="luminex-nav__owl owl-gold">
+    <div class="luminex-nav__brand-text">
+      <span class="luminex-nav__customer-name">NexaCore</span>
+      <div class="luminex-nav__hairline"></div>
+      <span class="luminex-nav__product-name">AI SECURITY LABS</span>
+    </div>
+    <div class="luminex-nav__spacer"></div>
+    <div class="luminex-nav__page-label">
+      <svg class="luminex-nav__page-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+      </svg>
+      <span class="luminex-nav__page-name">Exam Admin</span>
+    </div>
+    <span class="luminex-nav__meta" id="nav-status"></span>
+  </nav>
+
+  <div style="max-width:920px;margin:0 auto;padding:0 20px 48px">
+
+    <header class="hero">
+      <div class="hero__eyebrow">Instructor Tool — Private</div>
+      <h1 class="hero__title">Receipt Verification &amp; Grading</h1>
+      <p class="hero__sub">Upload student score receipts to verify HMAC signatures, review short-answer responses, and post grades to Canvas.</p>
+    </header>
+
+    <div id="config-warning" class="error-msg hidden">
+      ⚠️ <strong>EXAM_SECRET not configured</strong> — all verification will return invalid.
+      Set the secret in HuggingFace Space settings.
+    </div>
+
+    <nav class="view-nav">
+      <button class="view-nav__btn active" data-view="verify">Verify</button>
+      <button class="view-nav__btn" data-view="batch">Batch</button>
+    </nav>
+
+    <!-- Verify view -->
+    <div id="view-verify">
+      <div class="upload-zone" id="drop-zone" tabindex="0" role="button"
+           aria-label="Upload a receipt JSON file">
+        <div class="upload-zone__icon">🔐</div>
+        <div class="upload-zone__label">Drop a receipt .json file here, or click to browse</div>
+        <div class="upload-zone__sub">Single .json file produced by an AI Security Labs exam-mode space</div>
+      </div>
+      <input type="file" id="file-input" accept=".json,application/json" style="display:none">
+      <div id="verify-error" class="error-msg hidden"></div>
+      <div id="verify-result"></div>
+    </div>
+
+    <!-- Batch view -->
+    <div id="view-batch" class="hidden">
+      <div class="upload-zone" id="batch-drop-zone" tabindex="0" role="button"
+           aria-label="Upload multiple receipt JSON files">
+        <div class="upload-zone__icon">📋</div>
+        <div class="upload-zone__label">Drop multiple receipt .json files here, or click to browse</div>
+        <div class="upload-zone__sub">Up to 100 receipts per batch</div>
+      </div>
+      <input type="file" id="batch-file-input" accept=".json,application/json" multiple style="display:none">
+      <div id="batch-error" class="error-msg hidden"></div>
+      <div id="batch-result"></div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/static/js/admin.js"></script>
+</body>
+</html>

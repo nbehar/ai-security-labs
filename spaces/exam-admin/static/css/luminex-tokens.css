@@ -1,0 +1,105 @@
+/*
+ * Luminex Learning — Design Tokens (vendored 2026-04-28)
+ *
+ * Source of truth: ~/luminex/brand-system/design-tokens.json
+ * AI Security Labs is one of four Luminex Learning products.
+ * AISL accent = violet.
+ */
+
+:root {
+  --color-bg-base: #09090f;
+  --color-bg-elevated: #121218;
+  --color-surface-1: #121218;
+  --color-surface-2: #1c1c26;
+  --color-surface-3: #242432;
+  --color-border: #27272f;
+  --color-border-strong: #3a3a48;
+  --color-border-subtle: rgba(39, 39, 47, 0.6);
+  --color-text-primary: #fafaf0;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #737373;
+  --color-text-inverse: #09090f;
+  --color-text-link: #fbbf24;
+  --color-primary: #d97706;
+  --color-primary-light: #fbbf24;
+  --color-primary-subtle: rgba(217, 119, 6, 0.10);
+  --color-primary-border: rgba(217, 119, 6, 0.28);
+  --color-secondary: #0d9488;
+  --color-secondary-light: #2dd4bf;
+  --color-secondary-subtle: rgba(13, 148, 136, 0.10);
+  --color-accent-aisl-interactive: #7c3aed;
+  --color-accent-aisl-interactive-hover: #6d28d9;
+  --color-accent-aisl-highlight: #a78bfa;
+  --color-accent-aisl-subtle: rgba(124, 58, 237, 0.10);
+  --color-accent-aisl-border: rgba(124, 58, 237, 0.28);
+  --color-text-on-accent: #fafaf0;
+  --color-success: #22c55e;
+  --color-success-light: #4ade80;
+  --color-success-subtle: rgba(34, 197, 94, 0.10);
+  --color-warning: #f59e0b;
+  --color-warning-light: #fbbf24;
+  --color-warning-subtle: rgba(245, 158, 11, 0.10);
+  --color-danger: #ef4444;
+  --color-danger-light: #f87171;
+  --color-danger-subtle: rgba(239, 68, 68, 0.10);
+  --color-info: #3b82f6;
+  --color-info-light: #60a5fa;
+  --color-info-subtle: rgba(59, 130, 246, 0.10);
+  --color-focus-ring: #fbbf24;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  --font-display: 'DM Serif Display', 'Georgia', serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --leading-tight: 1.15;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.08em;
+  --tracking-widest: 0.12em;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+  --nav-height: 40px;
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+  --owl-filter-gold: brightness(0) saturate(100%) invert(50%) sepia(100%) saturate(700%) hue-rotate(4deg) brightness(98%);
+}
+
+.owl-gold  { filter: var(--owl-filter-gold); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

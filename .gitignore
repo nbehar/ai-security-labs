@@ -49,3 +49,8 @@ htmlcov/
 
 # Deploy artifacts
 build_context/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
