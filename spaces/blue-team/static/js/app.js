@@ -458,10 +458,11 @@ function renderWAF(main) {
 
       <div class="form-group">
         <label for="waf-rules">Your Rules (max 30)</label>
+        <span class="sr-only" id="waf-rules-hint">WAF rule format: BLOCK if contains "text" or BLOCK if regex "pattern" or ALLOW if contains "text". Maximum 30 rules.</span>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">
           Syntax: <code>BLOCK if contains "text"</code> | <code>BLOCK if regex "pattern"</code> | <code>ALLOW if contains "text"</code>
         </div>
-        <textarea id="waf-rules" rows="10" style="font-family:var(--mono);" placeholder='# Example rules (delete these and write your own)
+        <textarea id="waf-rules" rows="10" style="font-family:var(--mono);" aria-describedby="waf-rules-hint" placeholder='# Example rules (delete these and write your own)
 BLOCK if contains "ignore previous instructions"
 BLOCK if contains "system prompt"
 BLOCK if regex "(?i)translate.*instructions"

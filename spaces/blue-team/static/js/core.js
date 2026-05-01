@@ -107,6 +107,7 @@ export async function renderLeaderboard(container, endpoint, columns, accentColo
         ${data.leaderboard.length === 0
           ? '<div class="card"><div class="card__text">No scores yet. Be the first!</div></div>'
           : `<table class="scorecard-table">
+              <caption class="sr-only">Attack leaderboard — top scores</caption>
               <thead><tr><th>Rank</th><th>Name</th>${colHeaders}<th>Total</th></tr></thead>
               <tbody>${rows}</tbody>
             </table>`}
