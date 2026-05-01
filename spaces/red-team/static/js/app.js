@@ -6,6 +6,7 @@
 
 import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel, renderPreviewBanner } from "./core.js";
 import { detectExamToken, initExamMode, isExamActive, getExamContext, getRemainingAttempts, wrapPayload, mountExamBanner, renderTheoryTab, renderReceiptTab, refreshStatus, detectPreviewToken } from "./exam_mode.js";
+import { initFirebaseAuth, getIdToken } from './firebase_auth.js';
 
 const state = {
   mode: "info",
@@ -547,6 +548,18 @@ function renderLB(main) {
 // =============================================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Firebase auth gate — resolves immediately if auth is disabled
+  const fbUser = await initFirebaseAuth();
+  if (fbUser) {
+    const _fbFetch = window.fetch;
+    window.fetch = async (url, opts = {}) => {
+      const headers = { ...(opts.headers || {}) };
+      const token = await getIdToken().catch(() => null);
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return _fbFetch(url, { ...opts, headers });
+    };
+  }
+
   const previewToken = detectPreviewToken();
   if (previewToken) {
     renderPreviewBanner();

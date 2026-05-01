@@ -7,3 +7,4 @@ pillow>=10.0.0
 huggingface_hub>=0.27.0
 pytesseract>=0.3.10
 slowapi>=0.1.9
+firebase-admin>=6.0.0

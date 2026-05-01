@@ -103,6 +103,9 @@ def _is_preview(request: Request) -> bool:
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="Multimodal Security Lab", version="0.4-phase4a")
+from app_auth import add_auth_middleware, firebase_config_route
+add_auth_middleware(app)
+app.add_api_route("/api/firebase-config", firebase_config_route)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.mount("/static", StaticFiles(directory="static"), name="static")

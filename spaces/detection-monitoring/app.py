@@ -41,6 +41,9 @@ def _is_preview(request: Request) -> bool:
 
 
 app = FastAPI(title="Detection & Monitoring Lab", version="1.0.0")
+from app_auth import add_auth_middleware, firebase_config_route
+add_auth_middleware(app)
+app.add_api_route("/api/firebase-config", firebase_config_route)
 
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter

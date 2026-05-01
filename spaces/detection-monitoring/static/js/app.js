@@ -3,6 +3,7 @@ import { renderLogAnalysisTab } from './log_viewer.js';
 import { renderAnomalyTab } from './anomaly_dashboard.js';
 import { renderOutputSanitizerTab } from './output_sanitizer.js';
 import { detectPreviewToken } from './exam_mode.js';
+import { initFirebaseAuth, getIdToken } from './firebase_auth.js';
 
 const TABS = [
   { id: 'info',     label: 'Info' },
@@ -13,6 +14,18 @@ const TABS = [
 ];
 
 async function init() {
+  // Firebase auth gate — resolves immediately if auth is disabled
+  const fbUser = await initFirebaseAuth();
+  if (fbUser) {
+    const _fbFetch = window.fetch;
+    window.fetch = async (url, opts = {}) => {
+      const headers = { ...(opts.headers || {}) };
+      const token = await getIdToken().catch(() => null);
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return _fbFetch(url, { ...opts, headers });
+    };
+  }
+
   const previewToken = detectPreviewToken();
   if (previewToken) {
     renderPreviewBanner();

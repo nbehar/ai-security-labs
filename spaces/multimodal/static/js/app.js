@@ -13,6 +13,7 @@
 import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel, renderPreviewBanner } from "/static/js/core.js";
 import { renderImagePromptInjectionTab } from "/static/js/attack_runner.js";
 import { detectExamToken, initExamMode, detectPreviewToken } from "/static/js/exam_mode.js";
+import { initFirebaseAuth, getIdToken } from "/static/js/firebase_auth.js";
 
 const TABS = [
   { id: "info", label: "Info" },
@@ -41,6 +42,18 @@ export function setHtml(el, html) {
 }
 
 (async function init() {
+  // Firebase auth gate — resolves immediately if auth is disabled
+  const fbUser = await initFirebaseAuth();
+  if (fbUser) {
+    const _fbFetch = window.fetch;
+    window.fetch = async (url, opts = {}) => {
+      const headers = { ...(opts.headers || {}) };
+      const token = await getIdToken().catch(() => null);
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return _fbFetch(url, { ...opts, headers });
+    };
+  }
+
   const previewToken = detectPreviewToken();
   if (previewToken) {
     renderPreviewBanner();

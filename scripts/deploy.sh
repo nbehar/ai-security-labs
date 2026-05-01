@@ -31,15 +31,17 @@ if [ -f "framework/static/css/styles.css" ]; then
   echo "  Copied: framework CSS"
 fi
 
-# 2. Copy shared JS core (don't overwrite space-specific app.js)
+# 2. Copy shared JS files (don't overwrite space-specific app.js)
 if [ -d "framework/static/js" ]; then
   mkdir -p "$SPACE_DIR/static/js"
   cp framework/static/js/core.js "$SPACE_DIR/static/js/core.js" 2>/dev/null && echo "  Copied: core.js" || true
+  cp framework/static/js/firebase_auth.js "$SPACE_DIR/static/js/firebase_auth.js" 2>/dev/null && echo "  Copied: firebase_auth.js" || true
 fi
 
 # 3. Copy shared Python modules
 for pyfile in framework/scoring.py framework/groq_client.py framework/scanner.py \
-              framework/exam_token.py framework/exam_session.py framework/exam_questions.py; do
+              framework/exam_token.py framework/exam_session.py framework/exam_questions.py \
+              framework/app_auth.py; do
   if [ -f "$pyfile" ]; then
     cp "$pyfile" "$SPACE_DIR/$(basename $pyfile)"
     echo "  Copied: $(basename $pyfile)"
