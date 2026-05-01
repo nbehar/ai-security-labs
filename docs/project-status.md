@@ -1,6 +1,6 @@
 # AI Security Labs — Platform Project Status
 
-Last updated: 2026-05-01
+Last updated: 2026-05-01 (Phase 6 complete)
 
 ---
 
@@ -9,10 +9,10 @@ Last updated: 2026-05-01
 | # | Space | HF Space | Status |
 |---|-------|------------|--------|
 | 1 | owasp-top-10 | `nikobehar/llm-top-10` | ✅ Live |
-| 2 | blue-team | `nikobehar/blue-team-workshop` | ✅ Live |
+| 2 | blue-team | `nikobehar/blue-team-workshop` | ✅ Live + Exam Mode (Phase 6a complete) |
 | 3 | red-team | `nikobehar/red-team-workshop` | ✅ Live + Exam Mode (Phase 3 complete) |
-| 4 | multimodal | `nikobehar/ai-sec-lab4-multimodal` | ✅ Live (Phase 3 + defenses complete) |
-| 5 | data-poisoning | `nikobehar/ai-sec-lab5-data-poisoning` | ✅ Live |
+| 4 | multimodal | `nikobehar/ai-sec-lab4-multimodal` | ✅ Live + Exam Mode (Phase 6b complete) |
+| 5 | data-poisoning | `nikobehar/ai-sec-lab5-data-poisoning` | ✅ Live + Exam Mode (Phase 6c complete) |
 | 6 | detection-monitoring | `nikobehar/ai-sec-lab6-detection` | ✅ Live + Exam Mode (Phase 2 complete) |
 
 ---
@@ -52,7 +52,7 @@ A two-tier exam system layered on top of existing lab spaces.
 | Phase 3 | Red Team exam mode (exam_challenges_v1/v2.py, app.py routes + slowapi) | ✅ Complete |
 | Phase 4 | Theory assessment (exam_questions.py, exam_mode.js) | ✅ Complete |
 | Phase 5 | exam-admin space (verification UI, LTI grade passback) | ✅ Live — `nikobehar/ai-sec-lab-exam-admin` |
-| Phase 6 | Blue Team, Multimodal, Data Poisoning exam routes | Planned |
+| Phase 6 | Blue Team, Multimodal, Data Poisoning exam routes | ✅ Complete |
 | Phase 7 | Cross-lab capstone | Deferred |
 
 ### Exam Dataset Coverage
@@ -61,9 +61,9 @@ A two-tier exam system layered on top of existing lab spaces.
 |-----|--------------------|---------------------|
 | Red Team | ✅ exam_challenges_v1.py | ✅ exam_challenges_v2.py |
 | Detection | ✅ exam_data_v1.py | ✅ exam_data_v2.py |
-| Blue Team | Planned | Planned |
-| Multimodal | Planned | Planned |
-| Data Poisoning | Planned | Planned |
+| Blue Team | ✅ exam_challenges_v1.py | ✅ exam_challenges_v2.py |
+| Multimodal | ✅ exam_attacks_v1.py | ✅ exam_attacks_v2.py |
+| Data Poisoning | ✅ exam_attacks_v1.py | ✅ exam_attacks_v2.py |
 
 ---
 
@@ -95,10 +95,10 @@ ADA Section 504 accommodations, class roster dashboard, and token generator for 
 |--------|----------|
 | `groq_client.py` | red-team, blue-team, owasp-top-10, multimodal |
 | `scoring.py` | all spaces |
-| `exam_token.py` | red-team, detection-monitoring, exam-admin |
-| `exam_session.py` | red-team, detection-monitoring |
-| `exam_questions.py` | red-team, detection-monitoring, exam-admin |
-| `static/js/exam_mode.js` | all exam-mode spaces |
+| `exam_token.py` | red-team, detection-monitoring, blue-team, multimodal, data-poisoning, exam-admin |
+| `exam_session.py` | red-team, detection-monitoring, blue-team, multimodal, data-poisoning |
+| `exam_questions.py` | red-team, detection-monitoring, blue-team, multimodal, data-poisoning, exam-admin |
+| `static/js/exam_mode.js` | all exam-mode spaces (5 labs) |
 
 ---
 
@@ -119,14 +119,17 @@ ADA Section 504 accommodations, class roster dashboard, and token generator for 
 ## Blockers
 
 - exam-admin LTI: requires Canvas admin access for one-time tool registration (per `specs/deployment_spec.md`)
-- Phase 6 exam routes (bd-aen): large feature — needs per-lab sub-issue decomposition before routing to builder
 
 ---
 
 ## Next Recommended Task
 
-Phase 6 exam mode — wire Blue Team, Multimodal, Data Poisoning exam routes (bd-aen, P2).
-Decompose into 3 per-lab sub-issues, then implement per-lab following the Detection/Red Team pattern.
+No critical blockers. Lower-priority backlog:
+- bd-q5u (P3): Instructor preview mode (GitHub issue #32)
+- bd-zn5 (P3): WCAG 2.1 AA audit (GitHub issue #33)
+- bd-bk7 (P4): Fix root CLAUDE.md "3 live workshops" → "5 live workshops"
+- GitHub issue #34: Facilitator guides for 3 live labs
+- GitHub issue #35: Course materials package
 
 ---
 
@@ -139,3 +142,4 @@ Decompose into 3 per-lab sub-issues, then implement per-lab following the Detect
 | 2026-04-30 | Detection & Monitoring Phase 1+2 complete. Summative assessment system Phases 1–5 complete: exam_token.py, exam_session.py, exam_questions.py, exam_mode.js, Red Team exam routes + datasets, Detection exam routes + datasets, exam-admin space (verify UI + LTI grade passback). |
 | 2026-04-30 | Instructor support package: `framework/exam_session.py` enhanced with pause/resume/extend_time/reset_exercise + admin_log (`cc80abd9`). exam-admin upgraded to 4-tab UI (Verify/Batch/Roster/Generate) with accommodation panel + roster view + token generator wizard (`f4e67fcb`). red-team/app.py + detection-monitoring/app.py got 6 admin routes each + _ROSTER_MAP + pause check (`5e257f34`). CSS: admin.css updated with .accom-*, .roster-table, .generate-form, .sr-only, .lab-connect-* (`5e257f34`). Issues #29–#31 implemented. |
 | 2026-05-01 | Deployed detection-monitoring (Space 6) to `nikobehar/ai-sec-lab6-detection` — all acceptance checks pass. Deployed exam-admin to `nikobehar/ai-sec-lab-exam-admin` (private) — all 8 acceptance checks pass (`6df83b0`). Closed GitHub issues #27 + #28. Closed 5 superseded PRs (#23 #24 #25 #26 #38). Initialized Beads issue tracker + Agent Mail. |
+| 2026-05-01 | Phase 6 complete: Blue Team exam mode (`18b79b6`), Multimodal exam mode (`3e3ccbe`, `d44e8cb`), Data Poisoning exam mode (`d44e8cb`). All 5 labs now have exam mode with attempt caps, theory assessment, signed receipts. Exam datasets: 12 variants across 5 labs (2 sections each). framework/exam_questions.py has all 5 lab sections (10 MCQ + 3 SA each, Bloom's 4–6). Closed bd-wk3, bd-6xr, bd-asb, bd-aen. |
