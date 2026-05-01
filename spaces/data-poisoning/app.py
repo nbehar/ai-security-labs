@@ -31,7 +31,7 @@ import threading
 from typing import Literal, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -48,6 +48,23 @@ logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+
+EXAM_ENABLED = False
+try:
+    from exam_token import InvalidTokenError, validate_token, sign_receipt
+    from exam_session import AttemptCapError, _SESSIONS, get_or_create_session
+    EXAM_ENABLED = True
+except ImportError:
+    pass
+
+LAB_ID = "data-poisoning"
+EXAM_SECRET = os.environ.get("EXAM_SECRET", "")
+_ROSTER_MAP: dict[str, str] = {}
+
+EXERCISE_DEFINITIONS = [
+    {"exercise_id": f"rp{i}_v1", "display_name": f"RP{i} Exam A", "max_score": 100}
+    for i in range(1, 7)
+]
 
 # Lazily-constructed Groq client. Created on first use so the import path
 # doesn't fail when the secret is missing (the /health endpoint must still
@@ -240,6 +257,7 @@ async def health():
         "embeddings_loaded": CORPUS.is_warm(),
         "defenses_available": sorted(DEFENSE_IDS),
         "phase": 4,
+        "exam_enabled": EXAM_ENABLED and bool(EXAM_SECRET),
     }
 
 
@@ -305,7 +323,9 @@ async def get_corpus_doc(doc_id: str):
 @limiter.limit("10/minute")
 async def post_attack(
     request: Request,
-    attack_id: str = Form(...),
+    attack_id: str = Form(default=""),
+    exam_attack_id: Optional[str] = Form(None),
+    exam_token: Optional[str] = Form(None),
     doc_source: str = Form("canned"),
     defenses: Optional[str] = Form(None),
     participant_name: str = Form("Anonymous"),
@@ -322,9 +342,27 @@ async def post_attack(
     by design (uploaded source `(user upload)` fails the trusted-sources
     allowlist).
     """
+    # ---- Exam mode ----
+    exam_session = None
+    exam_attack = None
+    if exam_token and exam_attack_id and EXAM_ENABLED:
+        res = _resolve_exam_session(exam_token, exam_attack_id)
+        if not isinstance(res, tuple):
+            return res
+        exam_session, active_data = res
+        exam_attack = active_data.EXAM_ATTACKS.get(exam_attack_id)
+        if not exam_attack:
+            raise HTTPException(400, f"Unknown exam attack: {exam_attack_id}")
+        # Override attack_id and doc_source for exam routing below
+        attack_id = "exam_bypass"
+        doc_source = "exam"
+    # ---- End exam mode ----
+
     # Conditional attack_id guard (Phase 4a reviewer fix #2 — must dispatch on
     # doc_source before validating attack_id, otherwise upload mode 400s).
-    if doc_source == "canned":
+    if doc_source == "exam":
+        pass  # validated above
+    elif doc_source == "canned":
         if attack_id not in ATTACKS:
             raise HTTPException(400, f"Unknown attack: {attack_id}")
     elif doc_source == "uploaded":
@@ -370,19 +408,43 @@ async def post_attack(
         content = await doc_file.read()
         text = _validate_uploaded_doc(content, doc_file.content_type, doc_file.filename)
         uploaded_doc = Document.create_uploaded(text, title=doc_file.filename or "(user upload)")
+    elif doc_source == "exam" and exam_attack:
+        d = exam_attack["doc"]
+        uploaded_doc = Document(
+            id=d["id"], title=d["title"], department=d["department"],
+            source=d["source"], kind=d["kind"], body_markdown=d["body_markdown"],
+            attack_id=exam_attack["id"],
+        )
 
     try:
+        effective_query_id = (
+            exam_attack["target_query_id"] if doc_source == "exam"
+            else (target_query_id if doc_source == "uploaded" else None)
+        )
+        effective_attack_id = "custom" if doc_source == "exam" else attack_id
         result = run_attack(
-            attack_id,
+            effective_attack_id,
             get_groq_client(),
             defenses=parsed_defenses,
             uploaded_doc=uploaded_doc,
-            query_id=target_query_id if doc_source == "uploaded" else None,
+            query_id=effective_query_id,
         )
     except RuntimeError as e:
         raise HTTPException(503, str(e))
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+    if doc_source == "exam" and exam_attack:
+        exam_canary = exam_attack["canary"]
+        result["canary"] = exam_canary
+        result["succeeded"] = (
+            result.get("blocked_by") is None
+            and exam_canary.lower() in result.get("model_response", "").lower()
+        )
+        if exam_session is not None:
+            prior = exam_session.attempt_count(exam_attack_id)
+            score = _attack_score(prior + 1, result["succeeded"], parsed_defenses)
+            exam_session.record_attempt(exam_attack_id, success=result["succeeded"], score=score)
 
     result["participant_name"] = participant_name
     result["phase"] = 4
@@ -417,3 +479,344 @@ async def get_leaderboard():
             })
         entries.sort(key=lambda e: (-e["total_score"], -e["attacks_completed"], e["participant_name"]))
     return {"entries": entries}
+
+# ---------------------------------------------------------------------------
+# Exam helpers
+# ---------------------------------------------------------------------------
+
+def _get_exam_data(dataset_variant: str):
+    if dataset_variant == "exam_v1":
+        try:
+            import exam_attacks_v1
+            return exam_attacks_v1
+        except ImportError:
+            pass
+    elif dataset_variant == "exam_v2":
+        try:
+            import exam_attacks_v2
+            return exam_attacks_v2
+        except ImportError:
+            pass
+    return None
+
+
+def _resolve_exam_session(exam_token: str, exercise_id: str):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+    try:
+        payload = validate_token(exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+    session = get_or_create_session(exam_token, payload)
+    if session.is_expired():
+        return JSONResponse(status_code=403, content={"detail": "Exam time limit has expired."})
+    try:
+        session.check_attempt_cap(exercise_id)
+    except AttemptCapError as e:
+        return JSONResponse(status_code=429, content={
+            "detail": str(e),
+            "exercise_id": e.exercise_id,
+            "cap": e.cap,
+        })
+    if session.is_paused():
+        return JSONResponse(status_code=423, content={"detail": "Exam is paused by instructor. Please wait."})
+    active_data = _get_exam_data(session.dataset_variant)
+    return session, active_data
+
+
+# ---------------------------------------------------------------------------
+# Routes — exam
+# ---------------------------------------------------------------------------
+
+class ExamValidateRequest(BaseModel):
+    token: str
+
+class MCQAnswer(BaseModel):
+    question_id: str
+    answer: str
+
+class ShortAnswerItem(BaseModel):
+    question_id: str
+    response: str
+
+class TheorySubmitRequest(BaseModel):
+    exam_token: str
+    mcq_answers: list[MCQAnswer] = []
+    short_answers: list[ShortAnswerItem] = []
+
+
+@app.post("/api/exam/validate")
+@limiter.limit("20/minute")
+async def exam_validate(request: Request, body: ExamValidateRequest):
+    if not EXAM_ENABLED:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not available."})
+    if not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured (EXAM_SECRET missing)."})
+    try:
+        payload = validate_token(body.token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+    session = get_or_create_session(body.token, payload)
+    variant = session.dataset_variant
+    active_data = _get_exam_data(variant)
+    exercises = active_data.EXERCISE_DEFINITIONS if active_data else EXERCISE_DEFINITIONS
+    return {
+        "valid": True,
+        "exam_id": payload.get("exam_id"),
+        "student_id": payload.get("student_id"),
+        "lab_id": LAB_ID,
+        "dataset_variant": variant,
+        "time_limit_seconds": payload.get("time_limit_seconds"),
+        "elapsed_seconds": session.elapsed_seconds(),
+        "remaining_seconds": session.remaining_seconds(),
+        "exercises": [
+            {
+                **ex,
+                "attempts_used": session.attempt_count(ex["exercise_id"]),
+                "attempt_cap": session.attempt_caps.get(ex["exercise_id"]),
+            }
+            for ex in exercises
+        ],
+    }
+
+
+@app.post("/api/exam/theory")
+@limiter.limit("10/minute")
+async def exam_theory(request: Request, body: TheorySubmitRequest):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+    try:
+        validate_token(body.exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+    session = _SESSIONS.get(body.exam_token)
+    if not session:
+        return JSONResponse(status_code=404, content={"detail": "Exam session not found. Call /api/exam/validate first."})
+    if session.theory_submitted():
+        return JSONResponse(status_code=409, content={"detail": "Theory already submitted."})
+
+    try:
+        from exam_questions import QUESTION_BANKS
+        lab_questions = QUESTION_BANKS.get(LAB_ID, {})
+    except ImportError:
+        lab_questions = {}
+
+    mcq_bank = {q["id"]: q for q in lab_questions.get("mcq", [])}
+    scored_mcq: list[dict] = []
+    for ans in body.mcq_answers:
+        q = mcq_bank.get(ans.question_id)
+        if not q:
+            continue
+        correct = ans.answer.upper() == q.get("answer", "").upper()
+        scored_mcq.append({
+            "question_id": ans.question_id,
+            "student_answer": ans.answer,
+            "correct": correct,
+            "bloom_level": q.get("bloom_level", 4),
+            "points_earned": q.get("points", 5) if correct else 0,
+        })
+
+    short_answers_payload = [
+        {"question_id": sa.question_id, "response": sa.response, "word_count": len(sa.response.split())}
+        for sa in body.short_answers
+    ]
+    session.record_theory(scored_mcq, short_answers_payload)
+    return session.to_theory_receipt(scored_mcq)
+
+
+@app.get("/api/exam/receipt")
+async def exam_receipt(exam_token: str):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+    try:
+        validate_token(exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+    session = _SESSIONS.get(exam_token)
+    if not session:
+        return JSONResponse(status_code=404, content={"detail": "Exam session not found. Call /api/exam/validate first."})
+    active_data = _get_exam_data(session.dataset_variant)
+    exercises = active_data.EXERCISE_DEFINITIONS if active_data else EXERCISE_DEFINITIONS
+    receipt_payload = {
+        "receipt_version": "1",
+        "lab_id": LAB_ID,
+        "practical": session.to_practical_receipt(exercises),
+        "theory": session.to_theory_receipt([]) if not session.theory_submitted() else None,
+        "timing": {
+            "total_elapsed_seconds": session.elapsed_seconds(),
+            "time_limit_seconds": session.token_payload.get("time_limit_seconds"),
+        },
+        "exam_id": session.token_payload.get("exam_id"),
+        "student_id": session.token_payload.get("student_id"),
+    }
+    receipt_payload["hmac_sha256"] = sign_receipt(receipt_payload, EXAM_SECRET)
+    return receipt_payload
+
+
+@app.get("/api/exam/status")
+async def exam_status(exam_token: str):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+    try:
+        validate_token(exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+    session = _SESSIONS.get(exam_token)
+    if not session:
+        return JSONResponse(status_code=404, content={"detail": "Exam session not found. Call /api/exam/validate first."})
+    active_data = _get_exam_data(session.dataset_variant)
+    exercises = active_data.EXERCISE_DEFINITIONS if active_data else EXERCISE_DEFINITIONS
+    return {
+        "exam_id": session.token_payload.get("exam_id"),
+        "student_id": session.token_payload.get("student_id"),
+        "elapsed_seconds": session.elapsed_seconds(),
+        "remaining_seconds": session.remaining_seconds(),
+        "is_expired": session.is_expired(),
+        "is_paused": session.is_paused(),
+        "theory_submitted": session.theory_submitted(),
+        "exercises": [
+            {
+                **ex,
+                "attempts_used": session.attempt_count(ex["exercise_id"]),
+                "attempt_cap": session.attempt_caps.get(ex["exercise_id"]),
+                "score": session._scores.get(ex["exercise_id"], 0),
+            }
+            for ex in exercises
+        ],
+    }
+
+
+@app.get("/api/exam/questions")
+async def exam_questions_route(exam_token: str):
+    if not EXAM_ENABLED or not EXAM_SECRET:
+        return JSONResponse(status_code=503, content={"detail": "Exam mode not configured."})
+    try:
+        validate_token(exam_token, EXAM_SECRET, LAB_ID)
+    except InvalidTokenError as e:
+        return JSONResponse(status_code=401, content={"detail": e.reason})
+    try:
+        from exam_questions import QUESTION_BANKS
+        lab_qs = QUESTION_BANKS.get(LAB_ID, {})
+    except ImportError:
+        lab_qs = {}
+    mcq_client = [
+        {"id": q["id"], "bloom_level": q.get("bloom_level", 4),
+         "scenario": q.get("scenario", ""), "stem": q["stem"],
+         "options": q["options"], "points": q.get("points", 5)}
+        for q in lab_qs.get("mcq", [])
+    ]
+    sa_client = [
+        {"id": q["id"], "bloom_level": q.get("bloom_level", 5),
+         "prompt": q["prompt"], "word_limit": q.get("word_limit", 200),
+         "points": q.get("points", 20)}
+        for q in lab_qs.get("short_answers", [])
+    ]
+    return {"lab_id": LAB_ID, "mcq": mcq_client, "short_answers": sa_client}
+
+
+# ---------------------------------------------------------------------------
+# Routes — admin
+# ---------------------------------------------------------------------------
+
+def _check_admin_auth(request: Request) -> None:
+    if not EXAM_SECRET:
+        raise HTTPException(503, "EXAM_SECRET not configured")
+    if request.headers.get("X-Exam-Secret", "") != EXAM_SECRET:
+        raise HTTPException(401, "Invalid or missing X-Exam-Secret header")
+
+
+class AdminTokenBody(BaseModel):
+    token: str
+
+
+class RosterRow(BaseModel):
+    student_id: str
+    token: str = ""
+
+
+class LoadRosterBody(BaseModel):
+    rows: list[RosterRow]
+
+
+class ExtendTimeBody(BaseModel):
+    token: str
+    additional_seconds: int
+
+
+class ResetAttemptsBody(BaseModel):
+    token: str
+    exercise_id: str
+
+
+@app.get("/api/admin/roster")
+async def admin_roster(request: Request):
+    _check_admin_auth(request)
+    rows = []
+    for student_id, tok in _ROSTER_MAP.items():
+        session = _SESSIONS.get(tok) if tok else None
+        active_data = _get_exam_data(session.dataset_variant) if session else None
+        exercises = active_data.EXERCISE_DEFINITIONS if active_data else EXERCISE_DEFINITIONS
+        rows.append({
+            "student_id": student_id,
+            "token_set": bool(tok),
+            "session_active": session is not None,
+            "elapsed_seconds": session.elapsed_seconds() if session else None,
+            "remaining_seconds": session.remaining_seconds() if session else None,
+            "is_expired": session.is_expired() if session else None,
+            "is_paused": session.is_paused() if session else None,
+            "scores": {ex["exercise_id"]: session._scores.get(ex["exercise_id"], 0) for ex in exercises} if session else {},
+        })
+    return {"roster": rows}
+
+
+@app.post("/api/admin/load-roster")
+async def admin_load_roster(request: Request, body: LoadRosterBody):
+    global _ROSTER_MAP
+    _check_admin_auth(request)
+    _ROSTER_MAP = {row.student_id: row.token for row in body.rows if row.student_id}
+    return {"loaded": len(_ROSTER_MAP)}
+
+
+@app.post("/api/admin/extend-time")
+async def admin_extend_time(request: Request, body: ExtendTimeBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam mode not available.")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.extend_time(body.additional_seconds)
+
+
+@app.post("/api/admin/reset-attempts")
+async def admin_reset_attempts(request: Request, body: ResetAttemptsBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam mode not available.")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    count = session.reset_exercise(body.exercise_id, reason="Admin reset")
+    return {"reset": True, "attempts_cleared": count}
+
+
+@app.post("/api/admin/pause-exam")
+async def admin_pause_exam(request: Request, body: AdminTokenBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam mode not available.")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.pause()
+
+
+@app.post("/api/admin/resume-exam")
+async def admin_resume_exam(request: Request, body: AdminTokenBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam mode not available.")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.resume()
