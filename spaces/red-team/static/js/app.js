@@ -5,6 +5,7 @@
  */
 
 import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "./core.js";
+import { detectExamToken, initExamMode, isExamActive, getExamContext, getRemainingAttempts, wrapPayload, mountExamBanner, renderTheoryTab, renderReceiptTab, refreshStatus } from "./exam_mode.js";
 
 const state = {
   mode: "info",
@@ -78,27 +79,51 @@ const LEVEL_BRIEFINGS = {
 // TAB MANAGEMENT
 // =============================================================================
 
-const TAB_DEFS = [
-  { mode: "info", label: "Info" },
-  { mode: "redteam", label: "Red Team Levels" },
-  { mode: "jailbreak", label: "Jailbreak Lab" },
-  { mode: "leaderboard", label: "Leaderboard" },
-];
+function getTabDefs() {
+  if (isExamActive()) {
+    return [
+      { mode: "info",    label: "Info" },
+      { mode: "redteam", label: "Red Team Levels" },
+      { mode: "theory",  label: "Theory Assessment" },
+      { mode: "receipt", label: "Receipt" },
+    ];
+  }
+  return [
+    { mode: "info",        label: "Info" },
+    { mode: "redteam",     label: "Red Team Levels" },
+    { mode: "jailbreak",   label: "Jailbreak Lab" },
+    { mode: "leaderboard", label: "Leaderboard" },
+  ];
+}
 
 function switchTab(mode) {
   state.mode = mode;
-  renderTabs($("#tabs-nav"), TAB_DEFS, state.mode, switchTab);
+  renderTabs($("#tabs-nav"), getTabDefs(), state.mode, switchTab);
   renderMain();
 }
 
 function renderMain() {
   const main = $("#main");
   switch (state.mode) {
-    case "info": renderInfo(main); break;
-    case "redteam": renderRedTeam(main); break;
-    case "jailbreak": renderJailbreak(main); break;
+    case "info":        renderInfo(main); break;
+    case "redteam":     renderRedTeam(main); break;
+    case "jailbreak":   renderJailbreak(main); break;
     case "leaderboard": renderLB(main); break;
+    case "theory":      renderTheory(main); break;
+    case "receipt":     renderReceipt(main); break;
   }
+}
+
+function renderTheory(main) {
+  main.innerHTML = `<div class="fade-in" id="theory-container"></div>`;
+  renderTheoryTab(main.querySelector("#theory-container"), () => {
+    switchTab("receipt");
+  });
+}
+
+function renderReceipt(main) {
+  main.innerHTML = `<div class="fade-in" id="receipt-container"></div>`;
+  renderReceiptTab(main.querySelector("#receipt-container"));
 }
 
 // =============================================================================
@@ -269,16 +294,30 @@ function renderRedTeam(main) {
 
       <div class="form-group">
         <label for="rt-name">Your name</label>
-        <input type="text" id="rt-name" value="${escapeHtml(state.participantName)}" style="max-width:300px;" />
+        <input type="text" id="rt-name" value="${escapeHtml(isExamActive() ? (getExamContext()?.student_id || state.participantName) : state.participantName)}"
+          style="max-width:300px;" ${isExamActive() ? 'readonly title="Locked to exam student ID"' : ''} />
       </div>
       <div class="form-group">
         <label for="rt-prompt">Your Attack Prompt</label>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Write a prompt that makes the model reveal its secret codename. Be creative!</div>
         <textarea id="rt-prompt" rows="5" placeholder="Try to extract the secret...">${state.lastPrompt && state.lastResult?.level === lvl ? escapeHtml(state.lastPrompt) : ""}</textarea>
       </div>
-      <button class="btn btn--primary" id="btn-attack" style="background:var(--red);" ${state.running ? "disabled" : ""}>
-        ${state.running ? '<span class="spinner"></span> Attacking\u2026' : '\u2694\ufe0f Launch Attack (Level ' + lvl + ')'}
-      </button>
+      ${(() => {
+        const exerciseId = `level_${lvl}`;
+        const remaining = getRemainingAttempts(exerciseId);
+        const capInfo = isExamActive() && remaining !== null
+          ? `<div style="font-size:12px;color:${remaining > 0 ? 'var(--amber)' : 'var(--red)'};margin-bottom:8px;">
+               Attempts remaining: <strong>${remaining}</strong>
+             </div>`
+          : "";
+        const btnLabel = state.running
+          ? '<span class="spinner"></span> Attacking\u2026'
+          : isExamActive() && remaining !== null
+            ? `\u2694\ufe0f Submit Attempt (${remaining} remaining)`
+            : `\u2694\ufe0f Launch Attack (Level ${lvl})`;
+        const disabled = state.running || (isExamActive() && remaining !== null && remaining <= 0) ? "disabled" : "";
+        return `${capInfo}<button class="btn btn--primary" id="btn-attack" style="background:var(--red);" ${disabled}>${btnLabel}</button>`;
+      })()}
       <div id="rt-results" style="margin-top:20px;">
         ${r && r.level === lvl ? renderRedTeamResult(r) : ""}
       </div>
@@ -293,7 +332,11 @@ function renderRedTeam(main) {
     const prompt = $("#rt-prompt").value;
     const name = $("#rt-name").value || "Anonymous";
     if (!prompt.trim()) return;
-    state.participantName = name;
+    if (isExamActive()) {
+      state.participantName = getExamContext()?.student_id || name;
+    } else {
+      state.participantName = name;
+    }
     state.lastPrompt = prompt;
     state.running = true;
     renderRedTeam(main);
@@ -302,7 +345,7 @@ function renderRedTeam(main) {
       const result = await fetchJSON("/api/attempt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ level: state.level, attack_prompt: prompt, participant_name: name }),
+        body: JSON.stringify(wrapPayload({ level: state.level, attack_prompt: prompt, participant_name: name })),
       });
       state.lastResult = result;
       if (result.success && result.score > 0) {
@@ -310,6 +353,7 @@ function renderRedTeam(main) {
           state.completedLevels[state.level] = result.score;
         }
       }
+      if (isExamActive()) await refreshStatus();
     } catch (err) { alert(err.message); }
     finally { state.running = false; renderRedTeam(main); }
   });
@@ -502,7 +546,18 @@ function renderLB(main) {
 // INIT
 // =============================================================================
 
-document.addEventListener("DOMContentLoaded", () => {
-  renderTabs($("#tabs-nav"), TAB_DEFS, state.mode, switchTab);
+document.addEventListener("DOMContentLoaded", async () => {
+  const examToken = detectExamToken();
+  if (examToken) {
+    try {
+      await initExamMode(examToken, "red-team");
+      mountExamBanner();
+      state.mode = "redteam"; // Land on levels tab in exam mode
+    } catch (err) {
+      console.error("Exam mode init failed:", err);
+      // Fall through to workshop mode if token is invalid
+    }
+  }
+  renderTabs($("#tabs-nav"), getTabDefs(), state.mode, switchTab);
   renderMain();
 });

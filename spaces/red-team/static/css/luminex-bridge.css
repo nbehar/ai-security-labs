@@ -48,3 +48,14 @@ html, body {
   background: var(--color-bg-base);
   color: var(--color-text-primary);
 }
+
+/* NR-8: override framework hardcoded #2563eb hover on Luminex-branded spaces */
+.btn--primary:hover:not(:disabled),
+.workshop-btn--active:hover {
+  background: var(--color-accent-aisl-interactive-hover);
+}
+
+/* NR-8: override framework hardcoded rgba(59,130,246,0.06) tint on Luminex-branded spaces */
+.defense-found--applied {
+  background: var(--color-accent-aisl-subtle);
+}

@@ -38,12 +38,20 @@ if [ -d "framework/static/js" ]; then
 fi
 
 # 3. Copy shared Python modules
-for pyfile in framework/scoring.py framework/groq_client.py framework/scanner.py; do
+for pyfile in framework/scoring.py framework/groq_client.py framework/scanner.py \
+              framework/exam_token.py framework/exam_session.py framework/exam_questions.py; do
   if [ -f "$pyfile" ]; then
     cp "$pyfile" "$SPACE_DIR/$(basename $pyfile)"
     echo "  Copied: $(basename $pyfile)"
   fi
 done
+
+# 4. Copy shared JS exam module
+if [ -f "framework/static/js/exam_mode.js" ]; then
+  mkdir -p "$SPACE_DIR/static/js"
+  cp framework/static/js/exam_mode.js "$SPACE_DIR/static/js/exam_mode.js"
+  echo "  Copied: exam_mode.js"
+fi
 
 echo ""
 echo "=== Deploying $SPACE to HuggingFace ==="

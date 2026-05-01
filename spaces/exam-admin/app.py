@@ -10,12 +10,16 @@ Routes:
   GET  /api/lti/jwks
   POST /api/lti/grade
   POST /api/lti/batch-grade
+  POST /api/admin/proxy            forward admin commands to lab spaces
+  POST /api/admin/generate-tokens  generate exam tokens for a student roster
 """
 
 import copy
 import logging
 import os
+import time as _time
 
+import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,7 +34,7 @@ from lti import get_jwks, post_grade_to_lti
 # Framework modules copied from framework/ at deploy time
 EXAM_TOKEN_AVAILABLE = False
 try:
-    from exam_token import verify_receipt
+    from exam_token import generate_token, verify_receipt
     EXAM_TOKEN_AVAILABLE = True
 except ImportError:
     pass
@@ -49,6 +53,24 @@ logger = logging.getLogger(__name__)
 EXAM_SECRET = os.environ.get("EXAM_SECRET", "")
 LTI_VARS = ["EXAM_LTI_CLIENT_ID", "EXAM_LTI_PLATFORM_URL",
             "EXAM_LTI_LINEITEM_URL", "EXAM_LTI_PRIVATE_KEY_PEM"]
+
+# Known lab space base URLs for token generation and proxy routing
+LAB_URLS: dict[str, str] = {
+    "red-team": "https://nikobehar-red-team-workshop.hf.space",
+    "detection-monitoring": "https://nikobehar-ai-sec-lab6-detection.hf.space",
+    "blue-team": "https://nikobehar-blue-team-workshop.hf.space",
+    "owasp-top-10": "https://nikobehar-llm-top-10.hf.space",
+}
+
+# Default attempt caps per lab used by token generator
+DEFAULT_CAPS: dict[str, dict] = {
+    "red-team": {f"level_{i}": 3 for i in range(1, 6)},
+    "detection-monitoring": {"D1": 1, "D2": 3, "D3": 3},
+    "blue-team": {"challenge_1": 3, "challenge_2": 3, "challenge_3": 3, "challenge_4": 3},
+    "owasp-top-10": {},
+}
+
+SECTION_TO_VARIANT: dict[str, str] = {"A": "exam_v1", "B": "exam_v2", "C": "exam_v3"}
 
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="exam-admin")
@@ -88,8 +110,25 @@ class BatchGradeRequest(BaseModel):
     grades: list[GradeRequest]
 
 
+class AdminProxyRequest(BaseModel):
+    lab_url: str           # base URL of the target lab space
+    endpoint: str          # e.g. "/api/admin/extend-time"
+    method: str = "POST"   # POST or GET
+    payload: dict = {}
+
+
+class GenerateTokensRequest(BaseModel):
+    exam_id: str
+    student_ids: list[str]
+    lab_ids: list[str]
+    section: str = "A"
+    duration_hours: int = 3
+    opens_at: int           # Unix timestamp
+    expires_at: int         # Unix timestamp
+
+
 # =============================================================================
-# Helper
+# Helpers
 # =============================================================================
 
 def _verify_one(receipt: dict) -> dict:
@@ -127,6 +166,14 @@ def _verify_one(receipt: dict) -> dict:
         "theory": receipt.get("theory", {}),
         "timing": receipt.get("timing", {}),
     }
+
+
+def _check_admin_auth(request: Request) -> None:
+    """Raise 401 if the X-Exam-Secret header doesn't match EXAM_SECRET."""
+    if not EXAM_SECRET:
+        raise HTTPException(503, "EXAM_SECRET not configured")
+    if request.headers.get("X-Exam-Secret", "") != EXAM_SECRET:
+        raise HTTPException(401, "Invalid or missing X-Exam-Secret header")
 
 
 # =============================================================================
@@ -251,3 +298,81 @@ async def lti_batch_grade(request: Request, req: BatchGradeRequest):
         except Exception as e:
             results.append({"student_id": grade.student_id, "status": "error", "detail": str(e)})
     return {"results": results}
+
+
+# =============================================================================
+# Admin proxy — forwards commands to lab spaces using server-side EXAM_SECRET
+# =============================================================================
+
+@app.post("/api/admin/proxy")
+@limiter.limit("30/minute")
+async def admin_proxy(request: Request, req: AdminProxyRequest):
+    """
+    Forward an admin command to a lab space.
+    exam-admin adds X-Exam-Secret from its own env — the browser never sees the secret.
+    """
+    _check_admin_auth(request)
+    if not req.lab_url.startswith("https://"):
+        raise HTTPException(400, "lab_url must start with https://")
+    url = req.lab_url.rstrip("/") + req.endpoint
+    headers = {"X-Exam-Secret": EXAM_SECRET, "Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            if req.method.upper() == "GET":
+                resp = await client.get(url, headers=headers)
+            else:
+                resp = await client.post(url, json=req.payload, headers=headers)
+        return resp.json()
+    except httpx.TimeoutException:
+        raise HTTPException(504, "Lab space did not respond in time")
+    except Exception as e:
+        raise HTTPException(502, f"Lab space unreachable: {e}")
+
+
+# =============================================================================
+# Token generator — batch-generate exam tokens for a student roster
+# =============================================================================
+
+@app.post("/api/admin/generate-tokens")
+@limiter.limit("5/minute")
+async def generate_tokens(request: Request, req: GenerateTokensRequest):
+    """Generate one signed exam token per student_id. EXAM_SECRET never leaves the server."""
+    _check_admin_auth(request)
+    if not EXAM_TOKEN_AVAILABLE or not EXAM_SECRET:
+        raise HTTPException(503, "EXAM_SECRET not configured — cannot generate tokens")
+    if len(req.student_ids) > 200:
+        raise HTTPException(400, "Maximum 200 students per request")
+
+    now = int(_time.time())
+    variant = SECTION_TO_VARIANT.get(req.section.upper(), "exam_v1")
+    caps: dict = {}
+    for lab_id in req.lab_ids:
+        caps.update(DEFAULT_CAPS.get(lab_id, {}))
+
+    tokens = []
+    for student_id in req.student_ids:
+        payload = {
+            "version": "1",
+            "exam_id": req.exam_id,
+            "student_id": student_id,
+            "lab_ids": req.lab_ids,
+            "issued_at": now,
+            "expires_at": req.expires_at,
+            "time_limit_seconds": req.duration_hours * 3600,
+            "attempt_caps": caps,
+            "dataset_variant": variant,
+        }
+        token = generate_token(payload, EXAM_SECRET)
+        exam_urls = {
+            lab: f"{LAB_URLS[lab]}?exam_token={token}"
+            for lab in req.lab_ids
+            if lab in LAB_URLS
+        }
+        tokens.append({
+            "student_id": student_id,
+            "token": token,
+            "exam_urls": exam_urls,
+            "primary_exam_url": next(iter(exam_urls.values()), ""),
+        })
+
+    return {"tokens": tokens, "count": len(tokens), "exam_id": req.exam_id}

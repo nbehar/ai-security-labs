@@ -31,48 +31,123 @@
     <span class="luminex-nav__meta" id="nav-status"></span>
   </nav>
 
-  <div style="max-width:920px;margin:0 auto;padding:0 20px 48px">
+  <div style="max-width:960px;margin:0 auto;padding:0 20px 48px">
 
     <header class="hero">
       <div class="hero__eyebrow">Instructor Tool — Private</div>
       <h1 class="hero__title">Receipt Verification &amp; Grading</h1>
-      <p class="hero__sub">Upload student score receipts to verify HMAC signatures, review short-answer responses, and post grades to Canvas.</p>
+      <p class="hero__sub">Verify HMAC-signed receipts, score short answers, post grades to Canvas, manage live exam sessions, and generate student tokens.</p>
     </header>
 
     <div id="config-warning" class="error-msg hidden">
-      ⚠️ <strong>EXAM_SECRET not configured</strong> — all verification will return invalid.
+      ⚠️ <strong>EXAM_SECRET not configured</strong> — verification and token generation will not work.
       Set the secret in HuggingFace Space settings.
     </div>
 
-    <nav class="view-nav">
-      <button class="view-nav__btn active" data-view="verify">Verify</button>
-      <button class="view-nav__btn" data-view="batch">Batch</button>
+    <nav class="view-nav" role="tablist" aria-label="Admin views">
+      <button class="view-nav__btn active" data-view="verify" role="tab" aria-selected="true">Verify</button>
+      <button class="view-nav__btn" data-view="batch" role="tab" aria-selected="false">Batch</button>
+      <button class="view-nav__btn" data-view="roster" role="tab" aria-selected="false">Roster</button>
+      <button class="view-nav__btn" data-view="generate" role="tab" aria-selected="false">Generate</button>
     </nav>
 
     <!-- Verify view -->
-    <div id="view-verify">
+    <div id="view-verify" role="tabpanel">
       <div class="upload-zone" id="drop-zone" tabindex="0" role="button"
            aria-label="Upload a receipt JSON file">
         <div class="upload-zone__icon">🔐</div>
         <div class="upload-zone__label">Drop a receipt .json file here, or click to browse</div>
         <div class="upload-zone__sub">Single .json file produced by an AI Security Labs exam-mode space</div>
+        <button type="button" class="upload-zone__btn">Choose file</button>
       </div>
       <input type="file" id="file-input" accept=".json,application/json" style="display:none">
-      <div id="verify-error" class="error-msg hidden"></div>
+      <div id="verify-error" class="error-msg hidden" role="alert"></div>
       <div id="verify-result"></div>
     </div>
 
     <!-- Batch view -->
-    <div id="view-batch" class="hidden">
+    <div id="view-batch" class="hidden" role="tabpanel">
       <div class="upload-zone" id="batch-drop-zone" tabindex="0" role="button"
            aria-label="Upload multiple receipt JSON files">
         <div class="upload-zone__icon">📋</div>
         <div class="upload-zone__label">Drop multiple receipt .json files here, or click to browse</div>
         <div class="upload-zone__sub">Up to 100 receipts per batch</div>
+        <button type="button" class="upload-zone__btn">Choose files</button>
       </div>
       <input type="file" id="batch-file-input" accept=".json,application/json" multiple style="display:none">
-      <div id="batch-error" class="error-msg hidden"></div>
+      <div id="batch-error" class="error-msg hidden" role="alert"></div>
       <div id="batch-result"></div>
+    </div>
+
+    <!-- Roster view -->
+    <div id="view-roster" class="hidden" role="tabpanel">
+      <div class="lab-connect">
+        <label for="lab-url-input" class="form-label">Lab Space URL</label>
+        <div class="lab-connect__row">
+          <input type="url" id="lab-url-input" class="form-input"
+                 placeholder="https://nikobehar-red-team-workshop.hf.space">
+          <button id="roster-load-btn" class="expand-btn">Load Roster</button>
+          <label class="roster-refresh-label">
+            <input type="checkbox" id="roster-auto-refresh" checked>
+            Auto-refresh
+          </label>
+        </div>
+      </div>
+      <div id="roster-error" class="error-msg hidden" role="alert"></div>
+      <div id="roster-result"></div>
+    </div>
+
+    <!-- Generate view -->
+    <div id="view-generate" class="hidden" role="tabpanel">
+      <div id="generate-warning" class="error-msg hidden">
+        ⚠️ EXAM_SECRET not configured — token generation disabled.
+      </div>
+
+      <div class="generate-form">
+        <h3 class="generate-section-title">Step 1 — Exam Configuration</h3>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="gen-exam-id" class="form-label">Exam ID</label>
+            <input type="text" id="gen-exam-id" class="form-input" placeholder="spring2026-final">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Section</label>
+            <div class="radio-group">
+              <label><input type="radio" name="gen-section" value="A" checked> A (exam_v1)</label>
+              <label><input type="radio" name="gen-section" value="B"> B (exam_v2)</label>
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="gen-duration" class="form-label">Duration (hours)</label>
+            <input type="number" id="gen-duration" class="form-input form-input--narrow" value="3" min="1" max="8">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="gen-opens-at" class="form-label">Opens at</label>
+            <input type="datetime-local" id="gen-opens-at" class="form-input">
+          </div>
+          <div class="form-field">
+            <label for="gen-expires-at" class="form-label">Closes at</label>
+            <input type="datetime-local" id="gen-expires-at" class="form-input">
+          </div>
+        </div>
+
+        <h3 class="generate-section-title">Step 2 — Upload Roster</h3>
+        <div class="upload-zone upload-zone--sm" id="gen-drop-zone" tabindex="0" role="button"
+             aria-label="Upload roster CSV file">
+          <div class="upload-zone__label">Drop roster.csv here, or click to browse</div>
+          <div class="upload-zone__sub">Needs a student_id column (or uses first column)</div>
+          <button type="button" class="upload-zone__btn">Choose file</button>
+        </div>
+        <input type="file" id="gen-file-input" accept=".csv,text/csv" style="display:none">
+        <div id="gen-roster-preview" class="hidden roster-preview"></div>
+
+        <h3 class="generate-section-title">Step 3 — Generate</h3>
+        <button id="gen-generate-btn" class="expand-btn">Generate Tokens</button>
+        <div id="generate-error" class="error-msg hidden" role="alert"></div>
+        <div id="gen-result" class="hidden"></div>
+      </div>
     </div>
 
   </div>

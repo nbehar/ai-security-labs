@@ -1,6 +1,6 @@
 # Project Status — AI Security Labs Platform
 
-*Last updated: 2026-04-29 (Phase C complete — reflection prompts + platform glossary. All 4 live labs fully updated through Phase A+B+C pedagogical improvements. QM S1/S2/S3/S7 gaps addressed.)*
+*Last updated: 2026-04-30 (Exam mode frontend complete: `framework/static/js/exam_mode.js` + red-team wiring (Theory/Receipt tabs, attempt caps, timer, WebCrypto signing). PR #38 open. Red-team HF Space verified 200 OK. Detection-monitoring space fully scaffolded. Deploy of Space 6 + exam-admin still pending.)*
 
 ---------------------------------------------------------------------
 
@@ -76,9 +76,9 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 
 | Priority | Space | Status | v1 Content | Hardware |
 |----------|-------|--------|------------|----------|
-| 3 | Multimodal Security | **Phase 5 MEASURED** at `nikobehar/ai-sec-lab4-multimodal` — full 12×6 defense matrix run live; per-defense catches: `output_redaction` 10/10, `ocr_prescan` 4/10, `boundary_hardening` 0/10 catch + 2/10 deters, `confidence_threshold` 0/10, `all_four` 9/10. Phase 4b SPA shell + Phase 3.1 defense improvements (issue #21) remain. | P1 Image Prompt Injection + P5 OCR Poisoning | `cpu-basic` + HF Inference Providers (`Qwen/Qwen2.5-VL-72B-Instruct` via `ovhcloud`) |
+| 3 | Multimodal Security | **Phase 3.1 COMPLETE** at `nikobehar/ai-sec-lab4-multimodal` (issue #21, PR #23, 2026-04-29) — 3 defense quality fixes deployed. Updated catches: `output_redaction` 10/10, `ocr_prescan` **6/10** (+P1.5+P5.6), `boundary_hardening` 0/10 catch + **7/10 partial-deters** (sandwich pattern), `confidence_threshold` **2/10** (+P5.1+P5.3, histogram-spike analysis). PR #23 pending merge. v1.1 image regen (P1.4/P5.2/P5.5) is the only remaining non-blocking follow-up. | P1 Image Prompt Injection + P5 OCR Poisoning | `cpu-basic` + HF Inference Providers (`Qwen/Qwen2.5-VL-72B-Instruct` via `ovhcloud`) |
 | 4 | Data Poisoning Lab | **Phase 4b COMPLETE** at `nikobehar/ai-sec-lab5-data-poisoning` — full 4-tab Luminex SPA live (Info / RAG Poisoning / Defenses / Corpus Browser). Phase 4a 9-endpoint API surface + upload mode + scoring still live. Phase 5 measured matrix authoritative (provenance 6/6, adv_filter 3/6, retrieval_diversity 1/6, output_grounding 1/6, all_four 6/6). All reviewer-validated (10 issues across 4 passes). Phase 2 (corpus 6→15 expansion) is the only non-blocking follow-up. | RAG corpus poisoning (RP.1—RP.6) | `cpu-basic` + Groq (`llama-3.3-70b-versatile`) + sentence-transformers MiniLM-L6 in-process |
-| 5 | Detection & Monitoring | Planned | Log analysis, anomaly detection, output sanitization | CPU |
+| 5 | Detection & Monitoring | **Phase 1 COMPLETE** — all 16 source files pushed (`cf4042b`+`a41a1fa`, 2026-04-30, refs #27). D1=20 logs, D2=24 windows, D3=15 outputs. NR-8 compliant. Next: deploy to HF Space + acceptance checks. HF Space: `nikobehar/ai-sec-lab6-detection` (cpu-basic, model-free v1) | Log analysis (D1), anomaly detection (D2), output sanitization (D3) | `cpu-basic` (no model) |
 | 6 | Incident Response | Planned | AI breach simulation, containment, forensics | CPU |
 | 7 | Multi-Agent Security | Planned | Multi-agent attack, cascading failures | CPU |
 | 8 | Model Forensics | Planned | Backdoor detection, train your own guard, DP demo | TBD (`cpu-basic` + HF Inference Providers most likely) |
@@ -108,9 +108,19 @@ Blue Team and Red Team use the shared framework (import from core.js). OWASP wor
 | 12 | Both: WHY explanations | Closed ✅ (2026-04-27) | `2994d90` + `7d157bb` + `cf87474` |
 | 13 | Spec drift: Red Team L1 system prompt framing | Closed ✅ (2026-04-28) | Fixed in red_team_challenge.md — drift was on all 5 levels, not just L1 |
 | 14 | Spec gap: Educational features not in any spec | Closed ✅ (2026-04-28) | Educational Layer sections added to blue-team + red-team architecture.md |
-| **15** | MILESTONE: Multimodal Security Lab v1 build | **Open** (filed 2026-04-27) | Phase 4a complete — backend, defenses, full API surface deployed. Phase 4b (frontend) + Phase 5 (full defense matrix) remain. |
+| 15 | MILESTONE: Multimodal Security Lab v1 build | Closed ✅ (2026-04-30) | All 6 phases complete — cpu-basic + Qwen2.5-VL-72B live; Phase 3.1 defense quality fixes (PR #23); pedagogical Phase A+B+C applied. |
 | 16 | Red Team L5 missing Guardrail Evaluation defense layer | Closed ✅ (2026-04-28) | Implemented `guardrail_evaluate()` in challenges.py; wired into L5 attack flow in app.py |
-| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 0 (specs) → Phase 1 (backend) → Phase 3 prep (calibration) → Phase 3 build (4 defenses) → Phase 3 smoke → reviewer-validated Phases 1+2+3 → **Phase 5 measured matrix** (6/3/1/1 catches, exact match to design intent) → Phase 4a (9-endpoint API + upload mode) → **Phase 4b (full 4-tab SPA live — HF commit `e69a382`)**. Phase 2 corpus expansion (6→15 legit) is the only remaining non-blocking item. |
+| **17** | Brand refresh: re-sync architecture.md Brand & Identity sections to digistore-pattern nav | Closed ✅ (2026-04-30) | PR #26 — Master Nav section + Constraints updated for both red-team + blue-team architecture.md |
+| **18** | needs-decision: does alt="Luminex Learning" satisfy NR-2 or do we need a visible wordmark? | **Open** (needs human decision) | Blocked — requires design/brand decision before any nav change |
+| **19** | Eliminate hardcoded color primitives (NR-8) | Closed ✅ (2026-04-30) | PR #24 — tokens added, multimodal.css + luminex-bridge.css (blue+red team) fixed |
+| **20** | Pre-existing spec gaps: missing project-status.md + architecture.md | Closed ✅ (2026-04-30) | PR #25 — bootstrapped docs/project-status.md for blue-team and red-team |
+| 21 | Multimodal Phase 3.1: 3 defense quality fixes | Closed ✅ (2026-04-29) | PR #23 — ocr_prescan 6/10, boundary_hardening 7/10 partial-deters, confidence_threshold 2/10 |
+| **22** | MILESTONE: Data Poisoning Lab v1 build | **Open** (filed 2026-04-29) | Phase 4b complete. Phase 2 corpus expansion (6→15 legit docs) is the only remaining non-blocking item. |
+| **23** | PR: Multimodal Phase 3.1 defense fixes | **Open** (PR #23) | Awaiting merge |
+| **24** | PR: Fix NR-8 hardcoded color primitives | **Open** (PR #24) | Awaiting merge |
+| **25** | PR: Bootstrap space-level project-status.md | **Open** (PR #25) | Awaiting merge |
+| **26** | PR: Sync architecture.md nav spec | **Open** (PR #26) | Awaiting merge |
+| **27** | Space 6: Detection & Monitoring Phase 1 milestone | **Open** (deploy + acceptance checks pending) | Phase 1 code complete (`cf4042b`+`a41a1fa`); deploy to HF Space next |
 
 ### llm-top-10-demo repo (OWASP workshop)
 - 31 issues total (12 closed, 19 open)
@@ -745,3 +755,86 @@ Added 4 Phase A features to the Info tab of all 4 live labs (`red-team`, `blue-t
 - Platform-level `/glossary` route (now covered in-panel; a standalone route would allow deep-linking)
 - Red Team reflection prompt in Jailbreak Lab (jailbreaks don't have a completion threshold — deferred)
 - Blue Team reflection prompt (challenge completion state spans 4 tabs — deferred)
+
+### Session (2026-04-30) — Maintenance pass: 4 issues closed
+
+**Issues closed:**
+- #15 Multimodal MILESTONE — all 6 phases complete; closed with summary comment
+- #17 architecture.md spec sync (red-team + blue-team) — Master Nav + Constraints updated to digistore-pattern; PR #26
+- #19 NR-8 CSS fix — hardcoded color primitives replaced with Luminex tokens across all 3 live spaces; PR #24
+- #20 Missing space-level project-status.md — bootstrapped docs/project-status.md for blue-team and red-team; PR #25
+
+**Still open:**
+- #18 (needs human decision: visible wordmark vs. alt= for NR-2 compliance)
+- #22 (Data Poisoning MILESTONE — Phase 4b complete; corpus expansion non-blocking)
+- PRs #23, #24, #25, #26 — all awaiting merge
+
+**Next Recommended Task:**
+Deploy Space 6 (`nikobehar/ai-sec-lab6-detection`) and exam-admin (`nikobehar/ai-sec-lab-exam-admin`) to HF — both still pending force-push authorization. Then run acceptance checks for both spaces. Issues #27 and #28 can be closed after successful deploys. Issues #32–#36 (instructor support: preview mode, WCAG audit, facilitator guides, course materials, additional assessments) are next in the instructor support track.
+
+**Instructor Support Package Status (issues #29–#36):**
+| Issue | Feature | Status |
+|-------|---------|--------|
+| #29 | ADA accommodation controls | ✅ Implemented `5e257f34` |
+| #30 | Class roster dashboard | ✅ Implemented `5e257f34` |
+| #31 | Web-based batch token generator | ✅ Implemented `f4e67fcb` |
+| #32 | Instructor preview mode | Planned |
+| #33 | WCAG 2.1 AA audit + remediation | Partial (A3/A6/A7 fixed) |
+| #34 | Facilitator guides | Planned |
+| #35 | Course materials package | Planned |
+| #36 | Additional assessment types | Planned |
+
+------------------------------------------------------------------------
+
+### Session (2026-04-30) — Summative Assessment System: Exam Mode Frontend
+
+**What was done:**
+
+Implemented Phases 1–4 of the Summative Assessment System plan (`we-can-wait-for-purrfect-hinton.md`). This is the exam layer on top of the existing formative workshop UIs.
+
+**Phase 1 — Token infrastructure:**
+- `framework/exam_token.py` — `generate_token()`, `validate_token()`, `InvalidTokenError`. HMAC-SHA256 over payload JSON; token = `base64url(payload) + "." + base64url(HMAC)`.
+- `framework/exam_session.py` — `ExamSession` class (attempt caps, timing, receipt serialization) + thread-safe `_SESSIONS` registry.
+- `framework/exam_questions.py` — Question banks for Red Team + Detection & Monitoring: 10 MCQ (Bloom's 4–6) + 3 short answers each. Answer keys server-side only.
+- `scripts/generate_exam_token.py` — Instructor CLI: `--exam-id`, `--student-id`, `--lab-ids`, `--duration-hours`, `--dataset-variant`, `--section`.
+- `scripts/deploy.sh` updated to copy `exam_token.py`, `exam_session.py`, `exam_questions.py`, `exam_mode.js` into each space build context.
+
+**Phase 2 — Exam mode on Detection & Monitoring:**
+- Full `spaces/detection-monitoring/` space scaffolded: app.py (4 exam routes + D1/D2/D3 endpoints with `exam_token` field), exam_data_v1.py + exam_data_v2.py (alternate datasets), CLAUDE.md, Dockerfile, requirements.txt, specs/, templates/, static/.
+
+**Phase 3 — Exam mode on Red Team:**
+- `spaces/red-team/app.py` — 4 new exam routes (`POST /api/exam/validate`, `POST /api/exam/theory`, `GET /api/exam/receipt`, `GET /api/exam/status`). Attempt cap enforcement wired.
+- `spaces/red-team/exam_challenges_v1.py` + `exam_challenges_v2.py` — 5-level exam datasets with new canary phrases (VERMILION KESTREL, COBALT MANTIS, etc.) separate from workshop canaries.
+- `spaces/red-team/requirements.txt` — fixed: added missing `slowapi>=0.1.9` (was causing `ModuleNotFoundError` on HF startup).
+- `spaces/red-team/static/css/luminex-tokens.css` + `luminex-bridge.css` — brand token syncs.
+
+**Phase 4 — Theory assessment + exam_mode.js frontend:**
+- `framework/static/js/exam_mode.js` (~340 lines) — full exam frontend module:
+  - `detectExamToken()` — URL param detection
+  - `initExamMode(token, labId)` — validates against `/api/exam/validate`, initializes singleton
+  - `mountExamBanner()` — fixed amber countdown banner; turns red under 5 min; disables inputs on EXPIRED
+  - `renderTheoryTab(container, onComplete)` — one-MCQ-at-a-time interface (progress dots) → 3 short-answer textareas (live word count) → submit
+  - `renderReceiptTab(container)` — score table + signed JSON download via WebCrypto HMAC
+  - `wrapPayload(payload)` — injects `exam_token` into all attempt POSTs when active
+  - `_canonicalJSON(val)` — sorts all object keys recursively to match Python's `json.dumps(sort_keys=True)`
+  - `_signReceipt(receipt)` — WebCrypto HMAC-SHA256, key = first 32 chars of token
+- `spaces/red-team/static/js/exam_mode.js` — space-local copy (deployed by deploy.sh from framework)
+- `spaces/red-team/static/js/app.js` — wired for exam mode:
+  - Import line for all exam_mode exports
+  - `getTabDefs()` replaces static `TAB_DEFS`: exam mode → [Info, Red Team, Theory Assessment, Receipt]; workshop → [Info, Red Team, Jailbreak, Leaderboard]
+  - `renderTheory(main)` and `renderReceipt(main)` handlers added
+  - `renderRedTeam`: name field locked (`readonly`) in exam mode; attempt cap display; `wrapPayload()` on fetch; `refreshStatus()` after attempt
+  - `DOMContentLoaded` is async: detects token, calls `initExamMode()`, `mountExamBanner()`, sets `state.mode = "redteam"`
+
+**Deployment:**
+- Red-team HF Space verified healthy at `200 OK` after deploy.
+- Red-team Space set to public for unauth health check verification.
+- PR #38 (`exam-mode-frontend` branch) opened on GitHub with all exam_mode.js + red-team wiring changes.
+
+**Root cause resolved:** HF private spaces return HTML 404 (not 401) for unauthenticated requests — all-endpoint 404s were caused by space privacy, not routing issues.
+
+**Next Recommended Task:**
+1. Merge PR #38
+2. Deploy `spaces/detection-monitoring/` to `nikobehar/ai-sec-lab6-detection` (issue #27) and run acceptance checks
+3. Deploy `spaces/exam-admin/` to `nikobehar/ai-sec-lab-exam-admin` and run acceptance checks
+4. Wire exam mode into Blue Team, Multimodal, Data Poisoning (Phase 6 per plan)

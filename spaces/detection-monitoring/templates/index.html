@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detection & Monitoring — AI Security Labs</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/luminex-bridge.css">
+  <link rel="stylesheet" href="/static/css/luminex-nav.css">
+  <link rel="stylesheet" href="/static/css/detection.css">
+</head>
+<body>
+
+  <!-- Master nav -->
+  <nav class="luminex-nav">
+    <img src="/static/owl.svg" alt="Luminex Learning" class="luminex-nav__owl owl-gold">
+    <div class="luminex-nav__brand-text">
+      <span class="luminex-nav__customer-name">NexaCore</span>
+      <div class="luminex-nav__hairline"></div>
+      <span class="luminex-nav__product-name">AI SECURITY LABS</span>
+    </div>
+    <div class="luminex-nav__spacer"></div>
+    <div class="luminex-nav__page-label">
+      <svg class="luminex-nav__page-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+      <span class="luminex-nav__page-name">Detection &amp; Monitoring</span>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <!-- Cold-start banner (hidden by default, shown if /health not ready) -->
+    <div id="cold-start-banner" class="info-banner" style="display:none">
+      <strong>Lab is waking up</strong> — this normally takes ~10 seconds on HuggingFace Spaces.
+    </div>
+
+    <header class="hero">
+      <div class="hero__eyebrow">NexaCore AI Operations Center</div>
+      <h1 class="hero__title">Detection &amp; Monitoring Lab</h1>
+      <p class="hero__sub">Attacks are live in the logs. Detect them, configure alerting, and sanitize outputs before they reach end users.</p>
+    </header>
+
+    <div id="tab-bar"></div>
+    <div id="tab-content"></div>
+
+  </div>
+
+  <script type="module" src="/static/js/core.js"></script>
+  <script type="module" src="/static/js/app.js"></script>
+
+</body>
+</html>

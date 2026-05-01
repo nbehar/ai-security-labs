@@ -139,6 +139,7 @@ class TheorySubmission(BaseModel):
 
 _attempts: dict[str, dict[int, int]] = {}  # name -> {level: attempts}
 _scores: dict[str, dict[int, int]] = {}    # name -> {level: score}
+_ROSTER_MAP: dict[str, str] = {}           # student_id → token (populated by POST /api/admin/load-roster)
 
 
 # =============================================================================
@@ -226,6 +227,8 @@ async def red_team_attempt(request: Request, req: RedTeamAttempt):
         if exam_session is None:
             return result_or_levels  # JSONResponse with error
         active_levels = result_or_levels
+        if exam_session.is_paused():
+            return JSONResponse({"error": "Exam is paused by instructor. Please wait."}, status_code=423)
 
     if req.level not in active_levels:
         raise HTTPException(400, f"Invalid level: {req.level}")
@@ -611,3 +614,115 @@ async def exam_status(token: str):
         "time_limit_seconds": session.time_limit_seconds,
         "theory_submitted": session.theory_submitted(),
     }
+
+
+# =============================================================================
+# ADMIN ROUTES (exam-admin proxy target — requires X-Exam-Secret header)
+# =============================================================================
+
+def _check_admin_auth(request: Request) -> None:
+    if not EXAM_SECRET:
+        raise HTTPException(503, "EXAM_SECRET not configured")
+    if request.headers.get("X-Exam-Secret", "") != EXAM_SECRET:
+        raise HTTPException(401, "Invalid or missing X-Exam-Secret header")
+
+
+class AdminTokenBody(BaseModel):
+    token: str
+
+
+class ExtendTimeBody(BaseModel):
+    token: str
+    additional_seconds: int
+
+
+class ResetAttemptsBody(BaseModel):
+    token: str
+    exercise_id: str
+    reason: str = ""
+
+
+class LoadRosterBody(BaseModel):
+    rows: list[dict]
+
+
+@app.get("/api/admin/roster")
+async def admin_roster(request: Request):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        return {"sessions": [], "note": "Exam infrastructure not deployed"}
+    results = []
+    for token, session in _SESSIONS.items():
+        row = {
+            "student_id": session.student_id,
+            "exam_id": session.exam_id,
+            "token_prefix": token[:8] + "…",
+            "remaining_seconds": session.remaining_seconds(),
+            "elapsed_seconds": session.elapsed_seconds(),
+            "expired": session.is_expired(),
+            "paused": session.is_paused(),
+            "theory_submitted": session.theory_submitted(),
+            "exercises": {},
+        }
+        for defn in EXERCISE_DEFINITIONS:
+            eid = defn["exercise_id"]
+            row["exercises"][eid] = {
+                "attempts_used": session.attempt_count(eid),
+                "cap": session.attempt_caps.get(eid),
+                "best_score": session._scores.get(eid, 0),
+            }
+        results.append(row)
+    return {"sessions": results, "count": len(results)}
+
+
+@app.post("/api/admin/load-roster")
+async def admin_load_roster(request: Request, body: LoadRosterBody):
+    _check_admin_auth(request)
+    global _ROSTER_MAP
+    _ROSTER_MAP = {row["student_id"]: row.get("token", "") for row in body.rows if "student_id" in row}
+    return {"loaded": len(_ROSTER_MAP)}
+
+
+@app.post("/api/admin/extend-time")
+async def admin_extend_time(request: Request, body: ExtendTimeBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.extend_time(body.additional_seconds)
+
+
+@app.post("/api/admin/reset-attempts")
+async def admin_reset_attempts(request: Request, body: ResetAttemptsBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    cleared = session.reset_exercise(body.exercise_id, body.reason)
+    return {"cleared": cleared, "exercise_id": body.exercise_id}
+
+
+@app.post("/api/admin/pause-exam")
+async def admin_pause_exam(request: Request, body: AdminTokenBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.pause()
+
+
+@app.post("/api/admin/resume-exam")
+async def admin_resume_exam(request: Request, body: AdminTokenBody):
+    _check_admin_auth(request)
+    if not EXAM_ENABLED:
+        raise HTTPException(503, "Exam infrastructure not deployed")
+    session = _SESSIONS.get(body.token)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.resume()

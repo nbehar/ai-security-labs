@@ -52,13 +52,26 @@ All Phase 0 bootstrap artifacts + Phase 1 backend + Phase 2 frontend written and
 
 | File | Status |
 |------|--------|
-| `templates/index.html` | ✅ Written 2026-04-30 — Verify + Batch views |
-| `static/css/admin.css` | ✅ Written 2026-04-30 — NR-8 compliant |
+| `templates/index.html` | ✅ Updated 2026-04-30 — 4-tab nav (Verify/Batch/Roster/Generate), ARIA roles, upload-zone button fallbacks, role="alert" on errors |
+| `static/css/admin.css` | ✅ Updated 2026-04-30 — NR-8 compliant; added .accom-*, .roster-table, .generate-form, .sr-only, .lab-connect-*, .gen-result-summary |
 | `static/css/luminex-tokens.css` | ✅ Written 2026-04-30 — vendored |
 | `static/css/luminex-bridge.css` | ✅ Written 2026-04-30 — vendored |
 | `static/css/luminex-nav.css` | ✅ Written 2026-04-30 — vendored |
-| `static/js/admin.js` | ✅ Written 2026-04-30 — verify, batch, SA panel, LTI button, CSV export |
+| `static/js/admin.js` | ✅ Updated 2026-04-30 — verify, batch, SA panel, accommodation controls (extend/reset/pause/resume via proxy), roster view (auto-refresh), generate tokens wizard (CSV→tokens→download) |
 | `static/owl.svg` | ✅ Written 2026-04-30 — geometric placeholder |
+
+### Instructor Support Package (issues #29–#36)
+
+| Issue | Feature | Status |
+|-------|---------|--------|
+| #29 | ADA accommodation controls (extend-time, reset-attempts, pause/resume) | ✅ Implemented — `app.py` admin proxy + `admin.js` accom panel; lab-space routes in red-team + detection-monitoring (`5e257f34`) |
+| #30 | Class roster dashboard (live student status, 30s auto-refresh) | ✅ Implemented — `GET /api/admin/roster` proxy + `admin.js` roster table; lab-space routes in red-team + detection-monitoring (`5e257f34`) |
+| #31 | Web-based batch token generator (CSV upload → tokens CSV download) | ✅ Implemented — `POST /api/admin/generate-tokens` + Generate tab UI (`f4e67fcb`) |
+| #32 | Instructor preview mode | Planned |
+| #33 | WCAG 2.1 AA audit + remediation | Partial — A3/A6/A7 fixed in index.html + admin.js (`f4e67fcb`) |
+| #34 | Facilitator guides (3 live labs) | Planned |
+| #35 | Course materials package | Planned |
+| #36 | Additional assessment types | Planned |
 
 ---
 
@@ -99,3 +112,4 @@ From `specs/frontend_spec.md`:
 |------|------|
 | 2026-04-30 | Phase 0 bootstrap: all 4 specs, CLAUDE.md, project-status.md, README.md written. GitHub issue #28 filed. |
 | 2026-04-30 | Phase 1+2 complete: app.py, lti.py, Dockerfile, requirements.txt, index.html, admin.css, admin.js, Luminex CSS, owl.svg. LTI implemented via cryptography+httpx (no pylti1p3). |
+| 2026-04-30 | Instructor support package (issues #29–#31): framework/exam_session.py enhanced with pause/resume/extend_time/reset_exercise + ADA admin_log (`cc80abd9`). exam-admin upgraded to 4-tab UI with accommodation panel + roster view + generate-tokens wizard; admin proxy (`f4e67fcb`). red-team/app.py + detection-monitoring/app.py got 6 admin routes each + _ROSTER_MAP + pause check (`5e257f34`). |

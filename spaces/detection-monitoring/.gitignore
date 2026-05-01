@@ -1,0 +1,13 @@
+# Framework copies (injected at deploy time by scripts/deploy.sh)
+static/css/styles.css
+static/js/core.js
+
+# Vendored brand assets (copied from ~/luminex/ at deploy time)
+static/owl.svg
+static/images/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env

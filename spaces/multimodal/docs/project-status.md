@@ -1,6 +1,6 @@
 # Multimodal Security Lab — Project Status
 
-*Last updated: 2026-04-29 (Phase 4b BUILT, deployed, smoke-verified; full Luminex Learning SPA shell with 4 tabs, no leaderboard)*
+*Last updated: 2026-04-29 (Phase 3.1 COMPLETE — 3 defense quality fixes deployed + Phase 5 matrix measured. ocr_prescan 6/10; boundary_hardening 7/10 partial-deters; confidence_threshold 2/10. See phase3-calibration.md Phase 3.1 section.)*
 
 ------------------------------------------------------------------------
 
@@ -71,8 +71,8 @@ Phase 5 (defense matrix verification) and Phase 3.1 (defense-coverage improvemen
 | `static/js/attack_runner.js` (P1 + P5 lab tabs, Cause/Effect/Impact, score banner) | ✅ Complete (`5032e37`) | Phase 4b |
 | `static/js/image_gallery.js` (thumbnail grid + selection) | ✅ Complete (`9676d88`) | Phase 4b |
 | `static/js/image_upload.js` (file picker + PNG/JPEG validation) | ✅ Complete (`9676d88`) | Phase 4b |
-| Defense matrix verification (12 attacks × {undefended, +defenses}) | ⬜ Not started | Phase 5 |
-| Phase 3.1 — widen `ocr_prescan` patterns; replace `confidence_threshold` semantics; regenerate P1.4/P5.2/P5.5 images | ⬜ Not started | Phase 3.1 |
+| Defense matrix verification (12 attacks × 6 conditions = 72 calls) | ✅ Complete (2026-04-29; see `docs/phase3-calibration.md` Phase 5 section) | Phase 5 |
+| Phase 3.1 — widen `ocr_prescan` patterns; replace `confidence_threshold` semantics; `boundary_hardening` sandwich pattern | ✅ Complete (issue #21, 2026-04-29; deployed to HF + GitHub) | Phase 3.1 |
 | Canvas LMS integration (autograde + score submission via Canvas API) | ⬜ Not started | Phase 6 |
 
 ------------------------------------------------------------------------
@@ -90,15 +90,12 @@ Phase 5 (defense matrix verification) and Phase 3.1 (defense-coverage improvemen
 
 ## Next Recommended Task
 
-**Phase 5 — full defense matrix verification.** Per `overview_spec.md` Defenses section + CLAUDE.md anti-hallucination rule, execute all 12 attacks across the relevant defense permutations and record measured catch-rates against the deployed Qwen2.5-VL-72B. Outputs land in `docs/phase3-calibration.md` "Phase 5 verification" section.
+**Phase 5 and Phase 3.1 are complete.** Remaining items:
 
-**Or first — Phase 3.1 / v1.1 follow-ups** (see `docs/phase3-calibration.md` Phase 3 findings):
+1. **v1.1 image regeneration** — P1.4 (truncation at `max_tokens=512`), P5.2 (microprint canary placement), P5.5 (rotated margin OCR miss) — would lift clean-success baseline from 6/12 to 9/12. Medium priority; not blocking workshop use.
+2. **Phase 6** — Canvas LMS autograde + score submission. Per-student LTI auth + `canvas_client.py` + "Submit to Canvas" trigger. Low priority (deferred until workshop is stable).
 
-1. Widen `ocr_prescan` keyword set to catch P1.5-style "include the phrase X" / "respond with X" wording.
-2. Replace `confidence_threshold` semantics — the right metric for hidden-text attacks is text-color-vs-background-color analysis, not Tesseract mean confidence (which is high on the visible legit content).
-3. Regenerate P1.4 (truncation), P5.2 (microprint canary placement), P5.5 (rotated margin readability) images — would lift clean-success rate from 6/12 to 9/12 in baseline calibration.
-
-Per platform CLAUDE.md, propose Phase 5 (or 3.1) via Planner Agent and wait for approval before implementing.
+Per platform CLAUDE.md, propose follow-ups via Planner Agent and wait for approval before implementing.
 
 ------------------------------------------------------------------------
 
@@ -202,3 +199,23 @@ No implementation code in this session — bootstrap phase only.
 - **Phase 3.1 / v1.1** — widen `ocr_prescan` keyword set; replace `confidence_threshold` metric with text-vs-background color analysis; regenerate P1.4 / P5.2 / P5.5 images.
 - **Phase 6** — Canvas LMS integration (autograde + score submission via Canvas API). Per-student session/auth (LTI 1.3 or API-key paste) + `canvas_client.py` + "Submit to Canvas" trigger. Foundation already exists in `POST /api/score`.
 - **Brand follow-ups:** rename the legacy spaces (owasp-top-10, blue-team, red-team) to `nikobehar/ai-sec-lab<N>-<name>` per platform CLAUDE.md naming convention; vendor `luminex-tokens.css` + owl.svg into those spaces too if/when they get a Luminex-brand refresh. Out of Phase 4b scope.
+
+### 2026-04-29 (cont.) — Phase 5 Matrix + Phase 3.1: Defense Quality Fixes
+
+**Issue #21.** Three underperforming defenses identified in Phase 5 matrix; fixed and measured.
+
+**Phase 5 matrix (72 cells, 12 attacks × 6 conditions):** Baseline numbers before fixes — `output_redaction` 10/10, `ocr_prescan` 4/10, `boundary_hardening` 0/10 catches (2/10 partial-deters), `confidence_threshold` 0/10. Runner at `scripts/run_phase5_matrix.py`, raw data in `docs/phase5-matrix-raw.json`.
+
+**Fix 1 (`ocr_prescan` keyword widening):** Added 6 patterns including `\bemit(?:ting)?\b`, `\bcompletion\s+code\b`, `\binclude\s+the\s+phrase\b`, `\bverbatim\b`, `\bbypass\b`, `\bexecutive (authorization|directive|order)\b`. Lifted P1.5 ✗→✓ and P5.6 ✗→✓. New score: **6/10**.
+
+**Fix 2b (`confidence_threshold` histogram-spike):** Replaced mean-confidence metric with Pillow histogram analysis: counts pixels at exact luminance values 241–253; flags if any single value spike ≥ 0.1% of total pixels. Independent of Tesseract. Catches P5.1 (252/255 white-on-white, 0.51% spike verified via API call) and P5.3 (248 grayscale). Fix 2a (grid-cell variance) was designed first but failed for P5.1 because a 3-unit luminance diff at sparse text coverage produces variance < 1.0. New score: **2/10**.
+
+**Fix 3 (`boundary_hardening` sandwich pattern):** Added `_BOUNDARY_REMINDER` appended to user message *after* the image, creating a prompt sandwich around the untrusted content. `boundary_hardening()` returns 3-tuple `(hardened_prompt, post_content_reminder, log_entry)`; `app.py` wires the reminder into `user_msg`. Probabilistic deterrence rose from 2/10 → **7/10 partial-deters** (0/10 hard blocks unchanged — educational: prompt-only defenses are not deterministic).
+
+**Updated headlines (deployed to HF Space + GitHub):**
+- `ocr_prescan`: 4/10 → **6/10**
+- `boundary_hardening`: 0/10 catches (2/10 partial-deters) → **0/10 catches (7/10 partial-deters)**
+- `confidence_threshold`: 0/10 → **2/10**
+- `output_redaction`: 10/10 (unchanged)
+
+**Files modified:** `defenses.py`, `ocr_pipeline.py`, `app.py` (Fix 3 call site), `static/js/app.js` (COVERAGE matrix + headline + KC question).

@@ -337,18 +337,24 @@ This space ships under the **Luminex Learning** master brand as a section within
 
 ### Master Nav (NR-1, NR-2, NR-10)
 
-The page header is a two-block stacked-text nav at the top of every authenticated page:
+The page header uses the digistore split-layout nav (`.luminex-nav`) at the top of every page. Structure (left to right):
 
 ```
-[owl 32px gold]   │   Red Team
-LUMINEX           │   AI Security Labs
-LEARNING          │
+[owl 48px gold]  NexaCore            ←── flex spacer ──→   🛡  Red Team
+                 ─────────────────────────────────
+                 AI Security Labs
 ```
 
-- **Block 1 (master brand):** owl mark from `static/owl.svg` rendered with `.owl-gold` class (`--owl-filter-gold` filter, brand gold `#fbbf24`). Two-line wordmark "Luminex Learning" in 11px small caps, widest letter-spacing. The owl is ALWAYS brand gold (NR-10) — never product accent, never white except on gold backgrounds.
-- **Vertical divider:** full-height (`align-self: stretch`).
-- **Block 2 (product/section):** "Red Team" (text-md bold, primary text color) over "AI Security Labs" (text-xs medium, AISL violet `--color-accent-aisl-highlight #a78bfa`).
-- **Sub-header:** the existing `<header class="hero">` is retained as the section sub-header (page title, descriptor) — the master nav does not replace it.
+- **Owl (`.luminex-nav__owl`, 48px):** `static/owl.svg` rendered with `.owl-gold` class (`--owl-filter-gold` filter, brand gold `#fbbf24`). The `alt` attribute is `"Luminex Learning"` (satisfies NR-2 for screen readers; whether a visible wordmark is also required is an open decision tracked in #18). The owl is ALWAYS brand gold (NR-10) — never product accent, never white except on gold backgrounds.
+- **Brand text block (`.luminex-nav__brand-text`, flex column):**
+  - `.luminex-nav__customer-name` — "NexaCore" (12px bold, tight tracking). This is the fictional customer/attack-target name in the DigiStore-pattern "customer slot", NOT a Luminex brand name (see Naming + NR-4 below).
+  - `.luminex-nav__hairline` — 1px divider.
+  - `.luminex-nav__product-name` — "AI Security Labs" (10px medium, wide tracking, secondary text color).
+- **Spacer (`.luminex-nav__spacer`, `flex: 1`):** pushes the page label to the right edge.
+- **Page label (`.luminex-nav__page-label`, flex row):**
+  - `.luminex-nav__page-icon` — shield SVG icon, 20px, AISL highlight color (`--color-accent-aisl-highlight`).
+  - `.luminex-nav__page-name` — "Red Team" (text-lg 600, primary text color).
+- **Sub-header:** the existing `<header class="hero">` is retained below the nav as the section sub-header (page title, descriptor).
 
 ### Tokens & Colors (NR-3, NR-8, NR-9)
 
@@ -384,10 +390,12 @@ CSS load order (in `templates/index.html`): `styles.css` → `luminex-bridge.css
 
 ### Constraints (Don't Regress)
 
-- The master nav MUST appear at the top of every authenticated page. Removing or omitting the owl mark, the wordmark, or the section/product block constitutes a brand regression (NR-1 + NR-2).
+- The master nav MUST appear at the top of every page. Removing or omitting the owl mark or the NexaCore/AI Security Labs brand text block constitutes a brand regression (NR-1).
 - Page background MUST remain `#09090f`; do not introduce light-mode (Brand Architecture §6.2).
 - The owl filter MUST remain brand gold; do not switch it to AISL violet for "consistency with the rest of the page" (NR-10).
-- "Red Team" (the section label) is NOT a Luminex product name. Do not promote it to product status in nav copy.
+- "Red Team" (`.luminex-nav__page-name`) is NOT a Luminex product name. Do not promote it to product status in nav copy (NR-2).
+- "NexaCore" (`.luminex-nav__customer-name`) is the fictional attack target in the DigiStore-pattern customer slot — it is NOT the brand name. Never render it as the primary brand identity; "AI Security Labs" (`.luminex-nav__product-name`) is the product identifier (NR-4).
+- The open question of whether `alt="Luminex Learning"` fully satisfies NR-2 (visible wordmark requirement) is tracked in issue #18. Do not add or remove the wordmark unilaterally — resolve via #18 first.
 
 ---------------------------------------------------------------------
 
