@@ -276,56 +276,29 @@ D2_ATTACK_WINDOWS = {
 # Each window: hour, response_length, refusal_rate, query_rate, confidence
 # Attack hours: 9 (W1), 14 (W2), 19 (W3)
 D2_WINDOWS = [
-    # Hour 0 — late night, very quiet
     {"hour": 0,  "response_length": 284, "refusal_rate": 0.07, "query_rate":  4,  "confidence": 0.85},
-    # Hour 1
     {"hour": 1,  "response_length": 301, "refusal_rate": 0.06, "query_rate":  3,  "confidence": 0.84},
-    # Hour 2
     {"hour": 2,  "response_length": 318, "refusal_rate": 0.09, "query_rate":  2,  "confidence": 0.88},
-    # Hour 3
     {"hour": 3,  "response_length": 290, "refusal_rate": 0.08, "query_rate":  2,  "confidence": 0.86},
-    # Hour 4
     {"hour": 4,  "response_length": 305, "refusal_rate": 0.07, "query_rate":  3,  "confidence": 0.83},
-    # Hour 5 — very early
     {"hour": 5,  "response_length": 327, "refusal_rate": 0.06, "query_rate":  5,  "confidence": 0.84},
-    # Hour 6 — early ramp
     {"hour": 6,  "response_length": 308, "refusal_rate": 0.08, "query_rate":  9,  "confidence": 0.81},
-    # Hour 7 — pre-work
     {"hour": 7,  "response_length": 322, "refusal_rate": 0.09, "query_rate": 14,  "confidence": 0.80},
-    # Hour 8 — morning rush begins
     {"hour": 8,  "response_length": 334, "refusal_rate": 0.10, "query_rate": 24,  "confidence": 0.79},
-    # Hour 9 — W1 ATTACK: prompt flooding
-    {"hour": 9,  "response_length": 581, "refusal_rate": 0.11, "query_rate": 94,  "confidence": 0.76,
-     "attack_window": "W1"},
-    # Hour 10 — post-attack, slightly elevated
+    {"hour": 9,  "response_length": 581, "refusal_rate": 0.11, "query_rate": 94,  "confidence": 0.76, "attack_window": "W1"},
     {"hour": 10, "response_length": 319, "refusal_rate": 0.08, "query_rate": 26,  "confidence": 0.80},
-    # Hour 11
     {"hour": 11, "response_length": 330, "refusal_rate": 0.07, "query_rate": 22,  "confidence": 0.82},
-    # Hour 12 — lunch dip
     {"hour": 12, "response_length": 298, "refusal_rate": 0.06, "query_rate": 11,  "confidence": 0.84},
-    # Hour 13 — lunch
     {"hour": 13, "response_length": 312, "refusal_rate": 0.07, "query_rate": 13,  "confidence": 0.83},
-    # Hour 14 — W2 ATTACK: data exfiltration verbose outputs
-    {"hour": 14, "response_length": 897, "refusal_rate": 0.09, "query_rate": 19,  "confidence": 0.53,
-     "attack_window": "W2"},
-    # Hour 15 — afternoon normal
+    {"hour": 14, "response_length": 897, "refusal_rate": 0.09, "query_rate": 19,  "confidence": 0.53, "attack_window": "W2"},
     {"hour": 15, "response_length": 316, "refusal_rate": 0.08, "query_rate": 21,  "confidence": 0.81},
-    # Hour 16
     {"hour": 16, "response_length": 325, "refusal_rate": 0.09, "query_rate": 23,  "confidence": 0.82},
-    # Hour 17 — end of day rush
     {"hour": 17, "response_length": 338, "refusal_rate": 0.10, "query_rate": 27,  "confidence": 0.78},
-    # Hour 18 — post-work taper
     {"hour": 18, "response_length": 307, "refusal_rate": 0.08, "query_rate": 16,  "confidence": 0.81},
-    # Hour 19 — W3 ATTACK: jailbreak sequence
-    {"hour": 19, "response_length": 341, "refusal_rate": 0.01, "query_rate": 17,  "confidence": 0.57,
-     "attack_window": "W3"},
-    # Hour 20 — evening
+    {"hour": 19, "response_length": 341, "refusal_rate": 0.01, "query_rate": 17,  "confidence": 0.57, "attack_window": "W3"},
     {"hour": 20, "response_length": 295, "refusal_rate": 0.08, "query_rate": 12,  "confidence": 0.83},
-    # Hour 21
     {"hour": 21, "response_length": 310, "refusal_rate": 0.07, "query_rate":  9,  "confidence": 0.85},
-    # Hour 22
     {"hour": 22, "response_length": 288, "refusal_rate": 0.06, "query_rate":  7,  "confidence": 0.86},
-    # Hour 23 — late night
     {"hour": 23, "response_length": 302, "refusal_rate": 0.07, "query_rate":  5,  "confidence": 0.87},
 ]
 

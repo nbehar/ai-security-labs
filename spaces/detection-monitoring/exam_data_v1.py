@@ -277,56 +277,29 @@ D2_ATTACK_WINDOWS = {
 }
 
 D2_WINDOWS = [
-    # Hour 0 — quiet overnight
     {"hour": 0,  "response_length": 277, "refusal_rate": 0.07, "query_rate":  3,  "confidence": 0.86},
-    # Hour 1
     {"hour": 1,  "response_length": 293, "refusal_rate": 0.06, "query_rate":  2,  "confidence": 0.85},
-    # Hour 2
     {"hour": 2,  "response_length": 308, "refusal_rate": 0.08, "query_rate":  2,  "confidence": 0.87},
-    # Hour 3
     {"hour": 3,  "response_length": 284, "refusal_rate": 0.09, "query_rate":  1,  "confidence": 0.88},
-    # Hour 4
     {"hour": 4,  "response_length": 299, "refusal_rate": 0.07, "query_rate":  2,  "confidence": 0.85},
-    # Hour 5 — early arrivals
     {"hour": 5,  "response_length": 315, "refusal_rate": 0.08, "query_rate":  7,  "confidence": 0.83},
-    # Hour 6 — W1 ATTACK: credential harvesting probe
-    {"hour": 6,  "response_length": 589, "refusal_rate": 0.02, "query_rate": 19,  "confidence": 0.68,
-     "attack_window": "W1"},
-    # Hour 7 — ramp-up
+    {"hour": 6,  "response_length": 589, "refusal_rate": 0.02, "query_rate": 19,  "confidence": 0.68, "attack_window": "W1"},
     {"hour": 7,  "response_length": 321, "refusal_rate": 0.09, "query_rate": 15,  "confidence": 0.81},
-    # Hour 8 — morning rush
     {"hour": 8,  "response_length": 334, "refusal_rate": 0.10, "query_rate": 22,  "confidence": 0.79},
-    # Hour 9
     {"hour": 9,  "response_length": 318, "refusal_rate": 0.08, "query_rate": 26,  "confidence": 0.80},
-    # Hour 10
     {"hour": 10, "response_length": 329, "refusal_rate": 0.07, "query_rate": 24,  "confidence": 0.82},
-    # Hour 11
     {"hour": 11, "response_length": 341, "refusal_rate": 0.09, "query_rate": 21,  "confidence": 0.81},
-    # Hour 12 — lunch
     {"hour": 12, "response_length": 303, "refusal_rate": 0.07, "query_rate": 12,  "confidence": 0.84},
-    # Hour 13 — W2 ATTACK: RAG poisoning
-    {"hour": 13, "response_length": 921, "refusal_rate": 0.09, "query_rate": 14,  "confidence": 0.44,
-     "attack_window": "W2"},
-    # Hour 14 — afternoon normal
+    {"hour": 13, "response_length": 921, "refusal_rate": 0.09, "query_rate": 14,  "confidence": 0.44, "attack_window": "W2"},
     {"hour": 14, "response_length": 320, "refusal_rate": 0.08, "query_rate": 20,  "confidence": 0.82},
-    # Hour 15
     {"hour": 15, "response_length": 331, "refusal_rate": 0.09, "query_rate": 23,  "confidence": 0.81},
-    # Hour 16
     {"hour": 16, "response_length": 344, "refusal_rate": 0.10, "query_rate": 25,  "confidence": 0.79},
-    # Hour 17 — end-of-day rush
     {"hour": 17, "response_length": 337, "refusal_rate": 0.08, "query_rate": 28,  "confidence": 0.78},
-    # Hour 18 — tapering
     {"hour": 18, "response_length": 309, "refusal_rate": 0.07, "query_rate": 17,  "confidence": 0.81},
-    # Hour 19
     {"hour": 19, "response_length": 298, "refusal_rate": 0.08, "query_rate": 14,  "confidence": 0.83},
-    # Hour 20
     {"hour": 20, "response_length": 287, "refusal_rate": 0.07, "query_rate": 10,  "confidence": 0.85},
-    # Hour 21 — W3 ATTACK: automated scraping DoS
-    {"hour": 21, "response_length": 341, "refusal_rate": 0.07, "query_rate": 91,  "confidence": 0.78,
-     "attack_window": "W3"},
-    # Hour 22
+    {"hour": 21, "response_length": 341, "refusal_rate": 0.07, "query_rate": 91,  "confidence": 0.78, "attack_window": "W3"},
     {"hour": 22, "response_length": 294, "refusal_rate": 0.06, "query_rate":  6,  "confidence": 0.86},
-    # Hour 23 — late night
     {"hour": 23, "response_length": 281, "refusal_rate": 0.07, "query_rate":  4,  "confidence": 0.87},
 ]
 

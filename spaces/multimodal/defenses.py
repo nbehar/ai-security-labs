@@ -233,7 +233,7 @@ def boundary_hardening(base_system_prompt: str) -> Tuple[str, str, dict]:
 # ---------------------------------------------------------------------------
 
 _DEFAULT_CONFIDENCE_THRESHOLD = 70.0
-_LOW_CONTRAST_SPIKE_THRESHOLD = 0.001  # 0.1% pixel spike in 241-253 range → BLOCK
+_LOW_CONTRAST_CELL_THRESHOLD = 0.05  # 5% of cells flagged → BLOCK
 
 
 def confidence_threshold(
@@ -242,13 +242,12 @@ def confidence_threshold(
 ) -> dict:
     """Reject documents with obfuscated text using two independent signals.
 
-    Signal A — Pillow histogram spike analysis:
-      Hidden near-white text (e.g., 252 on 255 white background) clusters
-      hundreds of pixels at a specific luminance value in the 241–253 range.
-      A spike ≥ 0.1% of total pixels at any single value flags the image.
-      Tesseract can't see this text; Pillow pixel math catches it directly.
-      Catches P5.1 (white-on-white, 3-unit diff) and P5.3 (color-adjacent,
-      7-unit diff).
+    Signal A — Pillow low-contrast grid analysis:
+      Divides the image into 32×32-pixel cells. Cells with luminance mean ≥ 245
+      AND variance in [1, 30] indicate near-white text on white background (the
+      fingerprint of P5.1 white-on-white and P5.3 color-adjacent attacks).
+      Tesseract can't see this text at all because both colors binarize to white;
+      Pillow pixel math catches it directly.
 
     Signal B — Tesseract OCR confidence:
       Low mean word-confidence catches microprint, rotated text, and layered-PDF
@@ -256,15 +255,15 @@ def confidence_threshold(
 
     Either signal independently triggers BLOCKED.
     """
-    # Signal A: Pillow histogram spike analysis (no Tesseract dependency)
+    # Signal A: Pillow luminance analysis (no Tesseract dependency)
     low_contrast_ratio = ocr_pipeline.extract_low_contrast_ratio(image_bytes)
-    if low_contrast_ratio >= _LOW_CONTRAST_SPIKE_THRESHOLD:
+    if low_contrast_ratio >= _LOW_CONTRAST_CELL_THRESHOLD:
         return {
             "name": "confidence_threshold",
             "verdict": "BLOCKED",
             "detail": (
-                f"Near-white hidden text detected: largest near-white pixel spike "
-                f"is {low_contrast_ratio:.2%} of image (threshold {_LOW_CONTRAST_SPIKE_THRESHOLD:.1%})"
+                f"Near-white hidden text detected: {low_contrast_ratio:.1%} of image cells "
+                f"show near-white variance pattern (threshold {_LOW_CONTRAST_CELL_THRESHOLD:.0%})"
             ),
         }
 
@@ -287,6 +286,6 @@ def confidence_threshold(
         "verdict": "PASSED",
         "detail": (
             f"OCR confidence {mean_conf:.1f} >= threshold {threshold:.1f}; "
-            f"near-white pixel spike {low_contrast_ratio:.2%} < {_LOW_CONTRAST_SPIKE_THRESHOLD:.1%}"
+            f"low-contrast cell ratio {low_contrast_ratio:.1%} < {_LOW_CONTRAST_CELL_THRESHOLD:.0%}"
         ),
     }

@@ -277,56 +277,29 @@ D2_ATTACK_WINDOWS = {
 }
 
 D2_WINDOWS = [
-    # Hour 0 — overnight quiet
     {"hour": 0,  "response_length": 281, "refusal_rate": 0.07, "query_rate":  2,  "confidence": 0.87},
-    # Hour 1
     {"hour": 1,  "response_length": 294, "refusal_rate": 0.06, "query_rate":  2,  "confidence": 0.86},
-    # Hour 2
     {"hour": 2,  "response_length": 306, "refusal_rate": 0.08, "query_rate":  1,  "confidence": 0.88},
-    # Hour 3 — W1 ATTACK: overnight system prompt probing
-    {"hour": 3,  "response_length": 672, "refusal_rate": 0.03, "query_rate": 16,  "confidence": 0.71,
-     "attack_window": "W1"},
-    # Hour 4
+    {"hour": 3,  "response_length": 672, "refusal_rate": 0.03, "query_rate": 16,  "confidence": 0.71, "attack_window": "W1"},
     {"hour": 4,  "response_length": 297, "refusal_rate": 0.07, "query_rate":  2,  "confidence": 0.85},
-    # Hour 5 — early arrivals
     {"hour": 5,  "response_length": 312, "refusal_rate": 0.08, "query_rate":  6,  "confidence": 0.83},
-    # Hour 6
     {"hour": 6,  "response_length": 325, "refusal_rate": 0.09, "query_rate": 12,  "confidence": 0.82},
-    # Hour 7 — morning ramp
     {"hour": 7,  "response_length": 318, "refusal_rate": 0.08, "query_rate": 17,  "confidence": 0.81},
-    # Hour 8 — morning rush
     {"hour": 8,  "response_length": 331, "refusal_rate": 0.10, "query_rate": 22,  "confidence": 0.79},
-    # Hour 9
     {"hour": 9,  "response_length": 344, "refusal_rate": 0.09, "query_rate": 25,  "confidence": 0.80},
-    # Hour 10
     {"hour": 10, "response_length": 327, "refusal_rate": 0.08, "query_rate": 23,  "confidence": 0.81},
-    # Hour 11 — W2 ATTACK: multi-turn jailbreak
-    {"hour": 11, "response_length": 338, "refusal_rate": 0.01, "query_rate": 21,  "confidence": 0.51,
-     "attack_window": "W2"},
-    # Hour 12 — lunch dip
+    {"hour": 11, "response_length": 338, "refusal_rate": 0.01, "query_rate": 21,  "confidence": 0.51, "attack_window": "W2"},
     {"hour": 12, "response_length": 299, "refusal_rate": 0.07, "query_rate": 11,  "confidence": 0.84},
-    # Hour 13
     {"hour": 13, "response_length": 315, "refusal_rate": 0.08, "query_rate": 16,  "confidence": 0.82},
-    # Hour 14 — afternoon
     {"hour": 14, "response_length": 328, "refusal_rate": 0.09, "query_rate": 20,  "confidence": 0.81},
-    # Hour 15
     {"hour": 15, "response_length": 337, "refusal_rate": 0.08, "query_rate": 24,  "confidence": 0.80},
-    # Hour 16
     {"hour": 16, "response_length": 342, "refusal_rate": 0.10, "query_rate": 26,  "confidence": 0.79},
-    # Hour 17 — end of day
     {"hour": 17, "response_length": 334, "refusal_rate": 0.09, "query_rate": 27,  "confidence": 0.78},
-    # Hour 18 — W3 ATTACK: API scraping burst
-    {"hour": 18, "response_length": 308, "refusal_rate": 0.08, "query_rate": 88,  "confidence": 0.81,
-     "attack_window": "W3"},
-    # Hour 19
+    {"hour": 18, "response_length": 308, "refusal_rate": 0.08, "query_rate": 88,  "confidence": 0.81, "attack_window": "W3"},
     {"hour": 19, "response_length": 291, "refusal_rate": 0.07, "query_rate": 13,  "confidence": 0.83},
-    # Hour 20
     {"hour": 20, "response_length": 284, "refusal_rate": 0.06, "query_rate":  9,  "confidence": 0.85},
-    # Hour 21
     {"hour": 21, "response_length": 277, "refusal_rate": 0.07, "query_rate":  7,  "confidence": 0.86},
-    # Hour 22
     {"hour": 22, "response_length": 290, "refusal_rate": 0.06, "query_rate":  5,  "confidence": 0.87},
-    # Hour 23 — late night
     {"hour": 23, "response_length": 283, "refusal_rate": 0.07, "query_rate":  3,  "confidence": 0.88},
 ]
 

@@ -169,7 +169,7 @@ def _verify_one(receipt: dict) -> dict:
 
 
 def _check_admin_auth(request: Request) -> None:
-    """Raise 401 if the X-Exam-Secret header doesn't match EXAM_SECRET."""
+    """Raise 401 if the X-Exam-Secret header doesn\'t match EXAM_SECRET."""
     if not EXAM_SECRET:
         raise HTTPException(503, "EXAM_SECRET not configured")
     if request.headers.get("X-Exam-Secret", "") != EXAM_SECRET:

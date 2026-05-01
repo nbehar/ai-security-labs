@@ -1,6 +1,6 @@
 ---
 title: AI Security Labs — Exam Admin
-emoji: 🔐
+Emoji: 🔐
 colorFrom: purple
 colorTo: indigo
 sdk: docker

@@ -50,7 +50,7 @@ No Groq, no HuggingFace Hub, no Pillow, no pytesseract — v1 is fully model-fre
 ## Environment Variables
 
 | Variable | Required? | Purpose |
-|----------|-----------|---------|
+|----------|-----------|----------|
 | None | — | No secrets needed for v1; all labs use pre-labeled datasets |
 
 **Note:** `GROQ_API_KEY` is NOT required for v1. If added in a future phase (live model output generation for D3), it must be stored as a HF Space secret and never committed or logged.

@@ -46,10 +46,10 @@ Matches the platform Info tab standard (established by Red Team, Blue Team, Mult
 │ Log entry cards (paginated 5/page)  │
 │  ┌──────────────────────────────┐   │
 │  │ #D1.01  HR Portal  10:14 AM  │   │
-│  │ ─────────────────────────── │   │
+│  │ ───────────────────────────── │   │
 │  │ USER: [query text]           │   │
 │  │ MODEL: [response text]       │   │
-│  │ ─────────────────────────── │   │
+│  │ ───────────────────────────── │   │
 │  │ [ATTACK] [LEGITIMATE]        │   │
 │  │ (after classify: WHY card)   │   │
 │  └──────────────────────────────┘   │
@@ -131,7 +131,7 @@ Mirrors the Blue Team WAF Rules tab exactly. Same `BLOCK regex` DSL. Key differe
 ├─────────────────────────────────────┤
 │ Results                             │
 │  Score: 75% F1 (TP: 6/8, FP: 1/7) │
-│  ─────────────────────────────────  │
+│  ───────────────────────────────────  │
 │  Per-output breakdown table         │
 │  (output ID, type, verdict, rule)   │
 └─────────────────────────────────────┘

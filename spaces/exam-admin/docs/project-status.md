@@ -26,7 +26,7 @@ All Phase 0 bootstrap artifacts + Phase 1 backend + Phase 2 frontend written and
 ## Phase 0: Bootstrap
 
 | Artifact | Status |
-|----------|--------|
+|----------|
 | `specs/overview_spec.md` | ✅ Written 2026-04-30 |
 | `specs/frontend_spec.md` | ✅ Written 2026-04-30 |
 | `specs/api_spec.md` | ✅ Written 2026-04-30 |

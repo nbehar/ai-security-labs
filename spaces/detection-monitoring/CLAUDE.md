@@ -36,33 +36,37 @@ Plus relevant memory entries:
 
 ```
 spaces/detection-monitoring/
-  app.py                    FastAPI routes + dataset serving (Phase 1 — TO BE BUILT)
-  detection_data.py         Pre-labeled datasets: D1 logs, D2 time-series, D3 outputs (Phase 1 — TO BE BUILT)
-  waf_parser.py             Reused from blue-team (D3 rule evaluation) (Phase 1 — TO BE BUILT)
-  Dockerfile                cpu-basic + Python deps, no ML (Phase 1 — TO BE BUILT)
-  requirements.txt          fastapi, uvicorn, jinja2, slowapi, pydantic (Phase 1 — TO BE BUILT)
-  README.md                 HF Spaces card with frontmatter (Phase 0 ✅)
-  CLAUDE.md                 This file (Phase 0 ✅)
+  app.py                    FastAPI routes + dataset serving
+  detection_data.py         Pre-labeled datasets: D1 logs, D2 time-series, D3 outputs
+  exam_data_v1.py           Section A exam dataset (IT/Procurement/Compliance)
+  exam_data_v2.py           Section B exam dataset (Executive/Engineering/Sales)
+  waf_parser.py             Reused from blue-team (D3 rule evaluation)
+  exam_token.py             Copied from framework at deploy time
+  exam_session.py           Copied from framework at deploy time
+  Dockerfile                cpu-basic + Python deps, no ML
+  requirements.txt          fastapi, uvicorn, jinja2, slowapi, pydantic
+  README.md                 HF Spaces card with frontmatter
+  CLAUDE.md                 This file
   specs/
-    overview_spec.md        v1 scope, scenario, audience, success criteria (Phase 0 ✅)
-    frontend_spec.md        UI structure, 5 tabs, educational scaffolding (Phase 0 ✅)
-    api_spec.md             FastAPI endpoints + Pydantic schemas (Phase 0 ✅)
-    deployment_spec.md      Hardware, Dockerfile, env vars (Phase 0 ✅)
+    overview_spec.md
+    frontend_spec.md
+    api_spec.md
+    deployment_spec.md
   docs/
-    project-status.md       Space-level status tracker (Phase 0 ✅)
+    project-status.md
   static/
     css/
-      luminex-tokens.css    Vendored from ~/luminex/brand-system/design-tokens.json (Phase 1)
-      luminex-bridge.css    Framework variable remapping to Luminex tokens (Phase 1)
-      luminex-nav.css       Master nav stylesheet (Phase 1)
-      detection.css         Space-specific styles (Phase 1)
+      luminex-tokens.css
+      luminex-bridge.css
+      luminex-nav.css
+      detection.css
     js/
-      app.js                SPA entry: tab routing, Info tab, Leaderboard tab (Phase 1)
-      log_viewer.js         D1 Log Analysis: card rendering, classification, WHY (Phase 1)
-      anomaly_dashboard.js  D2 Anomaly Detection: charts, sliders, timeline (Phase 1)
-      output_sanitizer.js   D3 Output Sanitization: rule editor, results table (Phase 1)
+      app.js
+      log_viewer.js
+      anomaly_dashboard.js
+      output_sanitizer.js
   templates/
-    index.html              Jinja2 HTML shell (Phase 1)
+    index.html
 ```
 
 ------------------------------------------------------------------------
@@ -97,8 +101,8 @@ The Output Sanitization lab (D3) reuses the `BLOCK regex` DSL from the Blue Team
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 0 | Specs + CLAUDE.md + project-status.md | ✅ Complete |
-| Phase 1 | Core implementation: detection_data.py, app.py, waf_parser.py, HTML/CSS/JS | Planned |
-| Phase 2 | Pedagogical pass: Knowledge Check, cross-lab nav, WHY card refinement | Planned |
+| Phase 1 | Core implementation: detection_data.py, app.py, waf_parser.py, HTML/CSS/JS | ✅ Complete |
+| Phase 2 | Exam mode: exam_data_v1.py, exam_data_v2.py, 4 exam routes in app.py | ✅ Complete |
 | Phase 3 | Deploy to HF Space + acceptance check verification | Planned |
 
 ------------------------------------------------------------------------

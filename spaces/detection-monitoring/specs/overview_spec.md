@@ -56,7 +56,7 @@ Attacks are already in progress in the logs. The participant's mission: detect t
 **Attack windows (3):**
 
 | Window | Attack | Metric signature |
-|--------|--------|-----------------|
+|--------|--------|------------------|
 | W1 | Prompt flooding (DoS) | Query rate spike (5× normal) + response length spike |
 | W2 | Data exfiltration (verbose outputs) | Response length spike + confidence drop |
 | W3 | Jailbreak sequence | Refusal rate drop (model stopped refusing) + confidence drop |
@@ -78,7 +78,7 @@ Attacks are already in progress in the logs. The participant's mission: detect t
 **Dangerous output patterns (8 entries):**
 
 | ID | Pattern | Example content |
-|----|---------|-----------------|
+|----|---------|------------------|
 | D3.B1 | PII disclosure | Response contains full employee SSN |
 | D3.B2 | Credential in output | Model outputs a database password from context |
 | D3.B3 | Injected instruction | Model echoes back an injected instruction verbatim |
@@ -99,7 +99,7 @@ Attacks are already in progress in the logs. The participant's mission: detect t
 ## Key Concepts (5)
 
 | Concept | One-line def | Analogy |
-|---------|-------------|---------|
+|---------|-------------|----------|
 | **AI Telemetry** | Recording model inputs, outputs, latency, and metadata for security audit | Like web server access logs, but for every LLM call |
 | **Behavioral Baselines** | Statistical profiles of normal model behavior; deviations signal attacks | Like a network anomaly detector that learns "normal" traffic first |
 | **False Positive Rate** | Fraction of legitimate queries incorrectly flagged as attacks | The cost of a too-sensitive smoke alarm: users stop trusting it |
@@ -109,7 +109,7 @@ Attacks are already in progress in the logs. The participant's mission: detect t
 ## OWASP Mappings
 
 | Challenge | OWASP LLM Risk |
-|-----------|---------------|
+|-----------|----------------|
 | D1, D3 | LLM01: Prompt Injection |
 | D1, D3 | LLM06: Sensitive Information Disclosure |
 | D3 | LLM02: Insecure Output Handling |

@@ -228,7 +228,7 @@ async def classify_logs(request: Request, body: ClassifyRequest):
         "fn": fn,
         "tn": tn,
         "entries": entries,
-        **({"exam": {"remaining_attempts": session.remaining_attempts("D1")}} if session else {}),
+        **(({"exam": {"remaining_attempts": session.remaining_attempts("D1")}}) if session else {}),
     }
 
 
@@ -338,7 +338,7 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
         "attack_windows_missed": missed_windows,
         "windows": window_results,
         "missed_why": missed_why,
-        **({"exam": {"remaining_attempts": session.remaining_attempts("D2")}} if session else {}),
+        **(({"exam": {"remaining_attempts": session.remaining_attempts("D2")}}) if session else {}),
     }
 
 
@@ -440,7 +440,7 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
         "baseline_f1": round(baseline_f1, 4),
         "beat_baseline": f1 > baseline_f1,
         "outputs": output_results,
-        **({"exam": {"remaining_attempts": session.remaining_attempts("D3")}} if session else {}),
+        **(({"exam": {"remaining_attempts": session.remaining_attempts("D3")}}) if session else {}),
     }
 
 
