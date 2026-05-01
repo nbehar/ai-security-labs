@@ -43,11 +43,18 @@ export async function fetchJSON(url, opts = {}) {
 // TAB RENDERING
 // =============================================================================
 
+/**
+ * Render horizontal tabs into a container.
+ * @param {HTMLElement} container - The tabs nav element
+ * @param {Array<{mode: string, label: string}>} tabDefs - Tab definitions
+ * @param {string} activeMode - Currently active mode
+ * @param {function} onSwitch - Callback when tab is clicked (receives mode string)
+ */
 export function renderTabs(container, tabDefs, activeMode, onSwitch) {
   container.innerHTML = tabDefs.map((t) =>
     `<button class="tab${t.mode === activeMode ? " tab--active" : ""}" data-mode="${t.mode}">${t.label}</button>`
   ).join("");
-  $$(`tab`, container).forEach((btn) => {
+  $$(`.tab`, container).forEach((btn) => {
     btn.addEventListener("click", () => onSwitch(btn.dataset.mode));
   });
 }
@@ -56,6 +63,11 @@ export function renderTabs(container, tabDefs, activeMode, onSwitch) {
 // LEVEL BRIEFING CARDS
 // =============================================================================
 
+/**
+ * Render a level briefing card with collapsible suggestion.
+ * @param {object} briefing - {title, icon, fields: [{label, value}], tryThis}
+ * @param {string} accentColor - CSS color for the left border and suggestion toggle
+ */
 export function renderLevelBriefing(briefing, accentColor = "var(--blue)") {
   if (!briefing) return "";
   const fieldsHtml = (briefing.fields || [])
@@ -85,6 +97,13 @@ export function renderLevelBriefing(briefing, accentColor = "var(--blue)") {
 // LEADERBOARD RENDERING
 // =============================================================================
 
+/**
+ * Render a leaderboard table.
+ * @param {HTMLElement} container - Main element to render into
+ * @param {string} endpoint - API endpoint (e.g., "/api/leaderboard")
+ * @param {Array<{key: string, label: string}>} columns - Score columns to show
+ * @param {string} accentColor - Color for the total score
+ */
 export async function renderLeaderboard(container, endpoint, columns, accentColor = "var(--blue)") {
   container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);"><span class="spinner"></span> Loading…</div>';
 
@@ -107,7 +126,7 @@ export async function renderLeaderboard(container, endpoint, columns, accentColo
         ${data.leaderboard.length === 0
           ? '<div class="card"><div class="card__text">No scores yet. Be the first!</div></div>'
           : `<table class="scorecard-table">
-              <caption class="sr-only">Attack leaderboard — top scores</caption>
+              <caption class="sr-only">Leaderboard scores</caption>
               <thead><tr><th>Rank</th><th>Name</th>${colHeaders}<th>Total</th></tr></thead>
               <tbody>${rows}</tbody>
             </table>`}
@@ -121,6 +140,11 @@ export async function renderLeaderboard(container, endpoint, columns, accentColo
 // INFO PAGE PATTERN
 // =============================================================================
 
+/**
+ * Render a standard Info/welcome page with mission, cards, and start button.
+ * @param {HTMLElement} container - Main element
+ * @param {object} config - {title, cards: [{title, body}], buttonLabel, buttonColor, onStart}
+ */
 export function renderInfoPage(container, config) {
   const cardsHtml = (config.cards || []).map((card) => `
     <div class="card" style="margin-bottom:16px;">
@@ -147,6 +171,10 @@ export function renderInfoPage(container, config) {
 // INSTRUCTOR PREVIEW BANNER
 // =============================================================================
 
+/**
+ * Render a sticky "INSTRUCTOR PREVIEW" banner at the top of the page.
+ * Safe to call multiple times — only inserts once (idempotent).
+ */
 export function renderPreviewBanner() {
   const existing = document.getElementById('preview-banner');
   if (existing) return;
@@ -163,6 +191,13 @@ export function renderPreviewBanner() {
 // PROGRESS VISUALIZATION
 // =============================================================================
 
+/**
+ * Render level progress indicators (stars/checkmarks).
+ * @param {number} totalLevels
+ * @param {object} completedLevels - {1: 95, 2: 80, ...} level -> best score
+ * @param {number} currentLevel
+ * @param {number} maxUnlocked
+ */
 export function renderProgress(totalLevels, completedLevels, currentLevel, maxUnlocked) {
   const items = [];
   for (let l = 1; l <= totalLevels; l++) {
@@ -170,11 +205,11 @@ export function renderProgress(totalLevels, completedLevels, currentLevel, maxUn
     const isCurrent = l === currentLevel;
     const isLocked = l > maxUnlocked;
     let icon, color;
-    if (score >= 80) { icon = "⭐"; color = "var(--amber)"; }
-    else if (score >= 60) { icon = "✅"; color = "var(--green)"; }
-    else if (score > 0) { icon = "⚠️"; color = "var(--amber)"; }
+    if (score >= 80) { icon = "⭐"; color = "var(--amber)"; }       // star = great
+    else if (score >= 60) { icon = "✅"; color = "var(--green)"; }   // check = passed
+    else if (score > 0) { icon = "⚠️"; color = "var(--amber)"; } // warning = attempted
     else if (isLocked) { icon = "🔒"; color = "var(--text-muted)"; }
-    else { icon = "○"; color = "var(--text-muted)"; }
+    else { icon = "○"; color = "var(--text-muted)"; }               // empty circle
 
     const border = isCurrent ? "border-bottom:2px solid var(--blue);" : "";
     items.push(`<span style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;font-size:12px;${border}" title="Level ${l}: ${score > 0 ? score + ' pts' : isLocked ? 'Locked' : 'Not attempted'}"><span style="font-size:16px;">${icon}</span><span style="color:${color};">L${l}</span></span>`);
@@ -186,6 +221,12 @@ export function renderProgress(totalLevels, completedLevels, currentLevel, maxUn
 // WHY EXPLANATION COMPONENT
 // =============================================================================
 
+/**
+ * Render a "Why it worked/failed" explanation card.
+ * @param {boolean} success - Whether the attack succeeded
+ * @param {string} attackName
+ * @param {string} whyText - Educational explanation
+ */
 export function renderWhyCard(success, attackName, whyText) {
   const color = success ? "var(--red)" : "var(--green)";
   const bgColor = success ? "rgba(239,68,68,0.06)" : "rgba(34,197,94,0.06)";
@@ -202,6 +243,14 @@ export function renderWhyCard(success, attackName, whyText) {
 // GUIDED PRACTICE / WALKTHROUGH
 // =============================================================================
 
+/**
+ * Render a guided practice walkthrough with numbered steps.
+ * @param {Array<{step: string, instruction: string, tip: string}>} steps
+ * @param {number} currentStep - 0-based index of current step
+ * @param {string} accentColor
+ * @param {function} onNext - called with next step index
+ * @param {function} onStart - called when "Let's go" is clicked on final step
+ */
 export function renderGuidedPractice(steps, currentStep, accentColor, onNext, onStart) {
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
@@ -232,6 +281,12 @@ export function renderGuidedPractice(steps, currentStep, accentColor, onNext, on
 // KNOWLEDGE CHECK COMPONENT
 // =============================================================================
 
+/**
+ * Render a collapsible "Check Your Understanding" self-quiz.
+ * Returns an HTML string. After insertion call wireKnowledgeCheck(container).
+ * @param {Array<{q: string, options: Array<{label: string, correct?: boolean, explanation: string}>}>} questions
+ * @param {string} accentColor
+ */
 export function renderKnowledgeCheck(questions, accentColor = "var(--blue)") {
   const qs = questions.map((q, qi) => {
     const opts = q.options.map((opt, oi) =>
@@ -259,6 +314,11 @@ export function renderKnowledgeCheck(questions, accentColor = "var(--blue)") {
     </details>`;
 }
 
+/**
+ * Wire click handlers for a rendered knowledge check block.
+ * Uses only DOM creation methods — no innerHTML.
+ * @param {HTMLElement} container - element containing the rendered kc-block
+ */
 export function wireKnowledgeCheck(container) {
   container.querySelectorAll(".kc-option").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -301,6 +361,10 @@ export function wireKnowledgeCheck(container) {
 // PLATFORM GLOSSARY COMPONENT
 // =============================================================================
 
+/**
+ * Render a collapsible platform-wide glossary panel.
+ * Returns an HTML string. Drop after the knowledge check on any Info tab.
+ */
 export function renderGlossaryPanel() {
   const terms = [
     ["Adversarial Filter", "A defense that scans document or query text for known injection patterns before they reach the model. Effective against overt injection language; blind to semantic (embedding-level) attacks."],
