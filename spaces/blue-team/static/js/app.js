@@ -999,7 +999,13 @@ async function init() {
   }
 
   const examToken = detectExamToken();
-  if (examToken) await initExamMode(examToken);
+  if (examToken) {
+    try {
+      await initExamMode(examToken, "blue-team");
+    } catch (err) {
+      console.error("Exam mode init failed:", err);
+    }
+  }
 
   try {
     const data = await fetchJSON("/api/challenges");
