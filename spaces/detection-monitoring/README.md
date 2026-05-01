@@ -2,7 +2,7 @@
 title: AI Security Labs — Detection & Monitoring
 emoji: 📊
 colorFrom: purple
-colorTo: violet
+colorTo: purple
 sdk: docker
 app_port: 7860
 pinned: false
