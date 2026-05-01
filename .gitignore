@@ -54,3 +54,4 @@ build_context/
 .dolt/
 *.db
 .beads-credential-key
+.worktrees/

@@ -1,7 +1,4 @@
 {
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "embedded",
-  "dolt_database": "ai_security_labs",
-  "project_id": "c226c1b0-95ea-4fc6-ace1-968bf0943254"
+  "database": "beads.db",
+  "jsonl_export": "issues.jsonl"
 }
