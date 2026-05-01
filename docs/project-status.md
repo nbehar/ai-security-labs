@@ -1,6 +1,6 @@
 # AI Security Labs — Platform Project Status
 
-Last updated: 2026-04-30
+Last updated: 2026-05-01
 
 ---
 
@@ -13,7 +13,7 @@ Last updated: 2026-04-30
 | 3 | red-team | `nikobehar/red-team-workshop` | ✅ Live + Exam Mode (Phase 3 complete) |
 | 4 | multimodal | `nikobehar/ai-sec-lab4-multimodal` | ✅ Live (Phase 3 + defenses complete) |
 | 5 | data-poisoning | `nikobehar/ai-sec-lab5-data-poisoning` | ✅ Live |
-| 6 | detection-monitoring | `nikobehar/ai-sec-lab6-detection` | Phase 2 complete — deploy pending |
+| 6 | detection-monitoring | `nikobehar/ai-sec-lab6-detection` | ✅ Live + Exam Mode (Phase 2 complete) |
 
 ---
 
@@ -25,7 +25,7 @@ Last updated: 2026-04-30
 | 8 | multi-agent | Planned |
 | 9 | model-forensics | Planned |
 | 10 | ai-governance | Planned |
-| — | exam-admin | Phase 2 complete — deploy pending (private space) |
+| — | exam-admin | ✅ Live (private) — `nikobehar/ai-sec-lab-exam-admin` |
 
 ---
 
@@ -51,7 +51,7 @@ A two-tier exam system layered on top of existing lab spaces.
 | Phase 2 | Detection & Monitoring exam mode (exam_data_v1/v2.py, app.py routes) | ✅ Complete |
 | Phase 3 | Red Team exam mode (exam_challenges_v1/v2.py, app.py routes + slowapi) | ✅ Complete |
 | Phase 4 | Theory assessment (exam_questions.py, exam_mode.js) | ✅ Complete |
-| Phase 5 | exam-admin space (verification UI, LTI grade passback) | ✅ Code complete — deploy pending |
+| Phase 5 | exam-admin space (verification UI, LTI grade passback) | ✅ Live — `nikobehar/ai-sec-lab-exam-admin` |
 | Phase 6 | Blue Team, Multimodal, Data Poisoning exam routes | Planned |
 | Phase 7 | Cross-lab capstone | Deferred |
 
@@ -106,8 +106,8 @@ ADA Section 504 accommodations, class roster dashboard, and token generator for 
 
 | Issue | Title | Status |
 |-------|-------|--------|
-| #27 | Detection & Monitoring lab (Space 6) | Open — deploy pending |
-| #28 | exam-admin space | Open — code complete, deploy pending |
+| #27 | Detection & Monitoring lab (Space 6) | ✅ Closed — deployed `nikobehar/ai-sec-lab6-detection` |
+| #28 | exam-admin space | ✅ Closed — deployed `nikobehar/ai-sec-lab-exam-admin` |
 | #32 | Instructor preview mode | Open — planned |
 | #33 | WCAG 2.1 AA audit + remediation | Open — partial (A3/A6/A7 fixed) |
 | #34 | Facilitator guides | Open — planned |
@@ -118,21 +118,15 @@ ADA Section 504 accommodations, class roster dashboard, and token generator for 
 
 ## Blockers
 
-- Detection & Monitoring deploy: requires `./scripts/deploy.sh detection-monitoring` under `op run`
-- exam-admin deploy: requires creating private HF Space `nikobehar/ai-sec-lab-exam-admin` manually, then running deploy
-- exam-admin LTI: requires Canvas admin access for one-time tool registration (per deployment_spec.md)
+- exam-admin LTI: requires Canvas admin access for one-time tool registration (per `specs/deployment_spec.md`)
+- Phase 6 exam routes (bd-aen): large feature — needs per-lab sub-issue decomposition before routing to builder
 
 ---
 
 ## Next Recommended Task
 
-Deploy Detection & Monitoring (Space 6) to HF:
-```
-op run --env-file=.env.op -- ./scripts/deploy.sh detection-monitoring
-```
-Then run acceptance checks from `spaces/detection-monitoring/specs/api_spec.md`.
-
-After that: create `nikobehar/ai-sec-lab-exam-admin` as a private HF Space and deploy exam-admin.
+Phase 6 exam mode — wire Blue Team, Multimodal, Data Poisoning exam routes (bd-aen, P2).
+Decompose into 3 per-lab sub-issues, then implement per-lab following the Detection/Red Team pattern.
 
 ---
 
@@ -144,3 +138,4 @@ After that: create `nikobehar/ai-sec-lab-exam-admin` as a private HF Space and d
 | 2026-04-29 | Multimodal (Space 4) and data-poisoning (Space 5) specs + implementation. Detection & Monitoring (Space 6) Phase 0 bootstrap. |
 | 2026-04-30 | Detection & Monitoring Phase 1+2 complete. Summative assessment system Phases 1–5 complete: exam_token.py, exam_session.py, exam_questions.py, exam_mode.js, Red Team exam routes + datasets, Detection exam routes + datasets, exam-admin space (verify UI + LTI grade passback). |
 | 2026-04-30 | Instructor support package: `framework/exam_session.py` enhanced with pause/resume/extend_time/reset_exercise + admin_log (`cc80abd9`). exam-admin upgraded to 4-tab UI (Verify/Batch/Roster/Generate) with accommodation panel + roster view + token generator wizard (`f4e67fcb`). red-team/app.py + detection-monitoring/app.py got 6 admin routes each + _ROSTER_MAP + pause check (`5e257f34`). CSS: admin.css updated with .accom-*, .roster-table, .generate-form, .sr-only, .lab-connect-* (`5e257f34`). Issues #29–#31 implemented. |
+| 2026-05-01 | Deployed detection-monitoring (Space 6) to `nikobehar/ai-sec-lab6-detection` — all acceptance checks pass. Deployed exam-admin to `nikobehar/ai-sec-lab-exam-admin` (private) — all 8 acceptance checks pass (`6df83b0`). Closed GitHub issues #27 + #28. Closed 5 superseded PRs (#23 #24 #25 #26 #38). Initialized Beads issue tracker + Agent Mail. |
