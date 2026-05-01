@@ -29,7 +29,16 @@ except ImportError:
     EXAM_ENABLED = False
 
 EXAM_SECRET = os.environ.get("EXAM_SECRET", "")
+PREVIEW_TOKEN = os.environ.get("PREVIEW_TOKEN", "")
 LAB_ID = "detection-monitoring"
+
+def _is_preview(request: Request) -> bool:
+    if not PREVIEW_TOKEN:
+        return False
+    header = request.headers.get("X-Preview-Token", "")
+    query = request.query_params.get("preview", "")
+    return (header == PREVIEW_TOKEN) or (query == PREVIEW_TOKEN)
+
 
 app = FastAPI(title="Detection & Monitoring Lab", version="1.0.0")
 
@@ -145,11 +154,12 @@ async def get_logs():
 @app.post("/api/logs/classify")
 @limiter.limit("10/minute")
 async def classify_logs(request: Request, body: ClassifyRequest):
+    preview = _is_preview(request)
     classifications = body.classifications
     active_data = data
     session = None
 
-    if body.exam_token:
+    if body.exam_token and not preview:
         result = _resolve_exam_session(body.exam_token, "D1")
         if isinstance(result, JSONResponse):
             return result
@@ -214,11 +224,11 @@ async def classify_logs(request: Request, body: ClassifyRequest):
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
     score = round(f1 * 100, 1)
 
-    if session is not None:
+    if session is not None and not preview:
         elapsed = float(int(time.time()) - session.started_at)
         session.record_attempt("D1", success=score > 0, score=int(score), elapsed_seconds=elapsed)
 
-    return {
+    result = {
         "score": score,
         "f1": round(f1, 4),
         "precision": round(precision, 4),
@@ -228,8 +238,11 @@ async def classify_logs(request: Request, body: ClassifyRequest):
         "fn": fn,
         "tn": tn,
         "entries": entries,
-        **(({"exam": {"remaining_attempts": session.remaining_attempts("D1")}}) if session else {}),
+        "preview_mode": preview,
     }
+    if session is not None and not preview:
+        result["exam"] = {"remaining_attempts": session.remaining_attempts("D1")}
+    return result
 
 
 @app.get("/api/anomaly/data")
@@ -253,11 +266,12 @@ async def get_anomaly_data():
 @app.post("/api/anomaly/evaluate")
 @limiter.limit("10/minute")
 async def evaluate_anomaly(request: Request, body: AnomalyRequest):
+    preview = _is_preview(request)
     thresholds = body.thresholds
     active_data = data
     session = None
 
-    if body.exam_token:
+    if body.exam_token and not preview:
         result = _resolve_exam_session(body.exam_token, "D2")
         if isinstance(result, JSONResponse):
             return result
@@ -326,11 +340,11 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
 
     missed_why = {wid: active_data.D2_MISSED_WHY[wid] for wid in missed_windows}
 
-    if session is not None:
+    if session is not None and not preview:
         elapsed = float(int(time.time()) - session.started_at)
         session.record_attempt("D2", success=score > 0, score=int(score), elapsed_seconds=elapsed)
 
-    return {
+    result = {
         "score": score,
         "tp": tp_count,
         "fp": fp_count,
@@ -338,8 +352,11 @@ async def evaluate_anomaly(request: Request, body: AnomalyRequest):
         "attack_windows_missed": missed_windows,
         "windows": window_results,
         "missed_why": missed_why,
-        **(({"exam": {"remaining_attempts": session.remaining_attempts("D2")}}) if session else {}),
+        "preview_mode": preview,
     }
+    if session is not None and not preview:
+        result["exam"] = {"remaining_attempts": session.remaining_attempts("D2")}
+    return result
 
 
 @app.get("/api/outputs")
@@ -357,11 +374,12 @@ async def get_outputs():
 @app.post("/api/outputs/evaluate")
 @limiter.limit("10/minute")
 async def evaluate_outputs(request: Request, body: OutputEvalRequest):
+    preview = _is_preview(request)
     rules_text = body.rules.strip()
     active_data = data
     session = None
 
-    if body.exam_token:
+    if body.exam_token and not preview:
         result = _resolve_exam_session(body.exam_token, "D3")
         if isinstance(result, JSONResponse):
             return result
@@ -424,11 +442,11 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
     baseline_recall = 1.0
     baseline_f1 = 2 * baseline_prec * baseline_recall / (baseline_prec + baseline_recall)
 
-    if session is not None:
+    if session is not None and not preview:
         elapsed = float(int(time.time()) - session.started_at)
         session.record_attempt("D3", success=score > 0, score=int(score), elapsed_seconds=elapsed)
 
-    return {
+    result = {
         "score": score,
         "f1": round(f1, 4),
         "precision": round(precision, 4),
@@ -440,34 +458,40 @@ async def evaluate_outputs(request: Request, body: OutputEvalRequest):
         "baseline_f1": round(baseline_f1, 4),
         "beat_baseline": f1 > baseline_f1,
         "outputs": output_results,
-        **(({"exam": {"remaining_attempts": session.remaining_attempts("D3")}}) if session else {}),
+        "preview_mode": preview,
     }
+    if session is not None and not preview:
+        result["exam"] = {"remaining_attempts": session.remaining_attempts("D3")}
+    return result
 
 
 @app.post("/api/score")
 @limiter.limit("10/minute")
 async def submit_score(request: Request, body: ScoreSubmit):
+    preview = _is_preview(request)
     total = round(body.d1_score + body.d2_score + body.d3_score, 1)
     nickname = body.nickname or f"anon_{body.session_id[:6]}"
 
-    existing = next((e for e in _leaderboard if e["session_id"] == body.session_id), None)
-    if existing:
-        existing.update({"d1": body.d1_score, "d2": body.d2_score, "d3": body.d3_score,
-                         "total": total, "nickname": nickname})
+    if not preview:
+        existing = next((e for e in _leaderboard if e["session_id"] == body.session_id), None)
+        if existing:
+            existing.update({"d1": body.d1_score, "d2": body.d2_score, "d3": body.d3_score,
+                             "total": total, "nickname": nickname})
+        else:
+            _leaderboard.append({
+                "session_id": body.session_id,
+                "nickname": nickname,
+                "d1": body.d1_score,
+                "d2": body.d2_score,
+                "d3": body.d3_score,
+                "total": total,
+            })
+        sorted_board = sorted(_leaderboard, key=lambda e: e["total"], reverse=True)
+        rank = next(i + 1 for i, e in enumerate(sorted_board) if e["session_id"] == body.session_id)
     else:
-        _leaderboard.append({
-            "session_id": body.session_id,
-            "nickname": nickname,
-            "d1": body.d1_score,
-            "d2": body.d2_score,
-            "d3": body.d3_score,
-            "total": total,
-        })
+        rank = None
 
-    sorted_board = sorted(_leaderboard, key=lambda e: e["total"], reverse=True)
-    rank = next(i + 1 for i, e in enumerate(sorted_board) if e["session_id"] == body.session_id)
-
-    return {"total": total, "rank": rank}
+    return {"total": total, "rank": rank, "preview_mode": preview}
 
 
 @app.get("/api/leaderboard")

@@ -1,7 +1,8 @@
-import { $, renderTabs, renderInfoPage, renderLeaderboard, renderKnowledgeCheck, wireKnowledgeCheck, fetchJSON } from './core.js';
+import { $, renderTabs, renderInfoPage, renderLeaderboard, renderKnowledgeCheck, wireKnowledgeCheck, fetchJSON, renderPreviewBanner } from './core.js';
 import { renderLogAnalysisTab } from './log_viewer.js';
 import { renderAnomalyTab } from './anomaly_dashboard.js';
 import { renderOutputSanitizerTab } from './output_sanitizer.js';
+import { detectPreviewToken } from './exam_mode.js';
 
 const TABS = [
   { id: 'info',     label: 'Info' },
@@ -12,6 +13,16 @@ const TABS = [
 ];
 
 async function init() {
+  const previewToken = detectPreviewToken();
+  if (previewToken) {
+    renderPreviewBanner();
+    const _origFetch = window.fetch;
+    window.fetch = (url, opts = {}) => {
+      opts.headers = { ...(opts.headers || {}), 'X-Preview-Token': previewToken };
+      return _origFetch(url, opts);
+    };
+  }
+
   // Cold-start health probe
   try {
     const health = await fetchJSON('/health');
