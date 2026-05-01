@@ -17,13 +17,116 @@ export function detectPreviewToken() {
   return new URLSearchParams(window.location.search).get('preview') || '';
 }
 
+// ─── Session state ────────────────────────────────────────────────────────────
+
+let _examCtx = null;
+let _examToken = null;
+let _labId = null;
+let _statusCache = null;
+
 // ─── Session initialization ───────────────────────────────────────────────────
 
 export async function initExamMode(token, labId) {
-  return fetchJSON('/api/exam/validate', {
+  const ctx = await fetchJSON('/api/exam/validate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
+  });
+  _examCtx = ctx;
+  _examToken = token;
+  _labId = labId;
+  _statusCache = null;
+  return ctx;
+}
+
+/** Returns true when a validated exam session is active. */
+export function isExamActive() {
+  return _examCtx !== null;
+}
+
+/** Returns the exam context object from /api/exam/validate. */
+export function getExamContext() {
+  return _examCtx;
+}
+
+/**
+ * Returns remaining attempts for an exercise, or null if uncapped / no exam.
+ * Uses the status cache (refreshed by refreshStatus()). Falls back to
+ * attempt_caps from the initial context on first call.
+ */
+export function getRemainingAttempts(exerciseId) {
+  if (!_examCtx) return null;
+  if (_statusCache) {
+    const ex = (_statusCache.exercises || []).find(e => e.exercise_id === exerciseId);
+    if (ex) return ex.remaining_attempts;
+  }
+  const cap = _examCtx.attempt_caps?.[exerciseId];
+  return cap !== undefined ? cap : null;
+}
+
+/**
+ * Wraps a fetch payload with the exam_token field so the server can
+ * identify the exam session and enforce attempt caps.
+ */
+export function wrapPayload(payload) {
+  if (!_examToken) return payload;
+  return { ...payload, exam_token: _examToken };
+}
+
+/** Mounts the exam banner inside the page's .container element. */
+export function mountExamBanner() {
+  if (!_examCtx) return;
+  const container = document.querySelector('.container') || document.body;
+  renderExamBanner(_examCtx, container);
+}
+
+/** Refreshes per-exercise attempt counts from /api/exam/status. */
+export async function refreshStatus() {
+  if (!_examToken) return;
+  try {
+    _statusCache = await fetchJSON(`/api/exam/status?token=${encodeURIComponent(_examToken)}`);
+  } catch (err) {
+    console.error('Failed to refresh exam status:', err);
+  }
+}
+
+/**
+ * Renders the theory assessment form into container.
+ * onComplete is called after successful submission (use to switch tabs).
+ */
+export function renderTheoryTab(container, onComplete) {
+  renderTheoryAssessment(container, _examToken, _labId, onComplete);
+}
+
+/**
+ * Renders the receipt download UI into container.
+ */
+export function renderReceiptTab(container) {
+  container.innerHTML = `
+    <div class="theory-assessment">
+      <div class="theory-header">
+        <h2 class="theory-title">Download Exam Receipt</h2>
+        <p class="theory-subtitle">
+          Your signed exam receipt includes practical scores, MCQ results, and
+          short-answer responses. Download it and submit to your LMS.
+        </p>
+      </div>
+      <button id="receipt-download-btn" class="btn-primary">⬇ Download Signed Receipt</button>
+      <div id="receipt-status" style="margin-top:12px;min-height:1.5em;"></div>
+    </div>`;
+
+  document.getElementById('receipt-download-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('receipt-download-btn');
+    const status = document.getElementById('receipt-status');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating receipt…'; }
+    try {
+      await signAndDownloadReceipt(_examToken, _labId);
+      if (status) status.innerHTML = '<span style="color:var(--green);">Receipt downloaded successfully.</span>';
+    } catch (err) {
+      if (status) status.innerHTML = `<span style="color:var(--red);">Error: ${escapeHtml(String(err.message || err))}</span>`;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '⬇ Download Signed Receipt'; }
+    }
   });
 }
 
@@ -46,7 +149,7 @@ export function renderExamBanner(ctx, container) {
     const h = Math.floor(remaining / 3600);
     const m = Math.floor((remaining % 3600) / 60);
     const s = remaining % 60;
-    const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'00')}:${String(s).padStart(2,'0')}`;
+    const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     const urgencyClass = remaining < 300 ? 'exam-banner--critical'
                        : remaining < 900 ? 'exam-banner--warning' : '';
     banner.className = `exam-banner ${urgencyClass}`;
@@ -71,7 +174,7 @@ export function renderExamBanner(ctx, container) {
 
 // ─── Theory assessment ────────────────────────────────────────────────────────
 
-export async function renderTheoryAssessment(container, token, labId) {
+export async function renderTheoryAssessment(container, token, labId, onSuccess) {
   container.innerHTML = '<div class="exam-loading">Loading theory assessment…</div>';
 
   let questions;
@@ -101,6 +204,7 @@ export async function renderTheoryAssessment(container, token, labId) {
         body: JSON.stringify({ token, answers: _collectAnswers(questions) }),
       });
       _showConfirmation(container, result);
+      if (onSuccess) setTimeout(onSuccess, 1200);
     } catch (err) {
       if (btn) { btn.disabled = false; btn.textContent = 'Submit Theory Assessment'; }
       if (errEl) errEl.textContent = String(err.message || 'Submission failed');
