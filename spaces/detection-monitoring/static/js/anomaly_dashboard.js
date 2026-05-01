@@ -93,11 +93,13 @@ function buildSparkCard(metric) {
   const meanLabel = `${b.mean}${metric.unit ? ' ' + metric.unit : ''}`;
   const stdLabel  = String(b.std);
 
+  const chartTitleId = `chart-title-${metric.key}`;
   return `
     <div class="d2-chart-card">
       <div class="d2-chart-card__title">${escapeHtml(metric.label)}</div>
       <div class="d2-chart-card__subtitle">Baseline: ${escapeHtml(meanLabel)} ±${escapeHtml(stdLabel)}</div>
-      <svg class="d2-sparkline" viewBox="0 0 ${W} ${H}">
+      <svg class="d2-sparkline" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="${chartTitleId}">
+        <title id="${chartTitleId}">${escapeHtml(metric.label)} metric over time</title>
         <rect x="${PAD}" y="${bandTop.toFixed(1)}" width="${W - PAD * 2}" height="${bandH.toFixed(1)}"
               fill="rgba(100,100,120,0.15)" />
         <line x1="${PAD}" y1="${baseY.toFixed(1)}" x2="${W - PAD}" y2="${baseY.toFixed(1)}"
