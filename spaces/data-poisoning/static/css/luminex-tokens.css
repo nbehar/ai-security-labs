@@ -45,9 +45,11 @@
 
   /* --- AI Security Labs accent (violet) --- */
   --color-accent-aisl-interactive: #7c3aed;       /* button fills (with white text) */
+  --color-accent-aisl-interactive-hover: #6d28d9; /* one step darker — violet-700 */
   --color-accent-aisl-highlight:   #a78bfa;       /* text, active labels, tab underlines */
   --color-accent-aisl-subtle:      rgba(124, 58, 237, 0.10);
   --color-accent-aisl-border:      rgba(124, 58, 237, 0.28);
+  --color-text-on-accent: #fafaf0;               /* text on AISL-filled buttons */
 
   /* --- Semantic states --- */
   --color-success: #22c55e;
@@ -171,22 +173,5 @@
   }
 }
 
-/* --- Light mode (WCAG 2.1 AA — 4.5:1+ contrast) --- */
-@media (prefers-color-scheme: light) {
-  :root {
-    --color-bg-base: #f8f8fc;
-    --color-bg-surface: #ffffff;
-    --color-bg-elevated: #f0f0f8;
-    --color-surface-1: #ffffff;
-    --color-surface-2: #f0f0f8;
-    --color-surface-3: #e4e4f0;
-    --color-text-primary: #0a0a1a;
-    --color-text-secondary: #3a3a5c;
-    --color-text-muted: #6b6b8c;
-    --color-text-inverse: #f8f8fc;
-    --color-border: #d0d0e8;
-    --color-border-subtle: rgba(176, 176, 208, 0.6);
-    --color-border-strong: #b0b0d0;
-    /* Accent colors work in both modes — no override needed */
-  }
-}
+/* NR-3: This platform is dark-only. No prefers-color-scheme:light override.
+ * Background is always #09090f / --color-bg-base regardless of system setting. */

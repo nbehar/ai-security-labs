@@ -114,7 +114,7 @@ export function renderImagePromptInjectionTab(container, opts) {
           ${attackOptions}
         </select>
 
-        <div id="limitation-banner-${escapeHtml(labelPrefix)}" style="display:none;margin-top:var(--space-3);padding:10px 14px;background:rgba(245,158,11,0.08);border-left:3px solid var(--color-amber,#f59e0b);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:13px;"></div>
+        <div id="limitation-banner-${escapeHtml(labelPrefix)}" style="display:none;margin-top:var(--space-3);padding:10px 14px;background:var(--color-warning-subtle);border-left:3px solid var(--color-warning);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:13px;"></div>
 
         <div class="gallery-mode-toggle" style="margin-top:var(--space-4);">
           <label><input type="radio" name="mode-${escapeHtml(labelPrefix)}" value="canned" checked> Pre-canned image</label>

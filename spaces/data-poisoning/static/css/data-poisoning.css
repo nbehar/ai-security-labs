@@ -8,10 +8,6 @@
  * All values reference tokens from luminex-tokens.css. No hardcoded primitives.
  */
 
-:root {
-  --color-white: #ffffff; /* companion to --color-accent-aisl-interactive "button fills (with white text)" */
-}
-
 * { box-sizing: border-box; }
 
 html, body {
@@ -59,7 +55,9 @@ pre {
 }
 
 /* =============================================================================
-   NAVIGATION (master brand — owl + NexaCore / AI Security Labs + page label)
+   NAVIGATION (master brand — owl + Luminex Learning / AI Security Labs + page label)
+   NexaCore is the fictional in-product attack target; it does NOT appear in the
+   master nav (NR-4). Wordmark reads "Luminex Learning" (NR-2).
    Layout matches digistore-mock-client Sidebar.tsx + Layout.tsx pattern.
    ========================================================================== */
 
@@ -88,7 +86,7 @@ pre {
   gap: 3px;
 }
 
-.nav-customer-name {
+.nav-wordmark {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 700;
@@ -520,12 +518,12 @@ pre {
 
 .btn-primary {
   background: var(--color-accent-aisl-interactive);
-  color: var(--color-white);
+  color: var(--color-text-on-accent);
   border-color: var(--color-accent-aisl-interactive);
 }
 .btn-primary:hover {
-  background: #6d28d9;
-  border-color: #6d28d9;
+  background: var(--color-accent-aisl-interactive-hover);
+  border-color: var(--color-accent-aisl-interactive-hover);
 }
 
 .btn-secondary {

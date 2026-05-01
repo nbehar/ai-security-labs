@@ -331,18 +331,18 @@ function renderInfoTab(container) {
       <h2 class="card-title">Where This Lab Fits</h2>
       <div class="card-body">
         <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;margin-bottom:12px;">
-          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">OWASP LLM Top 10 →</span>
-          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">Red Team →</span>
-          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">Blue Team →</span>
-          <span style="padding:3px 8px;background:var(--surface-2,#1e1e2a);border-radius:4px;color:var(--muted);">Multimodal →</span>
-          <span style="padding:3px 8px;background:rgba(139,92,246,0.15);border:1px solid #a78bfa;border-radius:4px;color:#a78bfa;font-weight:600;">Data Poisoning (you are here)</span>
+          <span style="padding:3px 8px;background:var(--color-surface-2);border-radius:4px;color:var(--color-text-muted);">OWASP LLM Top 10 →</span>
+          <span style="padding:3px 8px;background:var(--color-surface-2);border-radius:4px;color:var(--color-text-muted);">Red Team →</span>
+          <span style="padding:3px 8px;background:var(--color-surface-2);border-radius:4px;color:var(--color-text-muted);">Blue Team →</span>
+          <span style="padding:3px 8px;background:var(--color-surface-2);border-radius:4px;color:var(--color-text-muted);">Multimodal →</span>
+          <span style="padding:3px 8px;background:var(--color-accent-aisl-subtle);border:1px solid var(--color-accent-aisl-highlight);border-radius:4px;color:var(--color-accent-aisl-highlight);font-weight:600;">Data Poisoning (you are here)</span>
         </div>
         <p><strong>This lab:</strong> Attacks on the retrieval layer — poisoning the knowledge base the AI reads from before it answers. These work even if the model itself is perfectly hardened.</p>
-        <p style="color:var(--muted);font-size:13px;margin-top:8px;">You've now covered all four major LLM attack surfaces: prompt injection (Red Team), defense construction (Blue Team), multimodal vectors (Multimodal), and supply-chain poisoning (this lab).</p>
+        <p style="color:var(--color-text-muted);font-size:13px;margin-top:8px;">You've now covered all four major LLM attack surfaces: prompt injection (Red Team), defense construction (Blue Team), multimodal vectors (Multimodal), and supply-chain poisoning (this lab).</p>
       </div>
     </section>
 
-    ${renderKnowledgeCheck(KC_QUESTIONS_DATA_POISONING, "#a78bfa")}
+    ${renderKnowledgeCheck(KC_QUESTIONS_DATA_POISONING, "var(--color-accent-aisl-interactive)")}
     ${renderGlossaryPanel()}
   `);
 

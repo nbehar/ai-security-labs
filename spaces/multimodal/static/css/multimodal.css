@@ -56,7 +56,9 @@ pre {
 }
 
 /* =============================================================================
-   NAVIGATION (master brand — owl + Luminex Learning + product section)
+   NAVIGATION (master brand — owl + Luminex Learning wordmark + product section)
+   NexaCore is the fictional in-product attack target; it does NOT appear in
+   the master nav (NR-2 / NR-4). Wordmark reads "Luminex Learning".
    ========================================================================== */
 
 .nav {
@@ -84,7 +86,7 @@ pre {
   gap: 3px;
 }
 
-.nav-customer-name {
+.nav-wordmark {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 700;

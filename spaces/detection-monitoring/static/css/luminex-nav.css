@@ -1,22 +1,24 @@
 /*
- * luminex-nav.css — Master nav matching digistore-mock-client header pattern.
+ * luminex-nav.css — Master nav (Luminex Learning brand).
  *
  * Layout:
  *
- *   [owl 48px gold]  NexaCore         │   [shield] Blue Team
- *                    ─────────        │
- *                    AI Security Labs │
+ *   [owl 48px gold]  Luminex Learning   │   [shield] Detection & Monitoring
+ *                    ─────────────────  │
+ *                    AI Security Labs   │
  *
  * Reference: ~/digistore/digistore-mock-client/frontend-v2/src/components/
  *   - Sidebar.tsx — brand block (owl + DigiStore / GRC Labs)
  *   - Layout.tsx — page label "DigiStore Security Assessment" with Shield icon
  *
- * Brand block contains the fictional customer (NexaCore) over the Luminex
- * product (AI Security Labs). The page label on the right names the lab/section.
+ * Brand block shows the Luminex Learning master brand wordmark (NR-2) over the
+ * product name (AI Security Labs). NexaCore is the fictional in-product attack
+ * target — it does NOT appear in the master nav (NR-4).
  *
  * Per brand-identity-enforcer non-negotiables:
  *   NR-1  — owl mark in every authenticated nav (.owl-gold filter, brand gold)
- *   NR-2  — brand name "Luminex Learning" present (alt text on owl image)
+ *   NR-2  — brand name "Luminex Learning" visible as wordmark text
+ *   NR-4  — NexaCore never used as a Luminex brand name in nav
  *   NR-10 — owl always brand gold, never product accent
  */
 
@@ -45,7 +47,7 @@
   gap: 3px;
 }
 
-.luminex-nav__customer-name {
+.luminex-nav__wordmark {
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 700;

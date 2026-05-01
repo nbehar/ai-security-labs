@@ -55,6 +55,17 @@ html, body {
   background: var(--color-accent-aisl-interactive-hover);
 }
 
+/* NR-8: override framework hardcoded #fff on text-over-accent elements */
+.workshop-btn--active,
+.btn--primary {
+  color: var(--color-text-on-accent);
+}
+
+/* NR-8: override framework hardcoded #fff spinner border */
+.spinner {
+  border-top-color: var(--color-text-on-accent);
+}
+
 /* NR-8: override framework hardcoded rgba(59,130,246,0.06) tint on Luminex-branded spaces */
 .defense-found--applied {
   background: var(--color-accent-aisl-subtle);

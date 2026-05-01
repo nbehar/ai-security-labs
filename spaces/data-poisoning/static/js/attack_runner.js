@@ -335,10 +335,10 @@ function updateScoreBanner(root, state, localState) {
       reflectionEl.dataset.shown = "1";
       reflectionEl.style.display = "block";
       setHtml(reflectionEl, `
-        <div style="padding:14px 18px;background:rgba(139,92,246,0.07);border-left:3px solid var(--color-accent-aisl-highlight,#a78bfa);border-radius:0 var(--radius-sm,4px) var(--radius-sm,4px) 0;">
-          <div style="font-size:13px;font-weight:700;color:var(--color-accent-aisl-highlight,#a78bfa);margin-bottom:6px;">\u{1F4AD} Reflect</div>
-          <p style="font-size:13px;color:var(--color-text-secondary,#9ca3af);margin:0 0 6px;">If you were building a RAG-based HR assistant at a real company, which single defense would you deploy first?</p>
-          <p style="font-size:11px;color:var(--color-text-muted,#6b7280);margin:0;">No answer needed — just think about it. If you want to go deeper, try running each attack with only one defense enabled and compare which one catches the most.</p>
+        <div style="padding:14px 18px;background:var(--color-accent-aisl-subtle);border-left:3px solid var(--color-accent-aisl-highlight);border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+          <div style="font-size:13px;font-weight:700;color:var(--color-accent-aisl-highlight);margin-bottom:6px;">Reflect</div>
+          <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 6px;">If you were building a RAG-based HR assistant at a real company, which single defense would you deploy first?</p>
+          <p style="font-size:11px;color:var(--color-text-muted);margin:0;">No answer needed — just think about it. If you want to go deeper, try running each attack with only one defense enabled and compare which one catches the most.</p>
         </div>
       `);
     }
@@ -391,8 +391,8 @@ function renderResult(host, r, atk) {
   const whyText = whyExplanation(r, succeeded, blockedBy, atk);
 
   const rp5CalloutHtml = (r.attack_id === "RP.5" && succeeded) ? `
-    <div class="result-panel" style="border-left:3px solid var(--color-accent-aisl-highlight,#a78bfa);background:rgba(139,92,246,0.07);padding:14px 18px;margin-bottom:var(--space-4);">
-      <div class="result-header" style="color:var(--color-accent-aisl-highlight,#a78bfa);">🔬 Sharpest insight in this lab</div>
+    <div class="result-panel" style="border-left:3px solid var(--color-accent-aisl-highlight);background:var(--color-accent-aisl-subtle);padding:14px 18px;margin-bottom:var(--space-4);">
+      <div class="result-header" style="color:var(--color-accent-aisl-highlight);">Sharpest insight in this lab</div>
       <div class="card-body">
         <p><strong>RP.5 (Embedding Adjacency) has no injection text, no fake citations, no authority spoofing.</strong> The poisoned document contains nothing overtly malicious — it just has keywords that push its embedding vector close to the query vector.</p>
         <p>Content-based defenses (Adversarial Filter, Output Grounding) are completely blind to this. They scan for suspicious patterns — there are none. <strong>Only Provenance Check catches it</strong>, because it doesn't care what the document says — only where it came from.</p>
