@@ -15,4 +15,3 @@ static/owl.svg
 # at deploy time. We ignore the destination copies so they don't drift
 # from the canonical framework/ source.
 static/css/styles.css
-static/js/core.js
