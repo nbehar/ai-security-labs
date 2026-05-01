@@ -73,10 +73,12 @@ export function wrapPayload(payload) {
   return { ...payload, exam_token: _examToken };
 }
 
-/** Mounts the exam banner inside the page's .container element. */
+/** Mounts the exam banner inside the page's main layout container. */
 export function mountExamBanner() {
   if (!_examCtx) return;
-  const container = document.querySelector('.container') || document.body;
+  const container = document.querySelector('.container')
+    || document.querySelector('.layout')
+    || document.body;
   renderExamBanner(_examCtx, container);
 }
 

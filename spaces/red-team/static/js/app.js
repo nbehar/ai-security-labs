@@ -561,6 +561,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (examToken) {
     try {
       await initExamMode(examToken, "red-team");
+      await refreshStatus(); // populate _statusCache so getRemainingAttempts is accurate
       mountExamBanner();
       state.mode = "redteam"; // Land on levels tab in exam mode
     } catch (err) {

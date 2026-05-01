@@ -5,7 +5,7 @@
  */
 
 import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel, renderPreviewBanner } from "./core.js";
-import { detectExamToken, initExamMode, detectPreviewToken } from "./exam_mode.js";
+import { detectExamToken, initExamMode, mountExamBanner, refreshStatus, detectPreviewToken } from "./exam_mode.js";
 
 const state = {
   mode: "info",
@@ -1002,6 +1002,8 @@ async function init() {
   if (examToken) {
     try {
       await initExamMode(examToken, "blue-team");
+      await refreshStatus();
+      mountExamBanner();
     } catch (err) {
       console.error("Exam mode init failed:", err);
     }
