@@ -5,6 +5,7 @@
 
 import { t } from "./i18n.js";
 import { OWASP_SLIDES, DEFENSE_MATRIX } from "./slides.js";
+import { initFirebaseAuth, getIdToken } from './firebase_auth.js';
 
 // =============================================================================
 // STATE
@@ -1566,6 +1567,17 @@ function bindEvents() {
 // =============================================================================
 
 async function init() {
+  const fbUser = await initFirebaseAuth();
+  if (fbUser) {
+    const _fbFetch = window.fetch;
+    window.fetch = async (url, opts = {}) => {
+      const headers = { ...(opts.headers || {}) };
+      const token = await getIdToken().catch(() => null);
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      return _fbFetch(url, { ...opts, headers });
+    };
+  }
+
   cacheDom();
   bindEvents();
   await loadAttacks();

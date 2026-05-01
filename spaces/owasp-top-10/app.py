@@ -689,6 +689,9 @@ class ScorecardRequest(BaseModel):
 # =============================================================================
 
 app = FastAPI(title="LLM Top 10 Security Lab")
+from app_auth import add_auth_middleware, firebase_config_route
+add_auth_middleware(app)
+app.add_api_route("/api/firebase-config", firebase_config_route)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
