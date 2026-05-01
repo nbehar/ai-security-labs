@@ -63,10 +63,11 @@ export async function signOut() {
 async function _fetchConfig() {
   try {
     const r = await fetch('/api/firebase-config');
-    if (!r.ok) return null;
+    if (!r.ok) { console.warn('[firebase_auth] config fetch failed:', r.status); return null; }
     const cfg = await r.json();
-    return cfg.enabled ? cfg : null;
-  } catch { return null; }
+    if (!cfg.enabled) { console.info('[firebase_auth] auth disabled (no credentials configured)'); return null; }
+    return cfg;
+  } catch (e) { console.warn('[firebase_auth] config fetch error:', e.message); return null; }
 }
 
 function _initApp(config) {
@@ -75,8 +76,10 @@ function _initApp(config) {
 }
 
 function _getAuthState() {
+  // 5s timeout guards against onAuthStateChanged never firing (e.g. network block)
   return new Promise(resolve => {
-    const unsub = onAuthStateChanged(_auth, user => { unsub(); resolve(user); });
+    const timer = setTimeout(() => { console.warn('[firebase_auth] onAuthStateChanged timeout — showing overlay'); resolve(null); }, 5000);
+    const unsub = onAuthStateChanged(_auth, user => { clearTimeout(timer); unsub(); resolve(user); });
   });
 }
 
