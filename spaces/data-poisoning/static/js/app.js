@@ -9,10 +9,10 @@
  * `Range.createContextualFragment` to keep the platform security hook happy.
  */
 
-import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "/static/js/core.js";
+import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel, renderPreviewBanner } from "/static/js/core.js";
 import { renderRagPoisoningTab } from "/static/js/attack_runner.js";
 import { renderCorpusBrowserTab } from "/static/js/corpus_browser.js";
-import { detectExamToken, initExamMode } from "/static/js/exam_mode.js";
+import { detectExamToken, initExamMode, detectPreviewToken } from "/static/js/exam_mode.js";
 
 const TABS = [
   { id: "info",   label: "Info" },
@@ -39,6 +39,16 @@ export function setHtml(el, html) {
 }
 
 (async function init() {
+  const previewToken = detectPreviewToken();
+  if (previewToken) {
+    renderPreviewBanner();
+    const _origFetch = window.fetch;
+    window.fetch = (url, opts = {}) => {
+      opts.headers = { ...(opts.headers || {}), 'X-Preview-Token': previewToken };
+      return _origFetch(url, opts);
+    };
+  }
+
   const examToken = detectExamToken();
   if (examToken) await initExamMode(examToken);
   renderTabs();

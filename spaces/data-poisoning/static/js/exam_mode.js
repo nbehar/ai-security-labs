@@ -7,13 +7,17 @@
  */
 import { fetchJSON, escapeHtml } from './core.js';
 
-// ─── Token detection ──────────────────────────────────────────────────────────
+// ─── Token detection ───────────────────────────────────────────────────────────────────────────────
 
 export function detectExamToken() {
   return new URLSearchParams(window.location.search).get('exam_token') || null;
 }
 
-// ─── Session initialization ───────────────────────────────────────────────────
+export function detectPreviewToken() {
+  return new URLSearchParams(window.location.search).get('preview') || '';
+}
+
+// ─── Session initialization ─────────────────────────────────────────────────────────────────────
 
 export async function initExamMode(token, labId) {
   return fetchJSON('/api/exam/validate', {
@@ -23,11 +27,14 @@ export async function initExamMode(token, labId) {
   });
 }
 
-// ─── Exam banner + countdown timer ───────────────────────────────────────────
+// ─── Exam banner + countdown timer ─────────────────────────────────────────────────────────
 
 let _timerInterval = null;
 
 export function renderExamBanner(ctx, container) {
+  // Suppress exam timer and attempt counter in preview mode.
+  if (detectPreviewToken()) return;
+
   const banner = document.createElement('div');
   banner.id = 'exam-banner';
   container.insertBefore(banner, container.firstChild);
@@ -39,7 +46,7 @@ export function renderExamBanner(ctx, container) {
     const h = Math.floor(remaining / 3600);
     const m = Math.floor((remaining % 3600) / 60);
     const s = remaining % 60;
-    const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const timeStr = `${String(h).padStart(2,'00')}:${String(m).padStart(2,'00')}:${String(s).padStart(2,'00')}`;
     const urgencyClass = remaining < 300 ? 'exam-banner--critical'
                        : remaining < 900 ? 'exam-banner--warning' : '';
     banner.className = `exam-banner ${urgencyClass}`;
@@ -62,7 +69,7 @@ export function renderExamBanner(ctx, container) {
   _timerInterval = setInterval(tick, 1000);
 }
 
-// ─── Theory assessment ────────────────────────────────────────────────────────
+// ─── Theory assessment ────────────────────────────────────────────────────────────────────────────
 
 export async function renderTheoryAssessment(container, token, labId) {
   container.innerHTML = '<div class="exam-loading">Loading theory assessment…</div>';
@@ -200,7 +207,7 @@ function _showConfirmation(container, result) {
     </div>`;
 }
 
-// ─── Receipt signing + download ───────────────────────────────────────────────
+// ─── Receipt signing + download ────────────────────────────────────────────────────────────────
 
 export async function signAndDownloadReceipt(token, labId) {
   const receipt = await fetchJSON(`/api/exam/receipt?token=${encodeURIComponent(token)}`);

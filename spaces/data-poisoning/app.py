@@ -59,6 +59,7 @@ except ImportError:
 
 LAB_ID = "data-poisoning"
 EXAM_SECRET = os.environ.get("EXAM_SECRET", "")
+PREVIEW_TOKEN = os.environ.get("PREVIEW_TOKEN", "")
 _ROSTER_MAP: dict[str, str] = {}
 
 EXERCISE_DEFINITIONS = [
@@ -217,6 +218,14 @@ class ScoreResponse(BaseModel):
 # App + static + templates + rate limiter
 # ---------------------------------------------------------------------------
 
+def _is_preview(request: Request) -> bool:
+    if not PREVIEW_TOKEN:
+        return False
+    header = request.headers.get("X-Preview-Token", "")
+    query = request.query_params.get("preview", "")
+    return (header == PREVIEW_TOKEN) or (query == PREVIEW_TOKEN)
+
+
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Data Poisoning Lab", version="0.4-phase4a")
 app.state.limiter = limiter
@@ -342,10 +351,12 @@ async def post_attack(
     by design (uploaded source `(user upload)` fails the trusted-sources
     allowlist).
     """
+    preview = _is_preview(request)
+
     # ---- Exam mode ----
     exam_session = None
     exam_attack = None
-    if exam_token and exam_attack_id and EXAM_ENABLED:
+    if exam_token and exam_attack_id and EXAM_ENABLED and not preview:
         res = _resolve_exam_session(exam_token, exam_attack_id)
         if not isinstance(res, tuple):
             return res
@@ -441,22 +452,27 @@ async def post_attack(
             result.get("blocked_by") is None
             and exam_canary.lower() in result.get("model_response", "").lower()
         )
-        if exam_session is not None:
+        if exam_session is not None and not preview:
             prior = exam_session.attempt_count(exam_attack_id)
             score = _attack_score(prior + 1, result["succeeded"], parsed_defenses)
             exam_session.record_attempt(exam_attack_id, success=result["succeeded"], score=score)
 
     result["participant_name"] = participant_name
     result["phase"] = 4
+    result["preview_mode"] = preview
     return result
 
 
-@app.post("/api/score", response_model=ScoreResponse)
-async def post_score(req: ScoreRequest):
+@app.post("/api/score")
+async def post_score(request: Request, req: ScoreRequest):
     """Record a participant score. Returns running total + rank."""
+    preview = _is_preview(request)
     score_added = _attack_score(req.attempts, req.succeeded, req.defenses_applied)
-    running_total, rank = _record_score(req.participant_name, req.attack_id, score_added)
-    return ScoreResponse(score_added=score_added, running_total=running_total, rank=rank)
+    if not preview:
+        running_total, rank = _record_score(req.participant_name, req.attack_id, score_added)
+    else:
+        running_total, rank = score_added, None
+    return {"score_added": score_added, "running_total": running_total, "rank": rank, "preview_mode": preview}
 
 
 @app.get("/api/leaderboard")
