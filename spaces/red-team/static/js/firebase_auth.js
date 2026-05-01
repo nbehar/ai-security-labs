@@ -310,7 +310,7 @@ function _injectStyles() {
     '.fba-backdrop{width:100%;display:flex;align-items:center;justify-content:center;padding:24px}',
     '.fba-panel{background:var(--color-surface-1,#141416);border:1px solid var(--color-border,#27272a);border-radius:12px;padding:32px 28px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(0,0,0,.6)}',
     '.fba-brand{display:flex;align-items:center;gap:10px;margin-bottom:24px}',
-    '.fba-owl{height:36px;width:auto;flex-shrink:0}',
+    '.fba-owl{height:36px;width:auto;flex-shrink:0;filter:invert(82%) sepia(50%) saturate(500%) hue-rotate(2deg) brightness(107%) contrast(101%)}',
     '.fba-wordmark{display:block;font-size:12px;font-weight:700;color:var(--color-text-primary,#f4f4f5);letter-spacing:-.02em}',
     '.fba-product{display:block;font-size:10px;font-weight:500;color:var(--color-text-secondary,#a1a1aa);letter-spacing:.04em;margin-top:2px}',
     '.fba-title{font-size:20px;font-weight:600;color:var(--color-text-primary,#f4f4f5);margin:0 0 20px;letter-spacing:-.02em}',
