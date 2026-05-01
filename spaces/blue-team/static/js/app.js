@@ -5,6 +5,7 @@
  */
 
 import { $, $$, escapeHtml, fetchJSON, renderTabs, renderLevelBriefing, renderLeaderboard, renderInfoPage, renderProgress, renderWhyCard, renderGuidedPractice, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "./core.js";
+import { detectExamToken, initExamMode } from "./exam_mode.js";
 
 const state = {
   mode: "info",
@@ -986,6 +987,9 @@ function renderLB(main) {
 // =============================================================================
 
 async function init() {
+  const examToken = detectExamToken();
+  if (examToken) await initExamMode(examToken);
+
   try {
     const data = await fetchJSON("/api/challenges");
     state.defaultPrompt = data.default_prompt || "";
