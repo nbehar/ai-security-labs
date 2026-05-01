@@ -12,6 +12,7 @@
 
 import { fetchJSON, escapeHtml, renderKnowledgeCheck, wireKnowledgeCheck, renderGlossaryPanel } from "/static/js/core.js";
 import { renderImagePromptInjectionTab } from "/static/js/attack_runner.js";
+import { detectExamToken, initExamMode } from "/static/js/exam_mode.js";
 
 const TABS = [
   { id: "info", label: "Info" },
@@ -40,6 +41,8 @@ export function setHtml(el, html) {
 }
 
 (async function init() {
+  const examToken = detectExamToken();
+  if (examToken) await initExamMode(examToken);
   renderTabs();
   await loadHealth();
   await loadAttacks();
