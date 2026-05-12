@@ -1,6 +1,6 @@
 # AI Security Labs — Platform Project Status
 
-Last updated: 2026-05-08 (Firebase Auth deployed to all spaces)
+Last updated: 2026-05-11 (Auth verified all spaces; reviewer fixes applied)
 
 ---
 
@@ -9,11 +9,11 @@ Last updated: 2026-05-08 (Firebase Auth deployed to all spaces)
 | # | Space | HF Space | Status |
 |---|-------|------------|--------|
 | 1 | owasp-top-10 | `nikobehar/llm-top-10` | ✅ Live + Firebase Auth ON |
-| 1a | owasp-top-10 (private copy) | `nikobehar/ai-sec-lab1-owasp-top-10` | ✅ Live (protected) + Firebase Auth ON |
+| 1a | owasp-top-10 (private copy) | `nikobehar/ai-sec-lab1-owasp-top-10` | ✅ Live (private) + Firebase Auth ON — **needs GROQ_API_KEY** |
 | 2 | blue-team | `nikobehar/blue-team-workshop` | ✅ Live + Exam Mode + Firebase Auth ON |
 | 3 | red-team | `nikobehar/red-team-workshop` | ✅ Live + Exam Mode + Firebase Auth ON |
 | 4 | multimodal | `nikobehar/ai-sec-lab4-multimodal` | ✅ Live + Exam Mode + Firebase Auth ON |
-| 5 | data-poisoning | `nikobehar/ai-sec-lab5-data-poisoning` | ✅ Live + Exam Mode (Phase 6c complete) |
+| 5 | data-poisoning | `nikobehar/ai-sec-lab5-data-poisoning` | ✅ Live + Exam Mode + Firebase Auth ON |
 | 6 | detection-monitoring | `nikobehar/ai-sec-lab6-detection` | ✅ Live + Exam Mode + Firebase Auth ON |
 
 ---
@@ -102,18 +102,25 @@ All student-facing spaces are gated behind Firebase Auth (server-side `app_auth.
 | HF Space secrets | `FIREBASE_API_KEY` + `FIREBASE_CREDENTIALS` + `FIREBASE_PROJECT_ID` + `FIREBASE_AUTH_DOMAIN` set on all 5 live spaces |
 | Space visibility | All 5 student-facing spaces set to **protected** (HF login required before auth overlay) |
 
-**Spaces with Firebase auth enabled (verified):**
-- `nikobehar/llm-top-10` ✅
-- `nikobehar/red-team-workshop` ✅
-- `nikobehar/blue-team-workshop` ✅
-- `nikobehar/ai-sec-lab6-detection` ✅
-- `nikobehar/ai-sec-lab4-multimodal` ✅
+**Spaces with Firebase auth verified (all 7 checked 2026-05-11):**
+- `nikobehar/llm-top-10` ✅ RUNNING
+- `nikobehar/ai-sec-lab1-owasp-top-10` ✅ RUNNING (private; requires HF cookie auth for programmatic access)
+- `nikobehar/red-team-workshop` ✅ RUNNING
+- `nikobehar/blue-team-workshop` ✅ RUNNING
+- `nikobehar/ai-sec-lab5-data-poisoning` ✅ RUNNING (fixed: added `firebase-admin` to requirements.txt)
+- `nikobehar/ai-sec-lab6-detection` ✅ RUNNING
+- `nikobehar/ai-sec-lab4-multimodal` ✅ RUNNING
+
+**Auth implementation — reviewer fixes applied (`65b26bd`):**
+- `getIdToken()`: added `forceRefresh:true` fallback in catch block — prevents silent null return after network-disrupted refresh
+- `app_auth.py`: `/api/admin/` prefix added to pass-through list — admin routes protected by `EXAM_SECRET` alone (server-to-server); no Firebase token required from exam-admin proxy
+- SSE token injection was already correct (`owasp-top-10/app.js:1497-1499`)
 
 **Pending (user action required):**
-- Custom domains `aisl1`–`aisl6`.`luminexlab.app` — must be set via HF Space Settings UI (no API)
-- All `aisl*.luminexlab.app` domains must be added to Firebase Console → Authentication → Authorized domains
-- Namecheap DNS CNAMEs: each domain → `nikobehar-{space-name}.hf.space`
-- `data-poisoning` space (lab 5) — auth code is in local `app.py`/`app.js` but not yet confirmed deployed to HF
+- `ai-sec-lab1-owasp-top-10`: set `GROQ_API_KEY` in HF Space Settings (copy from `llm-top-10`)
+- Custom domains `aisl1`–`aisl6.luminexlab.app` — set via HF Space Settings UI (no API)
+- All `aisl*.luminexlab.app` domains → Firebase Console → Authentication → Authorized domains
+- Namecheap DNS CNAMEs: each `aisl*.luminexlab.app` → `nikobehar-{space-name}.hf.space`
 
 ---
 
@@ -155,17 +162,16 @@ All student-facing spaces are gated behind Firebase Auth (server-side `app_auth.
 ## Next Recommended Task
 
 **Immediate (user action):**
-1. Set custom domains `aisl1`–`aisl6`.`luminexlab.app` in each HF Space Settings → Custom domain
-2. Add those domains to Firebase Console → Authentication → Authorized domains
-3. Add Namecheap CNAMEs pointing each `aisl*.luminexlab.app` → `nikobehar-{space}.hf.space`
+1. Set `GROQ_API_KEY` on `ai-sec-lab1-owasp-top-10` in HF Space Settings
+2. Set custom domains `aisl1`–`aisl6.luminexlab.app` in each HF Space Settings → Custom domain
+3. Add those domains to Firebase Console → Authentication → Authorized domains
+4. Add Namecheap CNAMEs: each `aisl*.luminexlab.app` → `nikobehar-{space}.hf.space`
 
 **Code backlog (no blockers):**
-- Confirm data-poisoning (lab 5) has `FIREBASE_CREDENTIALS` set and auth enforced on HF
-- bd-q5u (P3): Instructor preview mode (GitHub issue #32)
-- bd-zn5 (P3): WCAG 2.1 AA audit (GitHub issue #33)
 - bd-bk7 (P4): Fix root CLAUDE.md "3 live workshops" → "6 live workshops"
-- GitHub issue #34: Facilitator guides for 3 live labs
-- GitHub issue #35: Course materials package
+- bd-n6y (P4): Facilitator guides for 3 live labs (GitHub issue #34)
+- bd-qoq (P4): Course materials package (GitHub issue #35)
+- bd-t51 (P4): Additional assessment types (GitHub issue #36)
 
 ---
 
