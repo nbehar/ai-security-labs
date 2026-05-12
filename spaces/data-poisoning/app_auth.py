@@ -74,9 +74,11 @@ def add_auth_middleware(app) -> None:
 
         path = request.url.path
 
-        # Pass through: root, health, static files, and the config endpoint
+        # Pass through: root, health, static files, config endpoint, and
+        # admin routes (protected by EXAM_SECRET server-to-server check instead)
         if (path in ("/", "/health", "/api/firebase-config")
-                or path.startswith("/static/")):
+                or path.startswith("/static/")
+                or path.startswith("/api/admin/")):
             return await call_next(request)
 
         # EventSource (SSE) cannot set headers — accept token as query param fallback

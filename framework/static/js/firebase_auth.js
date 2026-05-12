@@ -47,7 +47,11 @@ export async function initFirebaseAuth() {
 export async function getIdToken() {
   if (!_currentUser) return null;
   try { return await _currentUser.getIdToken(); }
-  catch { return null; }
+  catch {
+    // Cached token failed — force one network refresh before giving up
+    try { return await _currentUser.getIdToken(true); }
+    catch { return null; }
+  }
 }
 
 export function getCurrentUser() { return _currentUser; }
