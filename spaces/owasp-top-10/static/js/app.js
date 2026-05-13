@@ -5,7 +5,6 @@
 
 import { t } from "./i18n.js";
 import { OWASP_SLIDES, DEFENSE_MATRIX } from "./slides.js";
-import { initFirebaseAuth, getIdToken } from './firebase_auth.js';
 
 // =============================================================================
 // STATE
@@ -1493,10 +1492,7 @@ async function handleRunScorecard() {
   renderScorecardMode();
 
   try {
-    // EventSource cannot set headers — append Firebase token as query param
-    const fbToken = await getIdToken().catch(() => null);
-    const tokenParam = fbToken ? `&firebase_token=${encodeURIComponent(fbToken)}` : '';
-    const url = `/api/scorecard/stream?canary=${encodeURIComponent(canary)}&workshop=${state.workshop}${tokenParam}`;
+    const url = `/api/scorecard/stream?canary=${encodeURIComponent(canary)}&workshop=${state.workshop}`;
     const evtSource = new EventSource(url);
     const results = [];
 
@@ -1570,19 +1566,6 @@ function bindEvents() {
 // =============================================================================
 
 async function init() {
-  // initFirebaseAuth() calls /api/firebase-config (exempt from auth) so it's
-  // safe to await before the fetch patch exists.
-  const fbUser = await initFirebaseAuth();
-  if (fbUser) {
-    const _fbFetch = window.fetch;
-    window.fetch = async (url, opts = {}) => {
-      const headers = { ...(opts.headers || {}) };
-      const token = await getIdToken().catch(() => null);
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      return _fbFetch(url, { ...opts, headers });
-    };
-  }
-
   cacheDom();
   bindEvents();
   await loadAttacks();
